@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Riftlog",
-    "slug": "Riftlog",
+    "slug": "riftlog",
     "owner": "m_mecke",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -53,7 +53,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "d2e41792-0ca6-404a-a99b-f70ee3b04d65"
+        "projectId": "9ed18f11-269f-4b7f-96c6-6c1edae65fc3"
       }
     }
   }
