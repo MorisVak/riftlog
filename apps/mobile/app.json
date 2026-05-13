@@ -17,7 +17,7 @@
       }
     },
     "android": {
-      "package": "com.m-mecke.riftlog",
+      "package": "com.mmecke.riftlog",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -29,6 +29,7 @@
     },
     "web": {
       "output": "static",
+      "bundler": "metro",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
