@@ -1,10 +1,11 @@
 import { Text, TouchableOpacity, View } from 'react-native';
-import PlayField from '@/components/playField';
 import * as Haptics from 'expo-haptics';
 import { useMatch } from '@/contexts/matchContext';
+import PlayField from '@/components/playField';
+import React from 'react';
 
 const Index = () => {
-  const { gameStarted, startGame, endGame } = useMatch();
+  const { gameStarted, startMatch, endMatch } = useMatch();
 
   return (
     <View className="flex-1 bg-darkerBackground">
@@ -18,7 +19,7 @@ const Index = () => {
             <TouchableOpacity
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                endGame();
+                endMatch();
               }}
               className="rounded-lg bg-[#7A1F2B] px-6 py-3 active:bg-[#5C1620]"
             >
@@ -31,7 +32,7 @@ const Index = () => {
           <TouchableOpacity
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              startGame();
+              startMatch();
             }}
             className="rounded-lg bg-white px-8 py-4"
           >

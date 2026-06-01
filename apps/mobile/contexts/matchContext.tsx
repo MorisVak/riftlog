@@ -1,57 +1,128 @@
-import {
-  createContext,
-  Dispatch,
-  SetStateAction,
-  useContext,
-  useState,
-} from 'react';
+import React, { createContext, ReactNode, useContext, useState } from 'react';
+import { randomUUID } from 'expo-crypto';
+import type { Game, Match, Player, PlayerId } from '@riftlog/core';
+
+/**
+ * Default configuration for a new match. Pre-match UI doesn't exist yet,
+ * so START uses these defaults. When pre-match UI is built, callers will
+ * pass their own config to startMatch().
+ */
+const DEFAULTS = {
+  bestOf: 1 as 1 | 3,
+  targetScore: 8,
+  aspirantsClimbCount: 0,
+  playerNames: ['Player 1', 'Player 2'] as const,
+};
 
 export type MatchContextType = {
-  p1Score: number;
-  p2Score: number;
-  setP1Score: Dispatch<SetStateAction<number>>;
-  setP2Score: Dispatch<SetStateAction<number>>;
+  match: Match | null;
+
+  // Derived/convenience
   gameStarted: boolean;
-  startGame: () => void;
-  endGame: () => void;
-  incrementScore: (setter: Dispatch<SetStateAction<number>>) => void;
-  decrementScore: (setter: Dispatch<SetStateAction<number>>) => void;
+  currentGame: Game | null;
+
+  // Match lifecycle
+  startMatch: () => void;
+  endMatch: () => void;
+
+  // Score actions (intent-named, player-oriented)
+  incrementScore: (playerId: PlayerId) => void;
+  decrementScore: (playerId: PlayerId) => void;
+  setScore: (playerId: PlayerId, value: number) => void;
 };
 
 const MatchContext = createContext<MatchContextType | undefined>(undefined);
 
-const MatchProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const [gameStarted, setGameStarted] = useState(false);
-  const [p1Score, setP1Score] = useState(0);
-  const [p2Score, setP2Score] = useState(0);
-  const [p1Xp, setP1Xp] = useState(0);
-  const [p2Xp, setP2Xp] = useState(0);
+const nowIso = () => new Date().toISOString();
 
-  const startGame = () => setGameStarted(true);
-  const endGame = () => setGameStarted(false);
+const makeGame = (targetScore: number, aspirantsClimbCount: number): Game => ({
+  id: randomUUID(),
+  targetScore,
+  aspirantsClimbCount,
+  scoresAtEnd: { p1: 0, p2: 0 },
+  winnerId: null,
+  startedAt: nowIso(),
+  endedAt: null,
+});
 
-  const incrementScore = (setter: Dispatch<SetStateAction<number>>) => {
-    setter((prev) => prev + 1);
+const makePlayer = (id: PlayerId, name: string): Player => ({
+  id,
+  name,
+  gameScore: 0,
+  gameWins: 0,
+  xp: 0,
+  userId: null,
+});
+
+const MatchProvider = ({ children }: { children: ReactNode }) => {
+  const [match, setMatch] = useState<Match | null>(null);
+
+  const startMatch = () => {
+    const newMatch: Match = {
+      id: randomUUID(),
+      bestOf: DEFAULTS.bestOf,
+      players: [
+        makePlayer('p1', DEFAULTS.playerNames[0]),
+        makePlayer('p2', DEFAULTS.playerNames[1]),
+      ],
+      games: [makeGame(DEFAULTS.targetScore, DEFAULTS.aspirantsClimbCount)],
+      currentGameIndex: 0,
+      winnerId: null,
+      startedAt: nowIso(),
+      endedAt: null,
+      hostUserId: null,
+      guestUserIds: [],
+    };
+    setMatch(newMatch);
   };
 
-  const decrementScore = (setter: Dispatch<SetStateAction<number>>) => {
-    setter((prev) => (prev > 0 ? prev - 1 : prev));
+  const endMatch = () => {
+    // For v1: just discard the match. Persistence comes later.
+    setMatch(null);
   };
+
+  const updatePlayer = (
+    playerId: PlayerId,
+    updater: (player: Player) => Player,
+  ) => {
+    setMatch((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        players: prev.players.map((p) => (p.id === playerId ? updater(p) : p)),
+      };
+    });
+  };
+
+  const incrementScore = (playerId: PlayerId) => {
+    updatePlayer(playerId, (p) => ({ ...p, gameScore: p.gameScore + 1 }));
+  };
+
+  const decrementScore = (playerId: PlayerId) => {
+    updatePlayer(playerId, (p) => ({
+      ...p,
+      gameScore: Math.max(p.gameScore - 1, 0),
+    }));
+  };
+
+  const setScore = (playerId: PlayerId, value: number) => {
+    updatePlayer(playerId, (p) => ({ ...p, gameScore: Math.max(value, 0) }));
+  };
+
+  const gameStarted = match !== null && match.endedAt === null;
+  const currentGame = match?.games[match.currentGameIndex] ?? null;
 
   return (
     <MatchContext.Provider
       value={{
-        p1Score,
-        p2Score,
-        setP1Score,
-        setP2Score,
+        match,
         gameStarted,
-        startGame,
-        endGame,
+        currentGame,
+        startMatch,
+        endMatch,
         incrementScore,
         decrementScore,
+        setScore,
       }}
     >
       {children}

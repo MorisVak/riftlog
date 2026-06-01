@@ -1,46 +1,44 @@
 import { Text, TouchableOpacity, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import type { PlayerId } from '@riftlog/core';
 import { useMatch } from '@/contexts/matchContext';
+import React from 'react';
 
 type ScoringComponentProps = {
-  playerName: string;
+  playerId: PlayerId;
 };
 
-const ScoringComponent = ({ playerName }: ScoringComponentProps) => {
-  const {
-    p1Score,
-    p2Score,
-    setP1Score,
-    setP2Score,
-    incrementScore,
-    decrementScore,
-  } = useMatch();
+const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
+  const { match, incrementScore, decrementScore } = useMatch();
 
-  const isP1 = playerName === 'Player 1';
-  const score = isP1 ? p1Score : p2Score;
-  const setter = isP1 ? setP1Score : setP2Score;
+  const player = match?.players.find((p) => p.id === playerId);
+  if (!player) return null;
+
+  const onIncrement = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    incrementScore(playerId);
+  };
+
+  const onDecrement = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    decrementScore(playerId);
+  };
 
   return (
     <View className="flex-row items-center gap-6">
       <TouchableOpacity
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          decrementScore(setter);
-        }}
+        onPress={onDecrement}
         className="h-16 w-16 items-center justify-center rounded-full bg-white/10 active:bg-white/20"
       >
         <Text className="text-white text-4xl font-semibold">−</Text>
       </TouchableOpacity>
 
       <Text className="text-white text-8xl font-bold tabular-nums">
-        {score}
+        {player.gameScore}
       </Text>
 
       <TouchableOpacity
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          incrementScore(setter);
-        }}
+        onPress={onIncrement}
         className="h-16 w-16 items-center justify-center rounded-full bg-white/10 active:bg-white/20"
       >
         <Text className="text-white text-4xl font-semibold">+</Text>

@@ -3,8 +3,7 @@ import { AntDesign } from '@expo/vector-icons';
 import { HapticTab } from '@/components/haptic-tab';
 import { useMatch } from '@/contexts/matchContext';
 
-const _Layout = () => {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+export default function TabsLayout() {
   const { gameStarted } = useMatch();
 
   return (
@@ -76,6 +75,4 @@ const _Layout = () => {
       />
     </Tabs>
   );
-};
-
-export default _Layout;
+}

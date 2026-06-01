@@ -6,3 +6,6 @@
  */
 
 export const RIFTLOG_CORE_VERSION = '0.0.0';
+
+export type { DeckSnapshot } from './types/deck';
+export type { PlayerId, Player, Game, Match } from './types/match';

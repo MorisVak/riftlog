@@ -1,0 +1,22 @@
+node*modules/
+.expo/
+ios/
+android/
+dist/
+build/
+*.tsbuildinfo
+.turbo/
+.cache/
+coverage/
+\_.log
+
+# Lockfiles (Claude Code shouldn't be reasoning over these)
+
+pnpm-lock.yaml
+
+# Generated
+
+_.tar.gz
+_.app
+_.ipa
+_.apk
