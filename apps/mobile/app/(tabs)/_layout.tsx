@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
 import { HapticTab } from '@/components/haptic-tab';
 import { useMatch } from '@/contexts/matchContext';
+import React from 'react';
 
 export default function TabsLayout() {
   const { gameStarted } = useMatch();
