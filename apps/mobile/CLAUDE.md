@@ -26,15 +26,76 @@ NativeWind v4. Tailwind classes via `className`.
 - `global.css` at `app/global.css` has the three Tailwind directives.
 - Imported once in `app/_layout.tsx`.
 - Don't add `StyleSheet.create(...)` — use NativeWind classes.
+- **No inline hex.** Never use arbitrary values like `bg-[#7A1F2B]`. Every
+  color comes from a token below. If you need a color that isn't a token,
+  add it to `tailwind.config.js` first.
 
-Color usage so far:
+### Design tokens — Archive Periwinkle
 
-- `bg-darkerBackground` — main app background (custom, defined in tailwind config — TODO if not yet defined)
-- `bg-[#7A1F2B]` / `text-[#F5D6D6]` / `active:bg-[#5C1620]` — destructive action (END button)
+The palette lives in `tailwind.config.js`. Token names match the design
+system 1:1 so there's no translation step from design to code.
 
-When introducing semantic colors, prefer adding tokens to
-`tailwind.config.js` over inline arbitrary values. Use semantic names
-(`danger`, `success`, `primary`) not literal color names (`red`, `green`).
+**Base & surface** (darkest → lightest):
+
+- `bg-background` `#0D1B2A` — app background
+- `bg-surface` `#18223A` — cards, panels
+- `bg-elevated` `#222D47` — raised surfaces (modals, menus)
+- `border-border` `#2E3C56` — hairlines, dividers
+
+**Accent** — periwinkle, the single brand accent:
+
+- `bg-accent` / `text-accent` `#8B93D9` — primary accent (buttons, active states)
+- `accent-strong` `#6D74C4` — pressed / emphasis
+- `accent-soft` `#A6ADE6` — lighter accent (e.g. icons on dark)
+- `accent-deep` `#14182B` — very dark periwinkle wash (subtle fills)
+- Translucent accent fills use opacity, not a token: `bg-accent/15`.
+
+**Text** — under the `ink` family (named `ink`, not `text`, to avoid the
+`text-text-*` class collision):
+
+- `text-ink-primary` `#E4E5F2` — primary text
+- `text-ink-secondary` `#868FB0` — secondary / labels
+- `text-ink-tertiary` `#5E6788` — muted / disabled
+
+**Results** — `win` / `loss` / `draw`, four tokens each:
+
+- `bg-win` `#22C55E` · `text-win-text` `#4ADE80` · `bg-win-tint` `#385041` · `bg-win-deep` `#052E13`
+- `bg-loss` `#EF4444` · `text-loss-text` `#FB8181` · `bg-loss-tint` `#573D3D` · `bg-loss-deep` `#2A0606`
+- `bg-draw` `#C6A864` · `text-draw-text` `#D8C290` · `bg-draw-tint` `#524D42` · `bg-draw-deep` `#2B2102`
+
+Role of each result token:
+
+- base (`bg-win`) — the colored left bar, badge fill, solid indicator
+- `-text` (`text-win-text`) — result text on a dark background
+- `-tint` (`bg-win-tint`) — muted row / cell highlight on surface
+- `-deep` (`bg-win-deep`) — faint full-bleed background wash
+
+**Colorblind-safe rule (non-negotiable):** result color is NEVER the only
+signal. Every win/loss/draw indicator pairs the color with (a) a `W`/`L`/`D`
+letter badge and (b) a colored left bar. Don't convey result by color alone.
+
+## Animation
+
+Animations use **React Native Reanimated 4** (`react-native-reanimated`
+~4.1.7) with `react-native-worklets` (0.5.1). Both already ship as deps with
+the Expo template — there is nothing to install.
+
+- **Don't touch `babel.config.js` for Reanimated.** `babel-preset-expo`
+  (SDK 54) auto-configures the worklets Babel plugin. Manually adding
+  `react-native-worklets/plugin` on top of the preset can double-transform
+  worklets and break them.
+- Reanimated 4 requires the **New Architecture (Fabric)**, which SDK 54
+  enables by default. Don't disable it.
+- Reanimated is a **native module**: if animations don't run after you add
+  them, clear the Metro cache (`pnpm mobile start --clear`) and rebuild the
+  dev client — a JS reload isn't enough.
+- Prefer Reanimated over the legacy `Animated` API and over layout hacks.
+  Use `useSharedValue` / `useAnimatedStyle` / `withTiming` / `withSpring`
+  and `Animated.View`.
+
+To re-pin SDK-compatible versions (idempotent, safe to run):
+
+pnpm --filter @riftlog/mobile exec expo install react-native-reanimated react-native-worklets
 
 ## Match state
 
@@ -56,8 +117,17 @@ const {
 } = useMatch();
 ```
 
+The pre-match setup, end-game prompt, match resolution (writing
+`scoresAtEnd` / `winnerId` / `gameWins` / `Match.winnerId`), Bo3 advance, and
+timed mode are specced in `SPEC.md` but not yet built. See it before extending
+the match flow.
+
 Conventions:
 
+- **Scoring is a manual tally — no auto-end.** Score can't drop below 0;
+  there's no upper bound and no win-at-target logic. Games and the match end
+  only via explicit user action (with a confirm prompt), so stray or accidental
+  taps never close anything.
 - **All score actions take a `PlayerId`, never a setter.** The old setter-
   passing pattern was removed in the refactor.
 - **Player identity within a match is `'p1' | 'p2'`.** This is independent
@@ -128,13 +198,18 @@ For simulator dev builds (free, no Apple credentials needed):
 
 ## What not to build proactively
 
-The user is building incrementally. Don't add:
+The user is building incrementally. Don't add the following until its slice
+is explicitly started:
 
-- Pre-match config screens
-- Victory detection / claim-victory UI
-- AsyncStorage persistence
-- Real Supabase integration
-- Auth screens
+- Pre-match config screens (format, names, timed-mode toggle)
+- End-game prompt / match resolution (claim-victory, Bo3 advance)
+- Timed-game mode (clock + data-model fields)
+- Supabase auth + cloud match persistence
 - Deck import/parsing
 
-These have data model placeholders but are deferred until the user opts in.
+There is **no local / AsyncStorage persistence** — history is cloud-only
+(Supabase), so don't add an on-device match store. Matches played offline or
+signed-out are simply not saved in v1.
+
+These are specced in `SPEC.md` and sequenced — build them when their roadmap
+step begins, not ahead of it.

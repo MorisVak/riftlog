@@ -3,9 +3,17 @@
 Database, auth, and Edge Functions for Riftlog.
 
 **Status:** not yet implemented. Directory structure is in place but no
-migrations, functions, or config exist yet.
+migrations, functions, or config exist yet. It is now **near-term**: cloud
+persistence is pulled forward (right after the match-lifecycle slice) because
+it is the app's only persistence layer.
 
-Parent conventions in `../CLAUDE.md` apply.
+Supabase is Riftlog's **sole** persistence layer — there is no local /
+on-device store. A match played while signed-out or offline is **not saved**
+in v1. The live tracker works offline; only saving requires an account and
+connection.
+
+Parent conventions in `../CLAUDE.md` apply. Product detail and sequencing live
+in `../SPEC.md`.
 
 ## Planned structure
 

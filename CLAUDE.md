@@ -7,6 +7,9 @@ This repo is a pnpm monorepo. Mobile app at `apps/mobile`, shared types and
 parsers at `packages/core`, future Edge Functions and database migrations at
 `supabase/`.
 
+The full product spec and build order live in `SPEC.md`. `CLAUDE.md` files
+describe _how_ the project works; `SPEC.md` describes _what_ is being built.
+
 ## Stack
 
 - **Package manager:** pnpm 10. **Never run npm or yarn in this repo.**
@@ -16,10 +19,12 @@ parsers at `packages/core`, future Edge Functions and database migrations at
 - **TypeScript strict.** No `any` unless explicitly justified. The base
   config in `tsconfig.base.json` enforces strict mode, `noUncheckedIndexedAccess`,
   `noImplicitOverride`, etc. Don't relax these.
-- **Mobile:** Expo SDK 54, Expo Router, NativeWind v4, React 19.
+- **Mobile:** Expo SDK 54, Expo Router, NativeWind v4, React 19. Animations
+  via React Native Reanimated 4 (see `apps/mobile/CLAUDE.md`).
 - **Shared:** `@riftlog/core` package — pure TypeScript, no platform code.
 - **Backend:** Supabase (auth + Postgres + Edge Functions). Not yet
-  implemented. Forward-compatible fields exist in the data model.
+  implemented. It is the **only** persistence layer — there is no local /
+  on-device store. Forward-compatible fields exist in the data model.
 
 ## Working in this monorepo
 
@@ -94,13 +99,18 @@ Don't invent terminology that doesn't exist in Riftbound.
 ## What's intentionally not built yet
 
 - Auth (planned: Supabase auth with magic links)
-- Persistence (state is in-memory; AsyncStorage or Supabase coming)
-- Pre-match setup UI (Bo1/Bo3 toggle, target score, deck selection)
+- Cloud persistence (state is in-memory; matches save to Supabase once auth
+  lands). No local / on-device store — offline or signed-out matches aren't
+  saved in v1, by design.
+- Pre-match setup UI (Bo1/Bo3 toggle, player names, timed-mode toggle, deck
+  selection)
+- Timed-game mode (countdown per Bo1/Bo3, pauses between games) — not built
+  and not in the data model yet
 - Between-games UI for Bo3
-- Claim-victory flow
+- End-game prompt / claim-victory + match resolution flow
 - Deck imports (Piltover Archive parser first, then Riftmana)
 - Match history view (data model exists, no UI yet)
 - v2 QR co-recording feature (data model has placeholder fields)
 
-When extending the app, check whether something is intentionally deferred
-before building it.
+See `SPEC.md` for the full feature detail and build order. When extending the
+app, check whether something is intentionally deferred before building it.
