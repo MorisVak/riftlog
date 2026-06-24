@@ -5,7 +5,7 @@ import { useMatch } from '@/contexts/matchContext';
 import React from 'react';
 
 export default function TabsLayout() {
-  const { gameStarted } = useMatch();
+  const { phase } = useMatch();
 
   return (
     <Tabs
@@ -19,7 +19,7 @@ export default function TabsLayout() {
           justifyContent: 'center',
           alignItems: 'center',
         },
-        tabBarStyle: gameStarted
+        tabBarStyle: phase !== 'idle'
           ? { display: 'none' }
           : {
               shadowColor: '#000',

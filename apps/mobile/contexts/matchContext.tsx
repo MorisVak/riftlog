@@ -14,16 +14,32 @@ const DEFAULTS = {
   playerNames: ['Player 1', 'Player 2'] as const,
 };
 
+/**
+ * The result a player declares when ending a game. A real winner, or a draw
+ * (recorded as `winnerId: null` on the frozen Game).
+ */
+export type GameResult = PlayerId | 'draw';
+
+/**
+ * Lifecycle phase of the current match. Derived from `match`, never stored —
+ * see the derivation in the provider. Drives both the play-screen render and
+ * the tab-bar visibility.
+ */
+export type MatchPhase = 'idle' | 'playing' | 'between-games' | 'over';
+
 export type MatchContextType = {
   match: Match | null;
 
   // Derived/convenience
   gameStarted: boolean;
   currentGame: Game | null;
+  phase: MatchPhase;
 
   // Match lifecycle
   startMatch: () => void;
   endMatch: () => void;
+  endGame: (result: GameResult) => void;
+  advanceGame: () => void;
 
   // Score actions (intent-named, player-oriented)
   incrementScore: (playerId: PlayerId) => void;
@@ -34,6 +50,9 @@ export type MatchContextType = {
 const MatchContext = createContext<MatchContextType | undefined>(undefined);
 
 const nowIso = () => new Date().toISOString();
+
+/** Game wins a player needs to take the match for the given format. */
+const winsToTakeMatch = (bestOf: 1 | 3) => (bestOf === 1 ? 1 : 2);
 
 const makeGame = (targetScore: number, aspirantsClimbCount: number): Game => ({
   id: randomUUID(),
@@ -81,6 +100,78 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
     setMatch(null);
   };
 
+  /**
+   * Freeze the current game with the player-declared result, then decide the
+   * match. Works generically for Bo1 and Bo3:
+   *   - Bo1 is always settled after its single game (winner or draw).
+   *   - Bo3 is settled once a player reaches 2 game wins.
+   * When the match isn't settled the game is left frozen and the match enters
+   * the `between-games` phase; the next game is created by `advanceGame()`.
+   */
+  const endGame = (result: GameResult) => {
+    setMatch((prev) => {
+      if (!prev || prev.endedAt !== null) return prev;
+
+      const winnerId: PlayerId | null = result === 'draw' ? null : result;
+
+      const players = prev.players.map((p) =>
+        winnerId !== null && p.id === winnerId
+          ? { ...p, gameWins: p.gameWins + 1 }
+          : p,
+      );
+
+      const scoresAtEnd: Record<PlayerId, number> = {
+        p1: prev.players.find((p) => p.id === 'p1')?.gameScore ?? 0,
+        p2: prev.players.find((p) => p.id === 'p2')?.gameScore ?? 0,
+      };
+
+      const games = prev.games.map((g, i) =>
+        i === prev.currentGameIndex
+          ? { ...g, scoresAtEnd, winnerId, endedAt: nowIso() }
+          : g,
+      );
+
+      const winsNeeded = winsToTakeMatch(prev.bestOf);
+      const matchWinner =
+        players.find((p) => p.gameWins >= winsNeeded)?.id ?? null;
+      // A Bo1 is decided by its single game, even on a draw (winner stays null).
+      const settled = prev.bestOf === 1 || matchWinner !== null;
+
+      return {
+        ...prev,
+        players,
+        games,
+        winnerId: matchWinner,
+        endedAt: settled ? nowIso() : null,
+      };
+    });
+  };
+
+  /**
+   * Start the next game of a Bo3 after the between-games screen. Resets live
+   * scores via a fresh Game and advances the index. No-op if the current game
+   * isn't frozen or the match is already over.
+   */
+  const advanceGame = () => {
+    setMatch((prev) => {
+      if (!prev || prev.endedAt !== null) return prev;
+      const current = prev.games[prev.currentGameIndex];
+      if (!current || current.endedAt === null) return prev;
+
+      const nextGame = makeGame(
+        DEFAULTS.targetScore,
+        DEFAULTS.aspirantsClimbCount,
+      );
+      return {
+        ...prev,
+        // Live score lives on Player.gameScore — reset it for the new game.
+        players: prev.players.map((p) => ({ ...p, gameScore: 0 })),
+        games: [...prev.games, nextGame],
+        currentGameIndex: prev.currentGameIndex + 1,
+      };
+    });
+  };
+
   const updatePlayer = (
     playerId: PlayerId,
     updater: (player: Player) => Player,
@@ -112,14 +203,26 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
   const gameStarted = match !== null && match.endedAt === null;
   const currentGame = match?.games[match.currentGameIndex] ?? null;
 
+  const phase: MatchPhase =
+    match === null
+      ? 'idle'
+      : match.endedAt !== null
+        ? 'over'
+        : currentGame?.endedAt != null
+          ? 'between-games'
+          : 'playing';
+
   return (
     <MatchContext.Provider
       value={{
         match,
         gameStarted,
         currentGame,
+        phase,
         startMatch,
         endMatch,
+        endGame,
+        advanceGame,
         incrementScore,
         decrementScore,
         setScore,
