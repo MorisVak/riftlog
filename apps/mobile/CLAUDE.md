@@ -109,18 +109,27 @@ const {
   match, // Match | null
   gameStarted, // derived: match !== null && !match.endedAt
   currentGame, // derived: match.games[match.currentGameIndex]
+  phase, // derived: 'idle' | 'playing' | 'between-games' | 'over'
   startMatch, // () => void — uses defaults (Bo1, target 8)
   endMatch, // () => void — discards match (no persistence yet)
+  endGame, // (result: GameResult) => void — freeze current game, resolve match
+  advanceGame, // () => void — start the next game of a Bo3 (after between-games)
   incrementScore, // (playerId: 'p1' | 'p2') => void
   decrementScore, // (playerId: 'p1' | 'p2') => void
   setScore, // (playerId: 'p1' | 'p2', value: number) => void
 } = useMatch();
 ```
 
-The pre-match setup, end-game prompt, match resolution (writing
-`scoresAtEnd` / `winnerId` / `gameWins` / `Match.winnerId`), Bo3 advance, and
-timed mode are specced in `SPEC.md` but not yet built. See it before extending
-the match flow.
+`GameResult` is `PlayerId | 'draw'` (exported from `matchContext`): the result a
+player declares when ending a game. `endGame` freezes the current `Game`
+(`scoresAtEnd` / `winnerId` / `endedAt`), increments the winner's `gameWins`,
+and resolves the match (Bo1 after one game; Bo3 at two game wins, setting
+`Match.winnerId` / `endedAt`). When a Bo3 isn't yet decided the match sits in
+the `between-games` phase until `advanceGame` starts the next game.
+
+Pre-match setup (format / names / timed-mode toggle) and timed mode are specced
+in `SPEC.md` but not yet built; `startMatch` still uses hardcoded defaults. See
+it before extending the match flow.
 
 Conventions:
 
@@ -136,6 +145,8 @@ Conventions:
 - **Match and Game IDs are UUIDs** generated via `expo-crypto`. Don't use
   incrementing counters.
 - **`gameStarted` is derived, not stored.** Don't add a separate flag.
+- **`phase` is derived, not stored.** It's computed from `match` /
+  `endedAt` / the current game's `endedAt` — don't add a stored phase field.
 - **Dates are ISO strings**, not `Date` objects. Easier to serialize for
   Supabase later.
 

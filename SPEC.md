@@ -93,8 +93,9 @@ Forward-compatible fields already in the model (`Player.userId`,
 
 **Status:** partially built. The playboard renders two players with
 increment/decrement scoring (`PlayField` → `TrackingField` →
-`ScoringComponent`), backed by `matchContext`. Pre-match setup, the end-game
-prompt, match resolution, and Bo3 flow are not built. Timed mode is not built.
+`ScoringComponent`), backed by `matchContext`. The resolution core is built:
+the end-game prompt, game freezing, match resolution, the Bo3 between-games
+flow, and the match overview. Pre-match setup and timed mode are not built.
 
 **What it is.** The default screen. Two players, two scores, tap to count up
 as the game is played in person. The tab bar hides during an active match so
