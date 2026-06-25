@@ -93,9 +93,8 @@ Forward-compatible fields already in the model (`Player.userId`,
 
 **Status:** partially built. The playboard renders two players with
 increment/decrement scoring (`PlayField` → `TrackingField` →
-`ScoringComponent`), backed by `matchContext`. The resolution core is built:
-the end-game prompt, game freezing, match resolution, the Bo3 between-games
-flow, and the match overview. Pre-match setup and timed mode are not built.
+`ScoringComponent`), backed by `matchContext`. Pre-match setup, the end-game
+prompt, match resolution, and Bo3 flow are not built. Timed mode is not built.
 
 **What it is.** The default screen. Two players, two scores, tap to count up
 as the game is played in person. The tab bar hides during an active match so
@@ -135,6 +134,26 @@ games and the match themselves.
 exists, completing a match saves it to Supabase when the user is signed in;
 only an explicit "abandon/discard" should throw it away. A match completed
 while signed-out is not saved in v1.
+
+**Designed setup sheet (forward-looking).** Pre-match setup is designed as a
+bottom sheet titled "New match" (from Claude Design), containing top to bottom:
+a grab handle, a **Format** segmented toggle (Best of 1 / Best of 3), a **Your
+deck** carousel, an **Opponent name** input, a **Scan QR** button shown with a
+"SOON" teaser state, a **Track turns** toggle, and a **Start match** button.
+
+v1 builds only **Format + player names + Start**. The design's single
+"Opponent" field assumes a logged-in "You"; until auth exists the model has two
+symmetric players, so v1 renders **two name inputs** (Player 1 / Player 2),
+styled like the design's input. The remaining elements are designed and
+recorded here so they slot onto this same sheet when their features land:
+
+- **Your deck** carousel → deck selection entry point (Feature 4).
+- **Scan QR ("SOON")** → match-mode teaser (Feature 8). The disabled "SOON"
+  affordance could ship earlier than the feature itself (see open questions).
+- **Track turns** toggle → turn tracking (Feature 10); not in the data model.
+
+The designed sheet has **no** timed-game control, whereas the lifecycle above
+describes a timed-game toggle — these need reconciling (see open questions).
 
 ---
 
@@ -192,6 +211,10 @@ matches and review it later. Import sources, in priority order: **Piltover
 Archive**, then **Riftmana**, then **manual** entry. Imported decks are stored
 as decks the player owns; attaching one to a match captures an immutable
 snapshot at that moment.
+
+**Entry point:** the **Your deck** carousel on the pre-match setup sheet
+(Feature 1), where the player picks which owned deck they're running for the
+match before starting it.
 
 **Requirements:**
 
@@ -271,6 +294,11 @@ co-record live vs. one hosts and the other joins) is undecided. Depends on
 auth and likely Supabase realtime. Treat as exploratory — the data model
 reserves space for it but nothing should be built until v1 is solid.
 
+**Designed entry point:** the pre-match setup sheet (Feature 1) includes a
+**Scan QR** button shown with a "SOON" teaser state. The disabled teaser could
+ship in v1 to surface the upcoming feature, even though the functionality is
+v2 (see open questions).
+
 ---
 
 ## Feature 9 — Friends
@@ -280,6 +308,23 @@ reserves space for it but nothing should be built until v1 is solid.
 **What it is.** A "friends" tab of already-connected players, so match mode can
 pick a known buddy instead of scanning a QR each time. Noted for direction
 only; no design or model work yet.
+
+---
+
+## Feature 10 — Turn tracking
+
+**Status:** exploratory / deferred. Not in the data model.
+
+**What it is.** An optional **Track turns** toggle on the pre-match setup sheet
+(Feature 1). When on, Riftlog tracks turns during a game — e.g. whose turn it
+is and/or a turn counter — alongside the score. Distinct from timed mode: this
+counts turns, not time.
+
+**Notes:** needs new model/runtime state (turn count, active player) and a
+decision on what, if anything, persists to history. Designed as a toggle on the
+setup sheet but not built or modelled. The designed sheet shows Track turns and
+no timed control, while Feature 1's lifecycle describes a timed-game toggle —
+reconcile the two (see open questions).
 
 ---
 
@@ -305,7 +350,8 @@ matching the incremental philosophy in `CLAUDE.md`.
    (Feature 5.)
 8. **Card art decklists** — once the Riot API key lands. (Feature 6.)
 9. **Match mode (QR)** — v2. (Feature 8.)
-10. **Friends** — exploratory. (Feature 9.)
+10. **Turn tracking** — exploratory. (Feature 10.)
+11. **Friends** — exploratory. (Feature 9.)
 
 ## Constraints
 
@@ -326,6 +372,12 @@ matching the incremental philosophy in `CLAUDE.md`.
 - **Timed mode** — what happens when the clock reaches zero? Auto-end the game
   or match, and how is the result decided (current score wins? sudden death?)?
   What persists to history (configured duration, whether time expired)?
+- **Track turns vs. timed mode** — the designed setup sheet has a **Track
+  turns** toggle and no timed-game control, but Feature 1's lifecycle describes
+  a **timed-game** toggle. Decide which the pre-match toggle actually is —
+  turn tracking, timed game, or both — and which you want first.
+- **Scan QR "SOON" teaser** — should the disabled Scan QR affordance ship in v1
+  as a teaser for the v2 match-mode feature, or stay out entirely until v2?
 - **Target score / Aspirant's Climb fields** — the app no longer enforces a
   target; ending is fully manual. Decide whether `Game.targetScore` and
   `Game.aspirantsClimbCount` stay as informational history context or are
