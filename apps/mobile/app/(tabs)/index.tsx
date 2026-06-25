@@ -42,9 +42,9 @@ const Index = () => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               setPromptOpen(true);
             }}
-            className="rounded-lg bg-[#7A1F2B] px-6 py-3 active:bg-[#5C1620]"
+            className="rounded-full bg-accent px-6 py-3 active:bg-accent-strong"
           >
-            <Text className="text-[#F5D6D6] text-base font-bold">END</Text>
+            <Text className="text-background text-base font-bold">END</Text>
           </TouchableOpacity>
         </View>
         {promptOpen && <EndGamePrompt onClose={() => setPromptOpen(false)} />}
@@ -61,9 +61,9 @@ const Index = () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             setSetupOpen(true);
           }}
-          className="rounded-lg bg-white px-8 py-4"
+          className="rounded-2xl bg-accent px-8 py-4 active:bg-accent-strong"
         >
-          <Text className="text-black text-lg font-bold">START</Text>
+          <Text className="text-background text-lg font-bold">START</Text>
         </TouchableOpacity>
       </View>
       {setupOpen && <MatchSetup onClose={() => setSetupOpen(false)} />}
