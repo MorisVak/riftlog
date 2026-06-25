@@ -3,15 +3,25 @@ import { randomUUID } from 'expo-crypto';
 import type { Game, Match, Player, PlayerId } from '@riftlog/core';
 
 /**
- * Default configuration for a new match. Pre-match UI doesn't exist yet,
- * so START uses these defaults. When pre-match UI is built, callers will
- * pass their own config to startMatch().
+ * Defaults a match still falls back on. The pre-match setup sheet now supplies
+ * format and player names (see MatchConfig); `playerNames` here is the
+ * fallback used when a name field is left blank. `targetScore` /
+ * `aspirantsClimbCount` stay hardcoded — the app never enforces a target, so
+ * there's no UI to set them yet.
  */
 const DEFAULTS = {
-  bestOf: 1 as 1 | 3,
   targetScore: 8,
   aspirantsClimbCount: 0,
   playerNames: ['Player 1', 'Player 2'] as const,
+};
+
+/**
+ * Player-supplied configuration for a new match, collected by the pre-match
+ * setup sheet. Names may be blank — `startMatch` falls back to DEFAULTS.
+ */
+export type MatchConfig = {
+  bestOf: 1 | 3;
+  playerNames: [string, string];
 };
 
 /**
@@ -36,7 +46,7 @@ export type MatchContextType = {
   phase: MatchPhase;
 
   // Match lifecycle
-  startMatch: () => void;
+  startMatch: (config: MatchConfig) => void;
   endMatch: () => void;
   endGame: (result: GameResult) => void;
   advanceGame: () => void;
@@ -76,14 +86,15 @@ const makePlayer = (id: PlayerId, name: string): Player => ({
 const MatchProvider = ({ children }: { children: ReactNode }) => {
   const [match, setMatch] = useState<Match | null>(null);
 
-  const startMatch = () => {
+  const startMatch = (config: MatchConfig) => {
+    // Blank name fields fall back to the generic "Player 1" / "Player 2".
+    const nameFor = (i: 0 | 1) =>
+      config.playerNames[i].trim() || DEFAULTS.playerNames[i];
+
     const newMatch: Match = {
       id: randomUUID(),
-      bestOf: DEFAULTS.bestOf,
-      players: [
-        makePlayer('p1', DEFAULTS.playerNames[0]),
-        makePlayer('p2', DEFAULTS.playerNames[1]),
-      ],
+      bestOf: config.bestOf,
+      players: [makePlayer('p1', nameFor(0)), makePlayer('p2', nameFor(1))],
       games: [makeGame(DEFAULTS.targetScore, DEFAULTS.aspirantsClimbCount)],
       currentGameIndex: 0,
       winnerId: null,
