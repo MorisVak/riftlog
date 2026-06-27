@@ -50,6 +50,7 @@ export type MatchContextType = {
   endMatch: () => void;
   endGame: (result: GameResult) => void;
   advanceGame: () => void;
+  concludeMatch: () => void;
 
   // Score actions (intent-named, player-oriented)
   incrementScore: (playerId: PlayerId) => void;
@@ -65,12 +66,21 @@ const nowIso = () => new Date().toISOString();
 const winsToTakeMatch = (bestOf: 1 | 3) => (bestOf === 1 ? 1 : 2);
 
 /**
- * End a match from the current standings: more game wins takes it; equal game
- * wins is a draw (winnerId null). Stamps endedAt. Pure — returns a new Match.
+ * End a match from the current standings: more game wins takes it; level
+ * standings are a draw, but only once a game has actually been decided. Stamps
+ * endedAt. Pure — returns a new Match.
+ *
+ * At 0–0 with nothing played there's no result to record — that's an abandon,
+ * not a draw — so the match is returned unchanged (no settle). The existing
+ * `endGame` caller always passes a games array with the current game frozen,
+ * so a game is decided there; the guard only matters for an early conclude.
  */
 const settleMatch = (match: Match): Match => {
   const w1 = match.players.find((p) => p.id === 'p1')?.gameWins ?? 0;
   const w2 = match.players.find((p) => p.id === 'p2')?.gameWins ?? 0;
+
+  if (w1 === w2 && !match.games.some((g) => g.endedAt !== null)) return match;
+
   const winnerId: PlayerId | null = w1 > w2 ? 'p1' : w2 > w1 ? 'p2' : null;
   return { ...match, winnerId, endedAt: nowIso() };
 };
@@ -197,6 +207,21 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  /**
+   * End the series immediately from current standings — the manual escape hatch
+   * a Bo3 ("round") needs when it must stop before it's naturally decided (e.g.
+   * time runs out at 1–0 or 1–1). `settleMatch` makes the leader the winner, or
+   * a draw if level with a game already decided; stamping `endedAt` flips the
+   * derived phase to `'over'`, routing to the match overview. No-op if there's
+   * no match, it's already over, or nothing has been played (0–0 abandon).
+   */
+  const concludeMatch = () => {
+    setMatch((prev) => {
+      if (!prev || prev.endedAt !== null) return prev;
+      return settleMatch(prev);
+    });
+  };
+
   const updatePlayer = (
     playerId: PlayerId,
     updater: (player: Player) => Player,
@@ -248,6 +273,7 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
         endMatch,
         endGame,
         advanceGame,
+        concludeMatch,
         incrementScore,
         decrementScore,
         setScore,

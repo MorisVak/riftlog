@@ -8,8 +8,8 @@ type Outcome = 'win' | 'loss' | 'draw';
 
 /**
  * A player's result from their own perspective. A null match winner means the
- * match was drawn (only possible in a Bo1 today); otherwise the match winner
- * wins and the other player loses.
+ * match was drawn — a Bo1 drawn game, or a Bo3 concluded early at level
+ * standings (1–1); otherwise the match winner wins and the other player loses.
  */
 const outcomeFor = (match: Match, player: Player): Outcome => {
   if (match.winnerId === null) return 'draw';
