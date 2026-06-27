@@ -4,6 +4,17 @@ module.exports = {
   presets: [require('nativewind/preset')],
   theme: {
     extend: {
+      // Design typefaces (loaded in app/_layout.tsx via @expo-google-fonts).
+      // `font-display` → Space Grotesk for UI/headings; `font-mono` → IBM Plex
+      // Mono for numerals (scores). Use the SemiBold faces by default and the
+      // Medium/Bold faces via the explicit family classes below.
+      fontFamily: {
+        display: ['SpaceGrotesk_600SemiBold'],
+        'display-bold': ['SpaceGrotesk_700Bold'],
+        'display-medium': ['SpaceGrotesk_500Medium'],
+        mono: ['IBMPlexMono_600SemiBold'],
+        'mono-medium': ['IBMPlexMono_500Medium'],
+      },
       colors: {
         // Base & surface (darkest → lightest)
         background: '#0D1B2A',

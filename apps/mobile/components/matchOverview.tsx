@@ -29,7 +29,7 @@ const PlayerResultRow = ({ player, outcome }: { player: Player; outcome: Outcome
     <View className="mb-3 flex-row items-center overflow-hidden rounded-xl border border-border bg-surface">
       <View className={`h-full w-1.5 self-stretch ${r.bar}`} />
       <View className={`m-3 h-9 w-9 items-center justify-center rounded-lg ${r.badge}`}>
-        <Text className={`text-lg font-bold ${r.text}`}>{r.letter}</Text>
+        <Text className={`font-display-bold text-lg ${r.text}`}>{r.letter}</Text>
       </View>
       <Text className="flex-1 text-base font-semibold text-ink-primary">
         {player.name}
@@ -61,10 +61,10 @@ const MatchOverview = () => {
   return (
     <View className="flex-1 bg-background">
       <ScrollView contentContainerClassName="px-6 pb-6 pt-16">
-        <Text className="mb-1 text-center text-sm font-medium uppercase tracking-widest text-ink-secondary">
+        <Text className="mb-1 text-center font-display text-sm uppercase tracking-widest text-ink-secondary">
           Match complete
         </Text>
-        <Text className="mb-8 text-center text-2xl font-bold text-ink-primary">
+        <Text className="mb-8 text-center font-display-bold text-2xl text-ink-primary">
           {match.winnerId === null
             ? 'Draw'
             : `${nameOf(match.winnerId)} wins`}{' '}
@@ -81,7 +81,7 @@ const MatchOverview = () => {
           />
         ))}
 
-        <Text className="mb-3 mt-8 text-sm font-medium uppercase tracking-widest text-ink-secondary">
+        <Text className="mb-3 mt-8 font-display text-sm uppercase tracking-widest text-ink-secondary">
           Games
         </Text>
         {match.games.map((game, i) => (
@@ -90,7 +90,7 @@ const MatchOverview = () => {
             className="mb-2 flex-row items-center justify-between rounded-lg border border-border bg-surface px-4 py-3"
           >
             <Text className="text-sm text-ink-secondary">Game {i + 1}</Text>
-            <Text className="text-base font-semibold tabular-nums text-ink-primary">
+            <Text className="font-mono text-base text-ink-primary">
               {game.scoresAtEnd.p1} – {game.scoresAtEnd.p2}
             </Text>
             <Text className="text-sm text-ink-secondary">
@@ -103,7 +103,7 @@ const MatchOverview = () => {
           onPress={onDone}
           className="mt-10 rounded-xl bg-accent px-8 py-4 active:bg-accent-strong"
         >
-          <Text className="text-center text-lg font-bold text-background">
+          <Text className="text-center font-display-bold text-lg text-background">
             Done
           </Text>
         </TouchableOpacity>

@@ -62,7 +62,7 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
         }`}
       >
         <Text
-          className={`text-sm font-semibold ${
+          className={`font-display text-sm ${
             selected ? 'text-background' : 'text-ink-secondary'
           }`}
         >
@@ -85,11 +85,11 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
         <View className="rounded-t-3xl border-t border-border bg-surface px-5 pb-8 pt-2">
           <View className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
 
-          <Text className="mb-5 text-xl font-bold text-ink-primary">
+          <Text className="mb-5 font-display-bold text-xl text-ink-primary">
             New match
           </Text>
 
-          <Text className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-secondary">
+          <Text className="mb-2 font-display text-xs uppercase tracking-wider text-ink-secondary">
             Format
           </Text>
           <View className="mb-5 flex-row gap-2">
@@ -97,7 +97,7 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
             {formatButton(3, 'Best of 3')}
           </View>
 
-          <Text className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-secondary">
+          <Text className="mb-2 font-display text-xs uppercase tracking-wider text-ink-secondary">
             Players
           </Text>
           <TextInput
@@ -119,9 +119,9 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
 
           <TouchableOpacity
             onPress={start}
-            className="items-center rounded-2xl bg-accent px-5 py-4 active:bg-accent-strong"
+            className="items-center rounded-full bg-accent px-5 py-4 active:bg-accent-strong"
           >
-            <Text className="text-base font-bold text-background">
+            <Text className="font-display-bold text-base text-background">
               Start match
             </Text>
           </TouchableOpacity>

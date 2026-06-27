@@ -64,6 +64,17 @@ const nowIso = () => new Date().toISOString();
 /** Game wins a player needs to take the match for the given format. */
 const winsToTakeMatch = (bestOf: 1 | 3) => (bestOf === 1 ? 1 : 2);
 
+/**
+ * End a match from the current standings: more game wins takes it; equal game
+ * wins is a draw (winnerId null). Stamps endedAt. Pure — returns a new Match.
+ */
+const settleMatch = (match: Match): Match => {
+  const w1 = match.players.find((p) => p.id === 'p1')?.gameWins ?? 0;
+  const w2 = match.players.find((p) => p.id === 'p2')?.gameWins ?? 0;
+  const winnerId: PlayerId | null = w1 > w2 ? 'p1' : w2 > w1 ? 'p2' : null;
+  return { ...match, winnerId, endedAt: nowIso() };
+};
+
 const makeGame = (targetScore: number, aspirantsClimbCount: number): Game => ({
   id: randomUUID(),
   targetScore,
@@ -113,9 +124,12 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
 
   /**
    * Freeze the current game with the player-declared result, then decide the
-   * match. Works generically for Bo1 and Bo3:
+   * match. Works generically for Bo1 and Bo3, settling when either the win
+   * threshold is reached or the format's games are exhausted:
    *   - Bo1 is always settled after its single game (winner or draw).
-   *   - Bo3 is settled once a player reaches 2 game wins.
+   *   - Bo3 is settled once a player reaches 2 game wins, OR after the 3rd
+   *     game is played — capped at `bestOf` so draws can't run on forever.
+   * On settle, `settleMatch` resolves the winner (or a draw) from standings.
    * When the match isn't settled the game is left frozen and the match enters
    * the `between-games` phase; the next game is created by `advanceGame()`.
    */
@@ -143,18 +157,18 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
       );
 
       const winsNeeded = winsToTakeMatch(prev.bestOf);
-      const matchWinner =
-        players.find((p) => p.gameWins >= winsNeeded)?.id ?? null;
-      // A Bo1 is decided by its single game, even on a draw (winner stays null).
-      const settled = prev.bestOf === 1 || matchWinner !== null;
+      const reachedWins = players.some((p) => p.gameWins >= winsNeeded);
+      // Hard cap: a Bo{n} can never exceed n games. The game just frozen is
+      // currentGameIndex; if it was the last slot, the match ends now regardless
+      // of standings (all-draws / 1-1-with-a-draw resolve to a draw via
+      // settleMatch). Without this, draws never settle and advanceGame() runs
+      // unbounded into game 4, 5, 6…
+      const capReached = prev.currentGameIndex + 1 >= prev.bestOf;
 
-      return {
-        ...prev,
-        players,
-        games,
-        winnerId: matchWinner,
-        endedAt: settled ? nowIso() : null,
-      };
+      if (reachedWins || capReached) {
+        return settleMatch({ ...prev, players, games });
+      }
+      return { ...prev, players, games };
     });
   };
 
