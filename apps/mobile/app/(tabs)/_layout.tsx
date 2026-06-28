@@ -1,76 +1,70 @@
 import { Tabs } from 'expo-router';
-import { AntDesign } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { HapticTab } from '@/components/haptic-tab';
 import { useMatch } from '@/contexts/matchContext';
 import React from 'react';
 
+// Navigator style objects can't take NativeWind classNames, so the tab bar
+// references the palette by raw value. These mirror the design tokens 1:1
+// (see tailwind.config.js): accent / ink-secondary / surface / border.
+const ACTIVE = '#8B93D9'; // accent
+const INACTIVE = '#868FB0'; // ink-secondary
+const BAR_BG = '#18223A'; // surface
+const BAR_BORDER = '#2E3C56'; // border
+
 export default function TabsLayout() {
-  const { gameStarted } = useMatch();
+  const { phase } = useMatch();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarItemStyle: {
-          flex: 1,
-          width: '100%',
-          height: '100%',
-          justifyContent: 'center',
-          alignItems: 'center',
+        tabBarActiveTintColor: ACTIVE,
+        tabBarInactiveTintColor: INACTIVE,
+        tabBarLabelStyle: {
+          fontFamily: 'SpaceGrotesk_600SemiBold',
+          fontSize: 11,
         },
-        tabBarStyle: gameStarted
-          ? { display: 'none' }
-          : {
-              shadowColor: '#000',
-              shadowOpacity: 0.25,
-              shadowOffset: { width: 0, height: 4 },
-              shadowRadius: 4,
-              position: 'absolute',
-              backgroundColor: '#F9F4EE',
-              borderColor: '#2E4D6B',
-              borderWidth: 1,
-              bottom: 50,
-              left: 20,
-              right: 20,
-              borderRadius: 50,
-              height: 52,
-              marginHorizontal: 20,
-              elevation: 0,
-              paddingBottom: 0,
-              paddingTop: 0,
-            },
-        tabBarActiveTintColor: '#FF6B6B',
-        tabBarInactiveTintColor: '#2E4D6B',
-        animation: 'shift',
+        // Hidden during a live match (board owns the full screen).
+        tabBarStyle:
+          phase !== 'idle'
+            ? { display: 'none' }
+            : {
+                height: 82,
+                paddingTop: 8,
+                paddingBottom: 24,
+                backgroundColor: BAR_BG,
+                borderTopColor: BAR_BORDER,
+                borderTopWidth: 1,
+                elevation: 0,
+              },
       }}
     >
       <Tabs.Screen
         name="history"
         options={{
-          title: 'history',
-          tabBarLabel: 'History',
+          title: 'History',
           tabBarIcon: ({ color, size }) => (
-            <AntDesign name="folder" color={color} size={size} />
+            <Feather name="list" color={color} size={size} />
           ),
         }}
       />
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Main',
+          title: 'Home',
           tabBarIcon: ({ color, size }) => (
-            <AntDesign name="setting" color={color} size={size} />
+            <Feather name="home" color={color} size={size} />
           ),
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="profile"
         options={{
-          title: 'settings',
-          tabBarLabel: 'Settings',
+          title: 'Profile',
           tabBarIcon: ({ color, size }) => (
-            <AntDesign name="setting" color={color} size={size} />
+            <Feather name="user" color={color} size={size} />
           ),
         }}
       />
