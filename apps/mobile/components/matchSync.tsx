@@ -1,37 +1,84 @@
 import { useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import { useMatch } from '@/contexts/matchContext';
-import { saveCompletedMatch } from '@/lib/matchPersistence';
+import { syncCompletedMatch, flushOutbox } from '@/lib/sync';
+import {
+  clearInProgressMatch,
+  loadInProgressMatch,
+  saveInProgressMatch,
+} from '@/lib/localStore';
 
 /**
- * Persistence trigger. There is no "match completed" callback — completion is
- * `match.endedAt` flipping non-null inside the endGame/concludeMatch reducers —
- * so we watch that transition with an effect rather than a UI button.
+ * Offline-tolerant persistence orchestrator. Renders nothing; mounted once under
+ * MatchProvider in the root layout. There is no "match completed" callback —
+ * completion is `match.endedAt` flipping non-null inside the matchContext
+ * reducers — so all of this is driven by effects watching `match`.
  *
- * Renders nothing; mounted once under MatchProvider in the root layout. A ref
- * de-dupes so a settled match is written exactly once even across re-renders.
- * On failure (offline / not signed in) we just warn for now; the Slice 3 outbox
- * will enqueue and retry.
+ * Local footprint is exactly two bounded items (see lib/localStore): the single
+ * in-progress match and the outbox. History is never mirrored locally.
  */
 const MatchSync = () => {
-  const { match } = useMatch();
-  const persistedIds = useRef<Set<string>>(new Set());
+  const { match, resumeMatch } = useMatch();
+  // Settled matches we've already handed off to sync — de-dupes across renders.
+  const handledIds = useRef<Set<string>>(new Set());
 
-  const matchId = match?.id;
-  const endedAt = match?.endedAt ?? null;
-
+  // On launch: rehydrate an interrupted in-progress match, recover any settled
+  // match left behind by a crash, then flush the outbox. Runs once.
   useEffect(() => {
-    if (!match || !endedAt) return;
-    if (persistedIds.current.has(match.id)) return;
-
-    persistedIds.current.add(match.id);
-    saveCompletedMatch(match).catch((error) => {
-      // Allow a later retry (foreground / next completion) once the outbox lands.
-      persistedIds.current.delete(match.id);
-      console.warn('[MatchSync] failed to persist completed match', error);
-    });
-    // `match` is intentionally read fresh; the id/endedAt pair gates the run.
+    let cancelled = false;
+    void (async () => {
+      const stored = await loadInProgressMatch();
+      if (!cancelled && stored) {
+        if (stored.endedAt === null) {
+          resumeMatch(stored);
+        } else {
+          handledIds.current.add(stored.id);
+          await syncCompletedMatch(stored);
+          await clearInProgressMatch();
+        }
+      }
+      void flushOutbox();
+    })();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matchId, endedAt]);
+  }, []);
+
+  // Mirror the in-progress match on every change; on completion, upload-or-enqueue
+  // and clear the in-progress slot. Depending on the whole `match` object keeps
+  // the local mirror current as the round plays.
+  useEffect(() => {
+    if (!match) {
+      void clearInProgressMatch();
+      return;
+    }
+    if (match.endedAt === null) {
+      void saveInProgressMatch(match);
+      return;
+    }
+    if (handledIds.current.has(match.id)) return;
+    handledIds.current.add(match.id);
+    void (async () => {
+      await syncCompletedMatch(match);
+      await clearInProgressMatch();
+    })();
+  }, [match]);
+
+  // Drain the outbox whenever connectivity returns or the app is foregrounded.
+  useEffect(() => {
+    const unsubscribeNet = NetInfo.addEventListener((state) => {
+      if (state.isConnected) void flushOutbox();
+    });
+    const appStateSub = AppState.addEventListener('change', (status) => {
+      if (status === 'active') void flushOutbox();
+    });
+    return () => {
+      unsubscribeNet();
+      appStateSub.remove();
+    };
+  }, []);
 
   return null;
 };

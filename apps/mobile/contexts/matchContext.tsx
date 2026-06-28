@@ -43,6 +43,7 @@ export type MatchContextType = {
 
   // Match lifecycle
   startMatch: (config: MatchConfig) => void;
+  resumeMatch: (match: Match) => void;
   endMatch: () => void;
   endGame: (result: GameResult) => void;
   advanceGame: () => void;
@@ -121,8 +122,18 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
     setMatch(newMatch);
   };
 
+  /**
+   * Rehydrate an in-progress match from the local store on launch (offline
+   * recovery). Only restores when nothing is currently active, so it never
+   * clobbers a live match. Persistence side-effects live in MatchSync.
+   */
+  const resumeMatch = (restored: Match) => {
+    setMatch((prev) => prev ?? restored);
+  };
+
   const endMatch = () => {
-    // For v1: just discard the match. Persistence comes later.
+    // Discard the active match. The completed-match write already happened on
+    // the endedAt transition (MatchSync); this just clears the in-memory state.
     setMatch(null);
   };
 
@@ -261,6 +272,7 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
         currentGame,
         phase,
         startMatch,
+        resumeMatch,
         endMatch,
         endGame,
         advanceGame,
