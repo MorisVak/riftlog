@@ -22,9 +22,35 @@ describe _how_ the project works; `SPEC.md` describes _what_ is being built.
 - **Mobile:** Expo SDK 54, Expo Router, NativeWind v4, React 19. Animations
   via React Native Reanimated 4 (see `apps/mobile/CLAUDE.md`).
 - **Shared:** `@riftlog/core` package — pure TypeScript, no platform code.
-- **Backend:** Supabase (auth + Postgres + Edge Functions). Not yet
-  implemented. It is the **only** persistence layer — there is no local /
-  on-device store. Forward-compatible fields exist in the data model.
+- **Backend:** Supabase (anonymous auth + Postgres; Edge Functions not yet
+  used). Postgres is the **single source of truth** for match data. See
+  "Persistence architecture" below.
+
+## Persistence architecture
+
+Offline-tolerant cloud persistence. **Postgres is the single source of truth**;
+the device keeps only (a) the in-progress match and (b) a small outbox of
+completed-but-unsynced matches that flushes on reconnect. Match **history is
+never mirrored locally** — it's read from Postgres on demand. Local footprint
+stays bounded and self-clearing.
+
+Build status: schema + RLS + generated types (`supabase/`), and the **online**
+write/read path (mobile client, anonymous auth, persist-on-completion, history
+reads) are built. The offline outbox + sync-on-reconnect is the next slice.
+
+- **Domain → tables:** `matches` = the Bo1/Bo3 series, `games` = the games
+  within it. The DB **never** re-derives Bo3 / draw logic — `@riftlog/core` /
+  the mobile `matchContext` settle every match, and the DB persists only the
+  settled outcome.
+- **Auth:** anonymous sign-in — each device owns its rows via `auth.uid()`,
+  enforced by RLS. Account upgrade (magic link) is a later concern.
+
+**Key boundary (publishable vs. secret) — non-negotiable:**
+
+- `sb_publishable_…` (publishable key) is safe in the client. It's gated by RLS
+  and is the **only** key the mobile app ever uses (via `EXPO_PUBLIC_*` env).
+- `sb_secret_…` (secret key) **bypasses RLS** and must never appear in client
+  code or any `EXPO_PUBLIC_*` var. Server / CLI only (`supabase/.env`).
 
 ## Working in this monorepo
 
@@ -98,10 +124,12 @@ Don't invent terminology that doesn't exist in Riftbound.
 
 ## What's intentionally not built yet
 
-- Auth (planned: Supabase auth with magic links)
-- Cloud persistence (state is in-memory; matches save to Supabase once auth
-  lands). No local / on-device store — offline or signed-out matches aren't
-  saved in v1, by design.
+- Account upgrade beyond anonymous auth (magic link) — anonymous sign-in is
+  built; named accounts are a later concern.
+- Offline outbox + sync-on-reconnect — the online persistence path is built
+  (completed matches save to Postgres, history reads on demand); the on-device
+  in-progress store + outbox for offline play are the next slice. Until then a
+  match that completes offline isn't saved.
 - Pre-match setup UI (Bo1/Bo3 toggle, player names, timed-mode toggle, deck
   selection)
 - Timed-game mode (countdown per Bo1/Bo3, pauses between games) — not built
@@ -109,7 +137,8 @@ Don't invent terminology that doesn't exist in Riftbound.
 - Between-games UI for Bo3
 - End-game prompt / claim-victory + match resolution flow
 - Deck imports (Piltover Archive parser first, then Riftmana)
-- Match history view (data model exists, no UI yet)
+- Match history view — a minimal read-only list is wired to Postgres; the
+  designed history UI / detail view is still to come
 - v2 QR co-recording feature (data model has placeholder fields)
 
 See `SPEC.md` for the full feature detail and build order. When extending the

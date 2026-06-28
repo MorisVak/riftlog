@@ -209,6 +209,42 @@ deliberate intent. The project on Expo's servers is `@m_mecke/riftlog`.
 For simulator dev builds (free, no Apple credentials needed):
 `eas build --profile development --platform ios --local`.
 
+## Supabase & persistence
+
+Postgres is the single source of truth for match data. The typed client lives in
+`lib/supabase.ts` (**not** in `@riftlog/core`, which stays platform-agnostic):
+`createClient<Database>` with the publishable key and an encrypted session store.
+Schema, RLS, and types-gen are documented in `../../supabase/CLAUDE.md`.
+
+**Env contract.** Two vars, both `EXPO_PUBLIC_`-prefixed — anything without that
+prefix is **not** bundled into the app:
+
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — the `sb_publishable_…` key, safe in
+  the client and gated by RLS.
+
+`.env` is gitignored; `.env.example` is committed. **Never reference the secret
+key (`sb_secret_…`) from the app** — it bypasses RLS and is server/CLI-only.
+
+**Storage adapter.** The auth session is stored via `LargeSecureStore` (Expo
+SecureStore holds a per-key AES-256 key; AsyncStorage holds the ciphertext) —
+the approach from the official Supabase Expo quickstart. This is the **only**
+thing that store holds; the Slice 3 offline outbox gets its own store.
+
+**Auth.** Anonymous sign-in on first launch (`app/_layout.tsx`) gives every
+device an `auth.uid()` to own its rows; `persistSession` restores it afterward.
+Requires anonymous sign-ins enabled on the remote project.
+
+**Write path (online).** There is no "match completed" callback — completion is
+`match.endedAt` flipping non-null inside the matchContext reducers. `MatchSync`
+(`components/matchSync.tsx`, mounted under `MatchProvider`) watches that
+transition and calls `saveCompletedMatch()` (`lib/matchPersistence.ts`), which
+upserts the match + its games by client UUID. The DB never re-derives Bo3 / draw
+logic — it persists only what the context settled.
+
+**Read path.** History reads come straight from Postgres on demand
+(`fetchMatchHistory()`), scoped to the caller by RLS.
+
 ## What not to build proactively
 
 The user is building incrementally. Don't add the following until its slice
@@ -217,12 +253,15 @@ is explicitly started:
 - Timed-mode toggle, deck selection, and track-turns control in pre-match
   setup (format + player names are built; the rest is deferred)
 - Timed-game mode (clock + data-model fields)
-- Supabase auth + cloud match persistence
+- Offline outbox + sync-on-reconnect (**Slice 3** — the online write/read path
+  is built; offline handling and an on-device in-progress store are not)
 - Deck import/parsing
 
-There is **no local / AsyncStorage persistence** — history is cloud-only
-(Supabase), so don't add an on-device match store. Matches played offline or
-signed-out are simply not saved in v1.
+Match **history is cloud-only** — read from Postgres on demand, never mirrored
+locally — so don't build a growing on-device history store. The only local
+persistence today is the encrypted auth **session**. An on-device store for the
+in-progress match plus an outbox of completed-unsynced matches is **Slice 3**;
+until then, a match that completes offline isn't saved.
 
 These are specced in `SPEC.md` and sequenced — build them when their roadmap
 step begins, not ahead of it.
