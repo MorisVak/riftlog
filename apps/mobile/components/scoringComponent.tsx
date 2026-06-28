@@ -16,7 +16,7 @@ type ScoringComponentProps = {
  * in TrackingField.
  */
 const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
-  const { match, currentGame, incrementScore, decrementScore } = useMatch();
+  const { match, incrementScore, decrementScore } = useMatch();
 
   const player = match?.players.find((p) => p.id === playerId);
   if (!player) return null;
@@ -36,9 +36,6 @@ const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
       <Pressable onPress={onIncrement} className="items-center active:opacity-80">
         <Text className="font-mono text-9xl leading-none text-ink-primary">
           {player.gameScore}
-        </Text>
-        <Text className="mt-2 text-base text-ink-secondary">
-          target {currentGame?.targetScore ?? 0}
         </Text>
       </Pressable>
 

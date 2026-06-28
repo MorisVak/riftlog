@@ -77,12 +77,6 @@ writing the logic that drives them. Things to know:
    Decide what persists to history (configured duration, whether time expired)
    versus what's ephemeral. The clock pauses between games in a Bo3.
 
-4. **`Game.targetScore` and `Game.aspirantsClimbCount` are no longer driven by
-   logic.** Since the app never auto-ends at a target, these are at most
-   informational — e.g. showing "to 8" or Aspirant's Climb context in
-   history. Decide whether to keep them as recorded context or drop them from
-   the live flow (see open questions).
-
 Forward-compatible fields already in the model (`Player.userId`,
 `Player.deck`, `Match.hostUserId`, `Match.guestUserIds`, `Match.notes`,
 `Match.tags`) exist on purpose for the features below. Don't remove them.
@@ -170,7 +164,7 @@ letter badge + colored bar), format (Bo1/Bo3), final game score, and the deck
 played (once decks ship).
 
 **Detail view shows:** per-game breakdown (score at end, winner), format,
-Aspirant's Climb if used, the deck snapshot, and any notes/tags. Because the
+the deck snapshot, and any notes/tags. Because the
 deck is stored as an immutable snapshot, the detail always reflects the exact
 list played. The match-end flow in Feature 1 routes here as the overview.
 
@@ -378,10 +372,6 @@ matching the incremental philosophy in `CLAUDE.md`.
   turn tracking, timed game, or both — and which you want first.
 - **Scan QR "SOON" teaser** — should the disabled Scan QR affordance ship in v1
   as a teaser for the v2 match-mode feature, or stay out entirely until v2?
-- **Target score / Aspirant's Climb fields** — the app no longer enforces a
-  target; ending is fully manual. Decide whether `Game.targetScore` and
-  `Game.aspirantsClimbCount` stay as informational history context or are
-  dropped from the live flow.
 - **`Player.xp`** exists in the model but has no defined product meaning.
   Decide what it represents (a gamification/progression idea?) or remove it.
 - **Draws** — which formats/situations can end in a draw, and how is that

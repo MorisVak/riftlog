@@ -5,13 +5,9 @@ import type { Game, Match, Player, PlayerId } from '@riftlog/core';
 /**
  * Defaults a match still falls back on. The pre-match setup sheet now supplies
  * format and player names (see MatchConfig); `playerNames` here is the
- * fallback used when a name field is left blank. `targetScore` /
- * `aspirantsClimbCount` stay hardcoded — the app never enforces a target, so
- * there's no UI to set them yet.
+ * fallback used when a name field is left blank.
  */
 const DEFAULTS = {
-  targetScore: 8,
-  aspirantsClimbCount: 0,
   playerNames: ['Player 1', 'Player 2'] as const,
 };
 
@@ -85,10 +81,8 @@ const settleMatch = (match: Match): Match => {
   return { ...match, winnerId, endedAt: nowIso() };
 };
 
-const makeGame = (targetScore: number, aspirantsClimbCount: number): Game => ({
+const makeGame = (): Game => ({
   id: randomUUID(),
-  targetScore,
-  aspirantsClimbCount,
   scoresAtEnd: { p1: 0, p2: 0 },
   winnerId: null,
   startedAt: nowIso(),
@@ -116,7 +110,7 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
       id: randomUUID(),
       bestOf: config.bestOf,
       players: [makePlayer('p1', nameFor(0)), makePlayer('p2', nameFor(1))],
-      games: [makeGame(DEFAULTS.targetScore, DEFAULTS.aspirantsClimbCount)],
+      games: [makeGame()],
       currentGameIndex: 0,
       winnerId: null,
       startedAt: nowIso(),
@@ -193,10 +187,7 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
       const current = prev.games[prev.currentGameIndex];
       if (!current || current.endedAt === null) return prev;
 
-      const nextGame = makeGame(
-        DEFAULTS.targetScore,
-        DEFAULTS.aspirantsClimbCount,
-      );
+      const nextGame = makeGame();
       return {
         ...prev,
         // Live score lives on Player.gameScore — reset it for the new game.

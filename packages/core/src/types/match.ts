@@ -22,8 +22,6 @@ export type Player = {
 
 export type Game = {
   id: string;
-  targetScore: number;
-  aspirantsClimbCount: number;
   scoresAtEnd: Record<PlayerId, number>;
   winnerId: PlayerId | null;
   startedAt: string; // ISO-8601
