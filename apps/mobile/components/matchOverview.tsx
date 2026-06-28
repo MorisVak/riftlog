@@ -64,13 +64,13 @@ const MatchOverview = () => {
         <Text className="mb-1 text-center font-display text-sm uppercase tracking-widest text-ink-secondary">
           Match complete
         </Text>
-        <Text className="mb-8 text-center font-display-bold text-2xl text-ink-primary">
+        <Text className="mb-1 text-center font-display-bold text-2xl text-ink-primary">
           {match.winnerId === null
             ? 'Draw'
-            : `${nameOf(match.winnerId)} wins`}{' '}
-          <Text className="text-ink-tertiary">
-            · Best of {match.bestOf}
-          </Text>
+            : `${nameOf(match.winnerId)} wins`}
+        </Text>
+        <Text className="mb-8 text-center font-display text-sm text-ink-tertiary">
+          Best of {match.bestOf}
         </Text>
 
         {match.players.map((player) => (
@@ -87,13 +87,13 @@ const MatchOverview = () => {
         {match.games.map((game, i) => (
           <View
             key={game.id}
-            className="mb-2 flex-row items-center justify-between rounded-lg border border-border bg-surface px-4 py-3"
+            className="mb-2 flex-row items-center rounded-lg border border-border bg-surface px-4 py-3"
           >
-            <Text className="text-sm text-ink-secondary">Game {i + 1}</Text>
-            <Text className="font-mono text-base text-ink-primary">
+            <Text className="flex-1 text-sm text-ink-secondary">Game {i + 1}</Text>
+            <Text className="flex-1 text-center font-mono text-base text-ink-primary">
               {game.scoresAtEnd.p1} – {game.scoresAtEnd.p2}
             </Text>
-            <Text className="text-sm text-ink-secondary">
+            <Text className="flex-1 text-right text-sm text-ink-secondary">
               {game.endedAt === null ? '—' : nameOf(game.winnerId)}
             </Text>
           </View>
