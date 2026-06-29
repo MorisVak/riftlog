@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import {
   IBMPlexMono_500Medium,
@@ -43,11 +44,13 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <MatchProvider>
-      <MatchSync />
-      <Stack screenOptions={{ animation: 'default' }}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      </Stack>
-    </MatchProvider>
+    <SafeAreaProvider>
+      <MatchProvider>
+        <MatchSync />
+        <Stack screenOptions={{ animation: 'default' }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack>
+      </MatchProvider>
+    </SafeAreaProvider>
   );
 }

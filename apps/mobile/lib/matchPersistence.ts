@@ -4,6 +4,10 @@ import { supabase } from './supabase';
 type MatchInsert = Database['public']['Tables']['matches']['Insert'];
 type GameInsert = Database['public']['Tables']['games']['Insert'];
 export type MatchRow = Database['public']['Tables']['matches']['Row'];
+export type GameRow = Database['public']['Tables']['games']['Row'];
+
+/** A match row with its games embedded (newest match first; games by index). */
+export type MatchWithGames = MatchRow & { games: GameRow[] };
 
 /**
  * Persist a SETTLED match (and its games) directly to Postgres. The device has
@@ -52,15 +56,17 @@ export async function saveCompletedMatch(match: Match): Promise<void> {
 }
 
 /**
- * Read the signed-in user's match history from Postgres, newest first. RLS
- * scopes the result to the caller's own rows, so no explicit user filter is
- * needed. Read on demand — history is never mirrored locally.
+ * Read the signed-in user's match history from Postgres, newest first, with
+ * each match's games embedded (ordered by game_index) for the inline per-game
+ * breakdown. RLS scopes both tables to the caller's own rows, so no explicit
+ * user filter is needed. Read on demand — history is never mirrored locally.
  */
-export async function fetchMatchHistory(): Promise<MatchRow[]> {
+export async function fetchMatchHistory(): Promise<MatchWithGames[]> {
   const { data, error } = await supabase
     .from('matches')
-    .select('*')
-    .order('ended_at', { ascending: false });
+    .select('*, games(*)')
+    .order('ended_at', { ascending: false })
+    .order('game_index', { referencedTable: 'games', ascending: true });
 
   if (error) throw error;
   return data ?? [];
