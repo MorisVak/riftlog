@@ -1,5 +1,12 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
+  Text,
+  View,
+} from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -10,7 +17,11 @@ import { useFocusEffect } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchMatchHistory, type MatchWithGames } from '@/lib/matchPersistence';
+import {
+  deleteMatch,
+  fetchMatchHistory,
+  type MatchWithGames,
+} from '@/lib/matchPersistence';
 import { toHistoryRowVM, type HistoryRowVM } from '@/lib/historyView';
 import HistoryRow from '@/components/historyRow';
 
@@ -159,6 +170,26 @@ const History = () => {
     [],
   );
 
+  // Optimistically drop the row, then delete from Postgres (cascade removes its
+  // games). On failure, restore the row so the list stays truthful.
+  const handleDelete = useCallback((id: string) => {
+    setExpandedId((cur) => (cur === id ? null : cur));
+    let removed: MatchWithGames | undefined;
+    setRows((cur) => {
+      if (!cur) return cur;
+      removed = cur.find((m) => m.id === id);
+      return cur.filter((m) => m.id !== id);
+    });
+    deleteMatch(id).catch((e) => {
+      setRows((cur) =>
+        cur && removed
+          ? [...cur, removed].sort((a, b) => b.ended_at.localeCompare(a.ended_at))
+          : cur,
+      );
+      Alert.alert('Could not delete', e?.message ?? 'Please try again.');
+    });
+  }, []);
+
   const topPad = insets.top + HEADER_H + 12;
 
   const loading = rows === null && error === null;
@@ -198,6 +229,7 @@ const History = () => {
             index={index}
             expanded={expandedId === item.id}
             onToggle={toggle}
+            onDelete={handleDelete}
           />
         )}
         ListEmptyComponent={

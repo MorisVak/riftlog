@@ -71,3 +71,15 @@ export async function fetchMatchHistory(): Promise<MatchWithGames[]> {
   if (error) throw error;
   return data ?? [];
 }
+
+/**
+ * Permanently delete a match and all of its games. The `games.match_id` FK is
+ * `on delete cascade`, so removing the match row removes its games in the same
+ * statement — no orphaned game rows are ever left behind. RLS scopes the delete
+ * to the caller's own match (`user_id = auth.uid()`), so a user can only delete
+ * their own. Errors propagate to the caller.
+ */
+export async function deleteMatch(matchId: string): Promise<void> {
+  const { error } = await supabase.from('matches').delete().eq('id', matchId);
+  if (error) throw error;
+}
