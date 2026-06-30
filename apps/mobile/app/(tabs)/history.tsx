@@ -11,7 +11,9 @@ import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 import { useFocusEffect } from 'expo-router';
 import { BlurView } from 'expo-blur';
@@ -42,6 +44,19 @@ const BACKGROUND = '#0D1B2A';
 
 // Screen intro, matching the design's `.scr` / scrIn: fade + slight rise.
 const SCREEN_EASING = Easing.bezier(0.2, 0.7, 0.3, 1);
+const INTRO_MS = 340;
+// Small offset between each element's entrance so the screen assembles
+// top-to-bottom (title → filters → matches) instead of all at once.
+const STAGGER_MS = 80;
+
+// A staggered entrance driven by a 0→1 shared value: fade in while rising a few
+// px. Each element drives its own value, kicked off at a progressively later
+// delay (see the focus effect).
+const useRise = (sv: SharedValue<number>) =>
+  useAnimatedStyle(() => ({
+    opacity: sv.value,
+    transform: [{ translateY: (1 - sv.value) * 10 }],
+  }));
 
 const matches = (vm: HistoryRowVM, filter: Filter) => {
   switch (filter) {
@@ -85,20 +100,32 @@ const Header = ({
   count,
   filter,
   onFilter,
+  titleIntro,
+  filterIntro,
 }: {
   count: number | null;
   filter: Filter;
   onFilter: (f: Filter) => void;
+  titleIntro: SharedValue<number>;
+  filterIntro: SharedValue<number>;
 }) => {
   const insets = useSafeAreaInsets();
+  const titleStyle = useRise(titleIntro);
+  const filterStyle = useRise(filterIntro);
+  // The hairline divider only fades (no rise) so it doesn't sit there solid
+  // while the title and filters animate in around it.
+  const lineStyle = useAnimatedStyle(() => ({ opacity: filterIntro.value }));
   return (
     <View
       className="absolute inset-x-0 top-0 z-10"
       style={{ paddingTop: insets.top }}
     >
-      <BlurView tint="dark" intensity={48} className="border-b border-border">
+      <BlurView tint="dark" intensity={48}>
         <View style={{ height: HEADER_H }} className="justify-end px-4 pb-3">
-          <View className="flex-row items-baseline justify-between px-0.5">
+          <Animated.View
+            style={titleStyle}
+            className="flex-row items-baseline justify-between px-0.5"
+          >
             <Text className="font-display-bold text-2xl text-ink-primary">
               History
             </Text>
@@ -107,8 +134,8 @@ const Header = ({
                 {count} {count === 1 ? 'match' : 'matches'}
               </Text>
             ) : null}
-          </View>
-          <View className="mt-3 flex-row gap-2">
+          </Animated.View>
+          <Animated.View style={filterStyle} className="mt-3 flex-row gap-2">
             {FILTERS.map((f) => (
               <FilterChip
                 key={f}
@@ -117,8 +144,9 @@ const Header = ({
                 onPress={() => onFilter(f)}
               />
             ))}
-          </View>
+          </Animated.View>
         </View>
+        <Animated.View style={lineStyle} className="h-px w-full bg-border" />
       </BlurView>
       {/* Soft fade so rows dissolve into the header as they scroll up. */}
       <LinearGradient
@@ -137,26 +165,32 @@ const History = () => {
   const [filter, setFilter] = useState<Filter>('All');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const intro = useSharedValue(0);
-  const introStyle = useAnimatedStyle(() => ({
-    opacity: intro.value,
-    transform: [{ translateY: (1 - intro.value) * 10 }],
-  }));
+  const titleIntro = useSharedValue(0);
+  const filterIntro = useSharedValue(0);
+  const listIntro = useSharedValue(0);
+  const listStyle = useRise(listIntro);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       setError(null);
-      // Replay the screen intro on each focus (design `.scr` / scrIn).
-      intro.value = 0;
-      intro.value = withTiming(1, { duration: 340, easing: SCREEN_EASING });
+      // Replay the intro on each focus, staggering the elements top-to-bottom
+      // (title → filters → matches) so the screen assembles dynamically rather
+      // than fading in all at once (design `.scr` / scrIn).
+      [titleIntro, filterIntro, listIntro].forEach((sv, i) => {
+        sv.value = 0;
+        sv.value = withDelay(
+          i * STAGGER_MS,
+          withTiming(1, { duration: INTRO_MS, easing: SCREEN_EASING }),
+        );
+      });
       fetchMatchHistory()
         .then((data) => active && setRows(data))
         .catch((e) => active && setError(e?.message ?? 'Failed to load history'));
       return () => {
         active = false;
       };
-    }, [intro]),
+    }, [titleIntro, filterIntro, listIntro]),
   );
 
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
@@ -247,10 +281,16 @@ const History = () => {
 
   return (
     <View className="flex-1 bg-background">
-      <Animated.View style={introStyle} className="flex-1">
+      <Animated.View style={listStyle} className="flex-1">
         {body}
-        <Header count={count} filter={filter} onFilter={setFilter} />
       </Animated.View>
+      <Header
+        count={count}
+        filter={filter}
+        onFilter={setFilter}
+        titleIntro={titleIntro}
+        filterIntro={filterIntro}
+      />
     </View>
   );
 };
