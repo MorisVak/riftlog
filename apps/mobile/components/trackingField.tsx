@@ -39,7 +39,7 @@ const TrackingField = ({
       {onEnd && (
         <Pressable
           onPress={onEnd}
-          className="absolute bottom-8 h-11 flex-row items-center gap-2 rounded-full bg-accent px-6 active:bg-accent-strong"
+          className="absolute bottom-8 h-11 flex-row items-center gap-2 rounded-full bg-accent px-6 shadow-accent-btn active:bg-accent-strong"
         >
           <Feather name="check" size={17} color={ON_ACCENT} />
           <Text className="font-display-bold text-base text-background">END</Text>

@@ -1,20 +1,63 @@
-import { Pressable, Text, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useMatch } from '@/contexts/matchContext';
 import PlayField from '@/components/playField';
 import BetweenGamesScreen from '@/components/betweenGamesScreen';
 import MatchOverview from '@/components/matchOverview';
 import MatchSetup from '@/components/matchSetup';
-import React, { useState } from 'react';
+import RecentMatchRow from '@/components/recentMatchRow';
+import {
+  fetchMatchHistory,
+  type MatchWithGames,
+} from '@/lib/matchPersistence';
+import { toHistoryRowVM, type HistoryRowVM } from '@/lib/historyView';
 
-/**
- * Stats + recent-matches strip on the design's home screen. Both need persisted
- * history, which doesn't exist yet (no Supabase, no on-device store), so we show
- * an honest empty state instead of fabricated numbers. Wired up once cloud
- * persistence lands.
- */
+const BACKGROUND = '#0D1B2A'; // for Feather icons inside accent fills
+const ACCENT = '#8B93D9';
+
+// Stats derived from the device owner's own matches (Riot-policy safe — own
+// stats only). Win rate ignores draws; with no decisive games it reads "–".
+type HomeStats = { wins: number; losses: number; winRate: string };
+
+const deriveStats = (vms: HistoryRowVM[]): HomeStats => {
+  const wins = vms.filter((v) => v.result === 'win').length;
+  const losses = vms.filter((v) => v.result === 'loss').length;
+  const decided = wins + losses;
+  const winRate = decided === 0 ? '–' : `${Math.round((wins / decided) * 100)}%`;
+  return { wins, losses, winRate };
+};
+
+const StatCell = ({
+  value,
+  label,
+  color,
+  last,
+}: {
+  value: string | number;
+  label: string;
+  color: string;
+  last?: boolean;
+}) => (
+  <View className={`flex-1 px-2 py-5 ${last ? '' : 'border-r border-border'}`}>
+    <Text className={`text-center font-mono text-xl ${color}`}>{value}</Text>
+    <Text className="mt-1 text-center text-[10.5px] font-semibold uppercase tracking-wide text-ink-secondary">
+      {label}
+    </Text>
+  </View>
+);
+
 const HistoryEmptyState = () => (
-  <View className="mt-10 w-full rounded-2xl border border-border bg-surface px-6 py-8">
+  <View className="rounded-2xl border border-border bg-surface px-6 py-8">
     <Text className="text-center font-display text-base text-ink-primary">
       No saved matches yet
     </Text>
@@ -25,9 +68,143 @@ const HistoryEmptyState = () => (
   </View>
 );
 
+const Home = () => {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [rows, setRows] = useState<MatchWithGames[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setError(null);
+      fetchMatchHistory()
+        .then((data) => active && setRows(data))
+        .catch((e) => active && setError(e?.message ?? 'Failed to load matches'));
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
+  const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
+  const recent = useMemo(() => vms.slice(0, 3), [vms]);
+  const stats = useMemo(() => deriveStats(vms), [vms]);
+
+  const loading = rows === null && error === null;
+
+  return (
+    <View className="flex-1 bg-background">
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: insets.top + 6,
+          paddingHorizontal: 14,
+          paddingBottom: 24,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Brand header */}
+        <View className="mb-6 mt-1 flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2.5">
+            <View className="h-[30px] w-[30px] items-center justify-center rounded-[9px] bg-accent">
+              <Feather name="hexagon" size={16} color={BACKGROUND} />
+            </View>
+            <Text className="font-display-bold text-[21px] tracking-tight text-ink-primary">
+              Riftlog
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open profile"
+            onPress={() => router.navigate('/profile')}
+            className="h-9 w-9 items-center justify-center rounded-full border border-border bg-elevated active:bg-surface"
+          >
+            <Feather name="user" size={18} color={ACCENT} />
+          </Pressable>
+        </View>
+
+        {/* Start CTA */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Start a match"
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setSetupOpen(true);
+          }}
+          className="rounded-[20px] bg-accent shadow-accent-card active:bg-accent-strong"
+        >
+          {/* overflow-hidden lives on this inner wrapper, not the Pressable, so
+              it clips the decorative rings without clipping the card's own
+              accent drop shadow (iOS clips a view's shadow when overflow is
+              hidden on the same view). */}
+          <View className="overflow-hidden rounded-[20px] p-6">
+            {/* Decorative rings */}
+            <View className="absolute -right-8 -top-8 h-[140px] w-[140px] rounded-full border border-background/15" />
+            <View className="absolute -bottom-11 right-1.5 h-[110px] w-[110px] rounded-full border border-background/10" />
+            <View className="flex-row items-center gap-3.5">
+              <View className="h-[52px] w-[52px] items-center justify-center rounded-[15px] bg-background/15">
+                <Feather name="play" size={20} color={BACKGROUND} />
+              </View>
+              <View>
+                <Text className="font-display-bold text-[19px] tracking-tight text-background">
+                  Start a match
+                </Text>
+                <Text className="mt-0.5 text-[13px] font-medium text-background/60">
+                  Track score live, log it forever
+                </Text>
+              </View>
+            </View>
+          </View>
+        </Pressable>
+
+        {/* Season stats */}
+        <View className="mt-3.5 flex-row overflow-hidden rounded-2xl border border-border bg-surface">
+          <StatCell value={stats.wins} label="Wins" color="text-win-text" />
+          <StatCell value={stats.losses} label="Losses" color="text-loss-text" />
+          <StatCell value={stats.winRate} label="Win rate" color="text-accent" last />
+        </View>
+
+        {/* Recent matches */}
+        <View className="mb-3 mt-6 flex-row items-baseline justify-between px-0.5">
+          <Text className="font-display-bold text-[15px] text-ink-primary">
+            Recent matches
+          </Text>
+          <Pressable onPress={() => router.navigate('/history')}>
+            <Text className="text-[13px] font-semibold text-accent">See all</Text>
+          </Pressable>
+        </View>
+
+        {loading ? (
+          <View className="items-center py-10">
+            <ActivityIndicator color={ACCENT} />
+          </View>
+        ) : error !== null ? (
+          <View className="rounded-2xl border border-border bg-surface px-6 py-8">
+            <Text className="text-center text-sm text-loss-text">{error}</Text>
+          </View>
+        ) : recent.length === 0 ? (
+          <HistoryEmptyState />
+        ) : (
+          <View className="gap-2">
+            {recent.map((vm) => (
+              <RecentMatchRow
+                key={vm.id}
+                vm={vm}
+                onPress={() => router.navigate('/history')}
+              />
+            ))}
+          </View>
+        )}
+      </ScrollView>
+
+      {setupOpen && <MatchSetup onClose={() => setSetupOpen(false)} />}
+    </View>
+  );
+};
+
 const Index = () => {
   const { phase } = useMatch();
-  const [setupOpen, setSetupOpen] = useState(false);
 
   if (phase === 'over') {
     return (
@@ -53,34 +230,8 @@ const Index = () => {
     );
   }
 
-  // phase === 'idle' — home hero
-  return (
-    <View className="flex-1 bg-background">
-      <View className="flex-1 items-center justify-center px-6">
-        <Text className="font-display-bold text-4xl tracking-tight text-ink-primary">
-          Riftlog
-        </Text>
-        <Text className="mt-2 mb-10 text-center text-sm text-ink-secondary">
-          Track your Riftbound matches
-        </Text>
-
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setSetupOpen(true);
-          }}
-          className="rounded-full bg-accent px-12 py-4 active:bg-accent-strong"
-        >
-          <Text className="font-display-bold text-lg tracking-wide text-background">
-            START
-          </Text>
-        </Pressable>
-
-        <HistoryEmptyState />
-      </View>
-      {setupOpen && <MatchSetup onClose={() => setSetupOpen(false)} />}
-    </View>
-  );
+  // phase === 'idle' — home
+  return <Home />;
 };
 
 export default Index;

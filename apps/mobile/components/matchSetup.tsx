@@ -119,7 +119,7 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
 
           <TouchableOpacity
             onPress={start}
-            className="items-center rounded-full bg-accent px-5 py-4 active:bg-accent-strong"
+            className="items-center rounded-full bg-accent px-5 py-4 shadow-accent-btn active:bg-accent-strong"
           >
             <Text className="font-display-bold text-base text-background">
               Start match

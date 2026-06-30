@@ -162,10 +162,10 @@ const HistoryRow = ({ vm, index, expanded, onToggle, onDelete }: Props) => {
           <View className="flex-1">
             <Pressable
               onPress={onCardPress}
-              className="flex-row items-center active:bg-elevated"
+              className="min-h-[64px] flex-row items-center active:bg-elevated"
             >
               <View
-                className={`m-3 h-7 w-7 items-center justify-center rounded-lg ${r.badge}`}
+                className={`m-3 h-8 w-8 items-center justify-center rounded-lg ${r.badge}`}
               >
                 <Text className={`font-display-bold text-sm ${r.text}`}>
                   {vm.letter}

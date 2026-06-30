@@ -102,19 +102,21 @@ const Header = ({
   onFilter,
   titleIntro,
   filterIntro,
+  dividerIntro,
 }: {
   count: number | null;
   filter: Filter;
   onFilter: (f: Filter) => void;
   titleIntro: SharedValue<number>;
   filterIntro: SharedValue<number>;
+  dividerIntro: SharedValue<number>;
 }) => {
   const insets = useSafeAreaInsets();
   const titleStyle = useRise(titleIntro);
   const filterStyle = useRise(filterIntro);
-  // The hairline divider only fades (no rise) so it doesn't sit there solid
-  // while the title and filters animate in around it.
-  const lineStyle = useAnimatedStyle(() => ({ opacity: filterIntro.value }));
+  // The hairline divider fades in on its own step, after the title and filters
+  // have settled. Opacity only (no rise) so the line doesn't slide.
+  const lineStyle = useAnimatedStyle(() => ({ opacity: dividerIntro.value }));
   return (
     <View
       className="absolute inset-x-0 top-0 z-10"
@@ -167,6 +169,7 @@ const History = () => {
 
   const titleIntro = useSharedValue(0);
   const filterIntro = useSharedValue(0);
+  const dividerIntro = useSharedValue(0);
   const listIntro = useSharedValue(0);
   const listStyle = useRise(listIntro);
 
@@ -177,7 +180,7 @@ const History = () => {
       // Replay the intro on each focus, staggering the elements top-to-bottom
       // (title → filters → matches) so the screen assembles dynamically rather
       // than fading in all at once (design `.scr` / scrIn).
-      [titleIntro, filterIntro, listIntro].forEach((sv, i) => {
+      [titleIntro, filterIntro, dividerIntro, listIntro].forEach((sv, i) => {
         sv.value = 0;
         sv.value = withDelay(
           i * STAGGER_MS,
@@ -190,7 +193,7 @@ const History = () => {
       return () => {
         active = false;
       };
-    }, [titleIntro, filterIntro, listIntro]),
+    }, [titleIntro, filterIntro, dividerIntro, listIntro]),
   );
 
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
@@ -290,6 +293,7 @@ const History = () => {
         onFilter={setFilter}
         titleIntro={titleIntro}
         filterIntro={filterIntro}
+        dividerIntro={dividerIntro}
       />
     </View>
   );

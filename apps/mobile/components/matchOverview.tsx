@@ -101,7 +101,7 @@ const MatchOverview = () => {
 
         <TouchableOpacity
           onPress={onDone}
-          className="mt-10 rounded-xl bg-accent px-8 py-4 active:bg-accent-strong"
+          className="mt-10 rounded-xl bg-accent px-8 py-4 shadow-accent-btn active:bg-accent-strong"
         >
           <Text className="text-center font-display-bold text-lg text-background">
             Done

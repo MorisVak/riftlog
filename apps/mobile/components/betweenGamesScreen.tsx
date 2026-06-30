@@ -129,7 +129,7 @@ const BetweenGamesScreen = () => {
 
       <Pressable
         onPress={onNext}
-        className="mt-12 rounded-full bg-accent px-10 py-4 active:bg-accent-strong"
+        className="mt-12 rounded-full bg-accent px-10 py-4 shadow-accent-btn active:bg-accent-strong"
       >
         <Text className="font-display-bold text-lg text-background">
           Start game {nextGameNumber}
