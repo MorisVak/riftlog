@@ -7,6 +7,14 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import type { MatchConfig } from '@/contexts/matchContext';
 import { useMatch } from '@/contexts/matchContext';
@@ -19,6 +27,13 @@ type MatchSetupProps = {
 // ink-secondary token — TextInput's placeholderTextColor is a prop, not a class,
 // so it takes the raw value rather than a NativeWind className.
 const INK_SECONDARY = '#868FB0';
+
+// Drag-to-dismiss thresholds: release past this far down, or flick faster than
+// this, and the sheet closes; otherwise it springs back to rest.
+const DISMISS_DISTANCE = 120;
+const DISMISS_VELOCITY = 800;
+// How far the sheet slides off-screen on dismiss before unmounting.
+const SHEET_TRAVEL = 520;
 
 /**
  * Pre-match setup sheet. Collects the format (Bo1 / Bo3) and both player names,
@@ -50,6 +65,38 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
     onClose();
   };
 
+  // Drag-to-dismiss. The sheet follows the finger downward (never up), and the
+  // backdrop fades as it goes so the two feel connected. Release past the
+  // threshold (or with enough downward velocity) and it slides off and closes;
+  // otherwise it springs back to rest.
+  const translateY = useSharedValue(0);
+  const startY = useSharedValue(0);
+
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: 1 - Math.min(translateY.value / SHEET_TRAVEL, 1),
+  }));
+
+  const pan = Gesture.Pan()
+    .activeOffsetY(10) // only a downward drag activates; taps/typing pass through
+    .onStart(() => {
+      startY.value = translateY.value;
+    })
+    .onUpdate((e) => {
+      translateY.value = Math.max(0, startY.value + e.translationY);
+    })
+    .onEnd((e) => {
+      if (translateY.value > DISMISS_DISTANCE || e.velocityY > DISMISS_VELOCITY) {
+        translateY.value = withTiming(SHEET_TRAVEL, { duration: 200 }, () => {
+          runOnJS(cancel)();
+        });
+      } else {
+        translateY.value = withSpring(0, { damping: 20, stiffness: 220 });
+      }
+    });
+
   const formatButton = (value: 1 | 3, label: string) => {
     const selected = bestOf === value;
     return (
@@ -75,15 +122,22 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
   return (
     <View className="absolute inset-0 z-50">
       <TouchableWithoutFeedback onPress={cancel}>
-        <View className="absolute inset-0 bg-background/80" />
+        <Animated.View
+          style={backdropStyle}
+          className="absolute inset-0 bg-background/80"
+        />
       </TouchableWithoutFeedback>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1 justify-end"
       >
-        <View className="rounded-t-3xl border-t border-border bg-surface px-5 pb-8 pt-2">
-          <View className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
+        <GestureDetector gesture={pan}>
+          <Animated.View
+            style={sheetStyle}
+            className="rounded-t-3xl border-t border-border bg-surface px-5 pb-8 pt-2"
+          >
+            <View className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
 
           <Text className="mb-5 font-display-bold text-xl text-ink-primary">
             New match
@@ -125,7 +179,8 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
               Start match
             </Text>
           </TouchableOpacity>
-        </View>
+          </Animated.View>
+        </GestureDetector>
       </KeyboardAvoidingView>
     </View>
   );

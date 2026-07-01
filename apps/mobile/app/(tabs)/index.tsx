@@ -6,6 +6,14 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -24,6 +32,22 @@ import { toHistoryRowVM, type HistoryRowVM } from '@/lib/historyView';
 
 const BACKGROUND = '#0D1B2A'; // for Feather icons inside accent fills
 const ACCENT = '#8B93D9';
+
+// Screen intro, matching the History tab's `.scr` / scrIn: fade + slight rise.
+const SCREEN_EASING = Easing.bezier(0.2, 0.7, 0.3, 1);
+const INTRO_MS = 340;
+// Small offset between each element's entrance so the screen assembles
+// top-to-bottom (header → CTA → stats → recent) instead of all at once.
+const STAGGER_MS = 80;
+
+// A staggered entrance driven by a 0→1 shared value: fade in while rising a few
+// px. Each element drives its own value, kicked off at a progressively later
+// delay (see the focus effect).
+const useRise = (sv: SharedValue<number>) =>
+  useAnimatedStyle(() => ({
+    opacity: sv.value,
+    transform: [{ translateY: (1 - sv.value) * 10 }],
+  }));
 
 // Stats derived from the device owner's own matches (Riot-policy safe — own
 // stats only). Win rate ignores draws; with no decisive games it reads "–".
@@ -75,17 +99,36 @@ const Home = () => {
   const [rows, setRows] = useState<MatchWithGames[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const headerIntro = useSharedValue(0);
+  const ctaIntro = useSharedValue(0);
+  const statsIntro = useSharedValue(0);
+  const recentIntro = useSharedValue(0);
+  const headerStyle = useRise(headerIntro);
+  const ctaStyle = useRise(ctaIntro);
+  const statsStyle = useRise(statsIntro);
+  const recentStyle = useRise(recentIntro);
+
   useFocusEffect(
     useCallback(() => {
       let active = true;
       setError(null);
+      // Replay the intro on each focus, staggering the elements top-to-bottom
+      // (header → CTA → stats → recent) so the screen assembles dynamically
+      // rather than fading in all at once, matching the History tab.
+      [headerIntro, ctaIntro, statsIntro, recentIntro].forEach((sv, i) => {
+        sv.value = 0;
+        sv.value = withDelay(
+          i * STAGGER_MS,
+          withTiming(1, { duration: INTRO_MS, easing: SCREEN_EASING }),
+        );
+      });
       fetchMatchHistory()
         .then((data) => active && setRows(data))
         .catch((e) => active && setError(e?.message ?? 'Failed to load matches'));
       return () => {
         active = false;
       };
-    }, []),
+    }, [headerIntro, ctaIntro, statsIntro, recentIntro]),
   );
 
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
@@ -105,7 +148,10 @@ const Home = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* Brand header */}
-        <View className="mb-6 mt-1 flex-row items-center justify-between">
+        <Animated.View
+          style={headerStyle}
+          className="mb-6 mt-1 flex-row items-center justify-between"
+        >
           <View className="flex-row items-center gap-2.5">
             <View className="h-[30px] w-[30px] items-center justify-center rounded-[9px] bg-accent">
               <Feather name="hexagon" size={16} color={BACKGROUND} />
@@ -122,9 +168,10 @@ const Home = () => {
           >
             <Feather name="user" size={18} color={ACCENT} />
           </Pressable>
-        </View>
+        </Animated.View>
 
         {/* Start CTA */}
+        <Animated.View style={ctaStyle}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Start a match"
@@ -157,15 +204,20 @@ const Home = () => {
             </View>
           </View>
         </Pressable>
+        </Animated.View>
 
         {/* Season stats */}
-        <View className="mt-3.5 flex-row overflow-hidden rounded-2xl border border-border bg-surface">
+        <Animated.View
+          style={statsStyle}
+          className="mt-3.5 flex-row overflow-hidden rounded-2xl border border-border bg-surface"
+        >
           <StatCell value={stats.wins} label="Wins" color="text-win-text" />
           <StatCell value={stats.losses} label="Losses" color="text-loss-text" />
           <StatCell value={stats.winRate} label="Win rate" color="text-accent" last />
-        </View>
+        </Animated.View>
 
         {/* Recent matches */}
+        <Animated.View style={recentStyle}>
         <View className="mb-3 mt-6 flex-row items-baseline justify-between px-0.5">
           <Text className="font-display-bold text-[15px] text-ink-primary">
             Recent matches
@@ -196,6 +248,7 @@ const Home = () => {
             ))}
           </View>
         )}
+        </Animated.View>
       </ScrollView>
 
       {setupOpen && <MatchSetup onClose={() => setSetupOpen(false)} />}
