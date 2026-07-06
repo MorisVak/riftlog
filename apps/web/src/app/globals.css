@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+/*
+ * Riftlog web design tokens — ported 1:1 from the mobile app's
+ * `apps/mobile/tailwind.config.js` (the single source of design truth).
+ * Do NOT introduce new colors or arbitrary hex here; add a token first.
+ *
+ * Weight note: mobile splits Space Grotesk weights into separate family
+ * tokens (font-display-bold, etc.). On web we use the single `font-display`
+ * family plus Tailwind weight utilities (font-medium/semibold/bold) — visually
+ * identical, one family token.
+ */
+@theme {
+  /* Base & surface (darkest → lightest) */
+  --color-background: #0d1b2a;
+  --color-surface: #18223a;
+  --color-elevated: #222d47;
+  --color-border: #2e3c56;
+
+  /* Accent — periwinkle (single brand accent). Translucent fills: bg-accent/15 */
+  --color-accent: #8b93d9;
+  --color-accent-strong: #6d74c4;
+  --color-accent-soft: #a6ade6;
+  --color-accent-deep: #14182b;
+
+  /* Text ramp (named `ink` to avoid text-text-* class collisions) */
+  --color-ink-primary: #e4e5f2;
+  --color-ink-secondary: #868fb0;
+  --color-ink-tertiary: #5e6788;
+
+  /* Result states — per result: base / text / tint / deep.
+     Result color is NEVER the only signal; pair with a W/L/D letter badge. */
+  --color-win: #22c55e;
+  --color-win-text: #4ade80;
+  --color-win-tint: #385041;
+  --color-win-deep: #052e13;
+
+  --color-loss: #ef4444;
+  --color-loss-text: #fb8181;
+  --color-loss-tint: #573d3d;
+  --color-loss-deep: #2a0606;
+
+  --color-draw: #c6a864;
+  --color-draw-text: #d8c290;
+  --color-draw-tint: #524d42;
+  --color-draw-deep: #2b2102;
+
+  /* Periwinkle accent glow under major CTAs (mirrors the mobile boxShadow). */
+  --shadow-accent-card: 0px 8px 28px 2px rgba(139, 147, 217, 0.6);
+  --shadow-accent-btn: 0px 3px 10px 0px rgba(139, 147, 217, 0.28);
+
+  /* Typefaces — CSS vars set by next/font in layout.tsx. */
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-ink-primary);
+    font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}

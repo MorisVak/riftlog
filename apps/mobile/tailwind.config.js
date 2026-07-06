@@ -64,6 +64,16 @@ module.exports = {
           deep: '#2B2102',
         },
       },
+
+      // Periwinkle accent glow under the major accent buttons (design CTAs).
+      // The accent rgba lives here in the design-system source, mirroring the
+      // `accent` color token. `card` is the larger glow for the home Start
+      // card; `btn` is the lighter glow for pill CTAs (setup start, board END,
+      // between-games continue, match-complete done).
+      boxShadow: {
+        'accent-card': '0px 8px 28px 2px rgba(139, 147, 217, 0.6)',
+        'accent-btn': '0px 3px 10px 0px rgba(139, 147, 217, 0.28)',
+      },
     },
   },
   plugins: [],

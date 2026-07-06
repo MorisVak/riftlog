@@ -111,7 +111,8 @@ const {
   currentGame, // derived: match.games[match.currentGameIndex]
   phase, // derived: 'idle' | 'playing' | 'between-games' | 'over'
   startMatch, // (config: MatchConfig) => void — format (Bo1/Bo3) + player names from setup
-  endMatch, // () => void — discards match (no persistence yet)
+  resumeMatch, // (match: Match) => void — rehydrate an interrupted match on launch (MatchSync)
+  endMatch, // () => void — discards the active match (completed-match write already happened)
   endGame, // (result: GameResult) => void — freeze current game, resolve match
   advanceGame, // () => void — start the next game of a Bo3 (after between-games)
   incrementScore, // (playerId: 'p1' | 'p2') => void
@@ -209,6 +210,58 @@ deliberate intent. The project on Expo's servers is `@m_mecke/riftlog`.
 For simulator dev builds (free, no Apple credentials needed):
 `eas build --profile development --platform ios --local`.
 
+## Supabase & persistence
+
+Postgres is the single source of truth for match data. The typed client lives in
+`lib/supabase.ts` (**not** in `@riftlog/core`, which stays platform-agnostic):
+`createClient<Database>` with the publishable key and an encrypted session store.
+Schema, RLS, and types-gen are documented in `../../supabase/CLAUDE.md`.
+
+**Env contract.** Two vars, both `EXPO_PUBLIC_`-prefixed — anything without that
+prefix is **not** bundled into the app:
+
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — the `sb_publishable_…` key, safe in
+  the client and gated by RLS.
+
+`.env` is gitignored; `.env.example` is committed. **Never reference the secret
+key (`sb_secret_…`) from the app** — it bypasses RLS and is server/CLI-only.
+
+**Storage adapter.** The auth session is stored via `LargeSecureStore` (Expo
+SecureStore holds a per-key AES-256 key; AsyncStorage holds the ciphertext) —
+the approach from the official Supabase Expo quickstart. That store holds the
+**session only**. Offline match data uses plain AsyncStorage (see Offline
+outbox) — we deliberately do **not** add a second storage library.
+
+**Auth.** Anonymous sign-in on first launch (`app/_layout.tsx`) gives every
+device an `auth.uid()` to own its rows; `persistSession` restores it afterward.
+Requires anonymous sign-ins enabled on the remote project.
+
+**Write path.** There is no "match completed" callback — completion is
+`match.endedAt` flipping non-null inside the matchContext reducers. `MatchSync`
+(`components/matchSync.tsx`, mounted under `MatchProvider`) watches `match` and:
+
+- mirrors the in-progress match to local storage on every change;
+- on completion, calls `syncCompletedMatch()` (`lib/sync.ts`) — try Postgres,
+  fall back to the outbox — then clears the in-progress slot;
+- on launch, rehydrates an interrupted in-progress match (`resumeMatch`) and
+  flushes the outbox.
+
+`saveCompletedMatch()` (`lib/matchPersistence.ts`) upserts the match + its games
+by client UUID. The DB never re-derives Bo3 / draw logic — it persists only what
+the context settled.
+
+**Offline outbox.** `lib/localStore.ts` is the bounded local store: exactly two
+AsyncStorage keys — the single in-progress match and an outbox array of
+completed-but-unsynced matches. `flushOutbox()` (`lib/sync.ts`, single-flight)
+drains the outbox on reconnect (NetInfo), on app foreground (AppState), and after
+any successful write; confirmed uploads are removed so the outbox trends empty
+online. Both items self-clear. **Don't add a third local key or mirror history
+locally** — keep the footprint to these two items.
+
+**Read path.** History reads come straight from Postgres on demand
+(`fetchMatchHistory()`), scoped to the caller by RLS — never mirrored locally.
+
 ## What not to build proactively
 
 The user is building incrementally. Don't add the following until its slice
@@ -217,12 +270,14 @@ is explicitly started:
 - Timed-mode toggle, deck selection, and track-turns control in pre-match
   setup (format + player names are built; the rest is deferred)
 - Timed-game mode (clock + data-model fields)
-- Supabase auth + cloud match persistence
 - Deck import/parsing
+- The designed history UI / detail view (only a minimal read-only list exists)
 
-There is **no local / AsyncStorage persistence** — history is cloud-only
-(Supabase), so don't add an on-device match store. Matches played offline or
-signed-out are simply not saved in v1.
+Match **history is never mirrored locally** — read from Postgres on demand — so
+don't build a growing on-device history store. Local persistence is bounded to
+exactly two things: the encrypted auth **session** (LargeSecureStore) and the
+**offline match state** (in-progress match + outbox, in AsyncStorage via
+`lib/localStore.ts`). Don't add more local storage than that.
 
 These are specced in `SPEC.md` and sequenced — build them when their roadmap
 step begins, not ahead of it.

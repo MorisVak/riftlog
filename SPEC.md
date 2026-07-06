@@ -18,7 +18,8 @@ to it.
 - Let players attach the deck they ran to each match, and see how a deck
   changed over time.
 - Sync history to the cloud across a player's devices. The in-person tracker
-  stays usable offline, but saving a match requires an account.
+  works offline; a match recorded offline is saved to the cloud automatically
+  once a connection returns.
 
 ## Non-goals
 
@@ -28,9 +29,10 @@ to it.
 - No real-time online play. Riftlog records in-person games; it is not a way
   to play the game itself.
 - No social feed, comments, or public profiles in v1.
-- No local on-device match storage in v1. History lives in the cloud;
-  matches played offline or signed-out are not saved (by design — to avoid
-  cluttering devices).
+- No locally-mirrored match **history**. History lives in the cloud and is read
+  on demand; the device never keeps a growing on-device copy of past matches.
+  (Bounded offline state — the single in-progress match and a small outbox of
+  unsynced completed matches — is kept and self-clears; see Feature 3.)
 
 ## Core concepts
 
@@ -76,12 +78,6 @@ writing the logic that drives them. Things to know:
    running/paused) likely lives in context rather than the persisted model.
    Decide what persists to history (configured duration, whether time expired)
    versus what's ephemeral. The clock pauses between games in a Bo3.
-
-4. **`Game.targetScore` and `Game.aspirantsClimbCount` are no longer driven by
-   logic.** Since the app never auto-ends at a target, these are at most
-   informational — e.g. showing "to 8" or Aspirant's Climb context in
-   history. Decide whether to keep them as recorded context or drop them from
-   the live flow (see open questions).
 
 Forward-compatible fields already in the model (`Player.userId`,
 `Player.deck`, `Match.hostUserId`, `Match.guestUserIds`, `Match.notes`,
@@ -130,10 +126,10 @@ games and the match themselves.
    is saved to history (Feature 2/3). A draw is possible where the format
    allows it; record it as a draw rather than forcing a winner.
 
-**Note:** `endMatch()` currently discards the match. Once cloud persistence
-exists, completing a match saves it to Supabase when the user is signed in;
-only an explicit "abandon/discard" should throw it away. A match completed
-while signed-out is not saved in v1.
+**Note:** completing a match saves it to Supabase (anonymous auth gives every
+device an identity to own its rows); only an explicit "abandon/discard"
+(`endMatch()`) throws it away. A match completed offline is queued locally and
+uploaded automatically on reconnect — see Feature 3.
 
 **Designed setup sheet (forward-looking).** Pre-match setup is designed as a
 bottom sheet titled "New match" (from Claude Design), containing top to bottom:
@@ -170,7 +166,7 @@ letter badge + colored bar), format (Bo1/Bo3), final game score, and the deck
 played (once decks ship).
 
 **Detail view shows:** per-game breakdown (score at end, winner), format,
-Aspirant's Climb if used, the deck snapshot, and any notes/tags. Because the
+the deck snapshot, and any notes/tags. Because the
 deck is stored as an immutable snapshot, the detail always reflects the exact
 list played. The match-end flow in Feature 1 routes here as the overview.
 
@@ -182,23 +178,35 @@ letter badge and colored left bar (never color alone).
 
 ## Feature 3 — Cloud persistence
 
-**Status:** planned, prioritized — built early, alongside auth. State is
-in-memory only today.
+**Status:** built (online path + offline outbox). Anonymous auth + the
+`matches`/`games` schema with RLS are live.
 
 **What it is.** Completed matches are saved to **Supabase** so a player's
-history syncs across their devices and survives reinstalls. Supabase is the
-single source of truth for history.
+history syncs across their devices and survives reinstalls. **Postgres is the
+single source of truth** for match data.
 
-There is deliberately **no local / on-device store in v1** (to avoid
-cluttering devices). The consequence: a match played while signed-out or
-offline is **not saved** in v1. The live tracker still works offline — only
-saving requires an account and connection.
+**Offline-tolerant model.** The device keeps only two bounded things, and both
+self-clear:
+
+1. the **single in-progress match** (so an interrupted round survives the app
+   being killed/restarted), and
+2. a small **outbox** of completed-but-unsynced matches.
+
+On completion the app writes to Postgres directly; if that fails (offline) the
+match goes to the outbox, which flushes automatically on reconnect (and on app
+foreground / after the next successful write). Once uploaded, the entry leaves
+the outbox. Match **history is never mirrored locally** — it's read from
+Postgres on demand. So a match recorded offline IS saved — just deferred until a
+connection returns.
 
 **Requirements:**
 
-- Requires auth (a user identity to own match rows) — see Feature 7.
-- `matches` table mirrors the `Match` type from `@riftlog/core`.
-- RLS so a user can only read/write their own matches.
+- Auth provides a user identity to own match rows: **anonymous sign-in** in v1
+  (each device gets an `auth.uid()`); named-account upgrade is later — see
+  Feature 7.
+- `matches` (the Bo1/Bo3 series) and `games` (the games within it) tables, with
+  RLS so a user can only read/write their own rows. The DB never re-derives
+  Bo3/draw logic — it stores only outcomes the client has already settled.
 
 ---
 
@@ -339,9 +347,10 @@ matching the incremental philosophy in `CLAUDE.md`.
    end-game prompt, game resolution, Bo3 advance, match end. Includes adding
    the timed-mode fields and using the resolution fields in the data model.
    (Feature 1.) The keystone everything else needs.
-3. **Auth + cloud persistence** — Supabase auth (magic link) and a `matches`
-   table with RLS; completed matches save to the cloud. Pulled forward because
-   history depends on it and there's no local store. (Features 3 + 7 username.)
+3. **Auth + cloud persistence** — anonymous Supabase auth and `matches`/`games`
+   tables with RLS; completed matches save to the cloud, with an offline outbox
+   that flushes on reconnect. Pulled forward because history depends on it.
+   (Features 3 + 7 username.)
 4. **Match history** — list + detail reading from the cloud. (Feature 2.)
 5. **Profile** — username (avatar later); owned decks live here. (Feature 7.)
 6. **Deck import** — Piltover Archive parser first, attach decks to matches.
@@ -359,9 +368,10 @@ matching the incremental philosophy in `CLAUDE.md`.
   no cross-user metagame aggregation; a user's own stats only; free tier if
   any monetization exists; paid content must be transformative; fan-made
   disclaimer wherever Riftbound assets/trademarks appear.
-- **Cloud-backed history.** The live tracker works offline, but saving a match
-  requires an account and connection; in v1, offline/signed-out matches are
-  not saved (no local store, by design).
+- **Cloud-backed history.** Postgres is the single source of truth. The live
+  tracker works offline; a match recorded offline is queued in a small local
+  outbox and uploaded automatically on reconnect. History itself is never
+  mirrored locally — it's read from the cloud on demand.
 - **Accessibility.** Result states (win/loss/draw) never rely on color alone —
   always a W/L/D letter badge plus a colored left bar.
 - **Motion.** Animations use React Native Reanimated (details in the mobile
@@ -378,10 +388,6 @@ matching the incremental philosophy in `CLAUDE.md`.
   turn tracking, timed game, or both — and which you want first.
 - **Scan QR "SOON" teaser** — should the disabled Scan QR affordance ship in v1
   as a teaser for the v2 match-mode feature, or stay out entirely until v2?
-- **Target score / Aspirant's Climb fields** — the app no longer enforces a
-  target; ending is fully manual. Decide whether `Game.targetScore` and
-  `Game.aspirantsClimbCount` stay as informational history context or are
-  dropped from the live flow.
 - **`Player.xp`** exists in the model but has no defined product meaning.
   Decide what it represents (a gamification/progression idea?) or remove it.
 - **Draws** — which formats/situations can end in a draw, and how is that

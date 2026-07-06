@@ -11,6 +11,8 @@
     "mobile": "pnpm --filter @riftlog/mobile",
     "core": "pnpm --filter @riftlog/core",
     "typecheck": "pnpm -r typecheck",
+    "db:push": "pnpm dlx supabase db push",
+    "db:types": "{ printf '%s\\n' '// GENERATED FILE — DO NOT EDIT.' '// Regenerate with: pnpm db:types (Supabase linked schema, see supabase/migrations).' ''; pnpm dlx supabase gen types typescript --linked; } > packages/core/src/db/database.types.ts",
     "clean": "pnpm -r exec rm -rf node_modules dist .expo .turbo && rm -rf node_modules"
   },
   "devDependencies": {

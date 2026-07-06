@@ -3,3 +3,8 @@ packages:
   - packages/*
 
 nodeLinker: hoisted
+
+# Native postinstall build scripts we don't run (from @riftlog/web / Next.js).
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver
