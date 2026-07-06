@@ -20,6 +20,11 @@ web-build/
 *.mobileprovision
 *.orig.*
 
+# Next.js (@riftlog/web)
+.next/
+out/
+next-env.d.ts
+
 # Native
 ios/Pods/
 ios/build/
