@@ -16,11 +16,11 @@ import { formatClock, remainingSeconds } from '@/lib/clock';
 
 type Variant = 'board' | 'screen';
 
-// `board` sits in the narrow left slot of the play field's center bar (rotated
-// by the caller); `screen` is the large readable clock on the between-games
-// interstitial.
+// `board` sits in the play field's center band, rotated a quarter turn by the
+// caller — the band is sized around this text, so growing one means growing the
+// other (see BAND_H in playField). `screen` is the between-games interstitial.
 const VARIANT: Record<Variant, { time: string; label: string }> = {
-  board: { time: 'text-lg', label: 'text-[9px]' },
+  board: { time: 'text-4xl', label: 'text-xs' },
   screen: { time: 'text-4xl', label: 'text-xs' },
 };
 
@@ -52,7 +52,11 @@ const useNow = (active: boolean): number => {
 
 type Props = {
   variant?: Variant;
-  /** Rotation / spacing from the caller, e.g. `-rotate-90` on the board. */
+  /**
+   * Spacing / placement from the caller. Note that *rotation* belongs on a
+   * wrapper with an explicit width, not here: a transform doesn't change how
+   * the text is laid out, so a rotated clock in a narrow slot truncates.
+   */
   className?: string;
 };
 
@@ -72,8 +76,11 @@ const MatchClock = ({ variant = 'board', className = '' }: Props) => {
         className={`font-mono ${v.time} ${
           overtime ? 'text-loss-text' : 'text-ink-primary'
         }`}
-        // Both players read this clock; never let it truncate.
+        // The clock must never be unreadable. If the box it's given is too
+        // narrow for the current value — overtime adds a "+" and a digit — it
+        // scales the text down rather than ellipsizing it away.
         numberOfLines={1}
+        adjustsFontSizeToFit
       >
         {formatClock(remaining)}
       </Text>

@@ -150,10 +150,22 @@ There is no ticking value in context, no paused flag, nothing on `Game`:
 - At zero it keeps counting **into overtime** (`+mm:ss`, loss-colored, labelled
   `OT`). Nothing auto-ends — same rule as scoring.
 - `components/matchClock.tsx` renders it and returns `null` when untimed, so it
-  can be dropped in unconditionally. `variant="board"` is the compact one in the
-  play field's center bar (rotated by the caller); `variant="screen"` is the
-  large one on the between-games interstitial, rendered twice (once rotated
-  180°) so both players get an upright clock.
+  can be dropped in unconditionally. `variant="board"` sits quarter-turned in
+  the play field's center band; `variant="screen"` is the between-games
+  interstitial's, rendered twice (once rotated 180°) so both players get an
+  upright clock.
+- **The board's center band and the board clock's text size are coupled.**
+  Because the clock is rotated, the band's *height* is what caps the text
+  length (`+MM:SS` in overtime is the longest it gets) — `BAND_H` in
+  `playField.tsx` is sized for it. Grow one without the other and the clock
+  clips. The band only takes that height on a timed match; untimed keeps the
+  compact bar instead of an empty strip.
+- **Rotating text needs an explicitly sized wrapper.** A transform is paint
+  only — it doesn't change layout — so a rotated clock dropped into a narrow
+  slot lays out at that slot's width and truncates (`50:00` → `2…`). The board
+  clock sits in a wrapper with an explicit pre-rotation width (`CLOCK_W`), and
+  the clock text also carries `adjustsFontSizeToFit` so it scales rather than
+  ellipsizes if a box is ever too small.
 - History stores only the configured limit; elapsed time and the
   overtime flag are derived from `started_at`/`ended_at` in `lib/historyView.ts`.
 - The setup sheet offers two presets (30 / 60 min) plus **Custom**, which opens

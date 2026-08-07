@@ -44,6 +44,22 @@ const ExitConfirm = ({
   </View>
 );
 
+/**
+ * Height of the center band on a timed match. The clock is quarter-turned, so
+ * the band's height is what caps the clock's text: this fits `+MM:SS` — the
+ * longest the clock ever gets, in overtime — at the `board` variant's size.
+ * Grow both together or the clock will clip.
+ */
+const BAND_H = 148;
+
+/**
+ * Width the clock is laid out at *before* it's rotated — rotation is a paint
+ * transform, so without this the clock would lay out inside its narrow slot and
+ * truncate ("50:00" → "2…"). After the quarter turn this width becomes the
+ * clock's vertical extent, hence its relation to BAND_H.
+ */
+const CLOCK_W = BAND_H - 8;
+
 const PlayField = () => {
   const { match, endMatch } = useMatch();
   const [promptOpen, setPromptOpen] = useState(false);
@@ -51,6 +67,7 @@ const PlayField = () => {
 
   if (!match) return null;
 
+  const timed = match.timeLimitSeconds != null;
   const gameNo = match.currentGameIndex + 1;
   const formatLabel = match.bestOf === 1 ? 'BO1' : 'BO3';
   // One pip per game in the format; filled once that slot has been decided.
@@ -78,14 +95,26 @@ const PlayField = () => {
       <TrackingField className="rotate-180" playerId="p2" />
 
       {/* Center control bar: clock · format/game/pips · exit. Pass-turn is
-          deferred. */}
-      <View className="flex-row items-center gap-3 border-y border-border bg-surface px-4 py-4">
-        {/* The clock sits on the left at the table's midline, rotated a quarter
-            turn so neither player reads it upside down. It renders nothing for
-            an untimed match, but the slot keeps its width so the format label
-            stays centered either way. */}
-        <View className="h-12 w-12 items-center justify-center">
-          <MatchClock variant="board" className="-rotate-90" />
+          deferred.
+
+          A timed match trades board height for a readable clock: the band grows
+          to BAND_H so the quarter-turned clock has room to be big — rotating it
+          means the band's HEIGHT is what limits the text's length, so the two
+          sizes move together. An untimed match keeps the compact bar rather
+          than leaving a tall empty strip. */}
+      <View
+        style={timed ? { height: BAND_H } : undefined}
+        className={`flex-row items-center gap-3 border-y border-border bg-surface px-4 ${
+          timed ? '' : 'py-4'
+        }`}
+      >
+        {/* Left of the board, at the table's midline, rotated so neither player
+            reads it upside down. Renders nothing when untimed, but the slot
+            keeps its width so the format label stays centered either way. */}
+        <View className="h-full w-20 items-center justify-center">
+          <View style={{ width: CLOCK_W, transform: [{ rotate: '-90deg' }] }}>
+            <MatchClock variant="board" />
+          </View>
         </View>
 
         <View className="flex-1 items-center">
@@ -104,12 +133,16 @@ const PlayField = () => {
           )}
         </View>
 
-        <Pressable
-          onPress={openExit}
-          className="h-12 w-12 items-center justify-center rounded-xl bg-elevated active:bg-border"
-        >
-          <Text className="text-2xl leading-none text-ink-secondary">✕</Text>
-        </Pressable>
+        {/* Same width as the clock slot, so the format label stays centered on
+            the board rather than being pushed off by the wider left slot. */}
+        <View className="w-20 items-center justify-center">
+          <Pressable
+            onPress={openExit}
+            className="h-12 w-12 items-center justify-center rounded-xl bg-elevated active:bg-border"
+          >
+            <Text className="text-2xl leading-none text-ink-secondary">✕</Text>
+          </Pressable>
+        </View>
       </View>
 
       <TrackingField playerId="p1" onEnd={openEnd} />
