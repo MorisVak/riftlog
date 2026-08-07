@@ -39,6 +39,22 @@ export type Match = {
   endedAt: string | null;
 
   /**
+   * Timed mode. `null` = untimed (the default).
+   *
+   * One countdown for the WHOLE match — the Bo1's game, or the entire Bo3
+   * series — anchored on the first game's `startedAt`. It never pauses:
+   * sideboarding between games in a Bo3 runs on the same clock, and it keeps
+   * counting past zero into overtime.
+   *
+   * Only the configured limit is stored. Remaining time is always *derived*
+   * from wall-clock (`limit - (now - firstGame.startedAt)`), so there is no
+   * tick state to keep in sync — backgrounding the app, reloading JS, or
+   * restoring an interrupted match from the outbox all recompute the same
+   * value. Elapsed time for a finished match comes from `startedAt`/`endedAt`.
+   */
+  timeLimitSeconds: number | null;
+
+  /**
    * Forward-compatible for v2 QR co-recording feature.
    * For now: null/empty until auth lands and QR scanning is built.
    */

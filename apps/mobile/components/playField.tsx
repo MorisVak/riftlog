@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { useMatch } from '@/contexts/matchContext';
 import TrackingField from './trackingField';
 import EndGamePrompt from './endGamePrompt';
+import MatchClock from './matchClock';
 import React, { useState } from 'react';
 
 /**
@@ -76,14 +77,16 @@ const PlayField = () => {
     <View className="flex-1">
       <TrackingField className="rotate-180" playerId="p2" />
 
-      {/* Center control bar: exit · format/game/pips. Pass-turn is deferred. */}
+      {/* Center control bar: clock · format/game/pips · exit. Pass-turn is
+          deferred. */}
       <View className="flex-row items-center gap-3 border-y border-border bg-surface px-4 py-4">
-        <Pressable
-          onPress={openExit}
-          className="h-12 w-12 items-center justify-center rounded-xl bg-elevated active:bg-border"
-        >
-          <Text className="text-2xl leading-none text-ink-secondary">✕</Text>
-        </Pressable>
+        {/* The clock sits on the left at the table's midline, rotated a quarter
+            turn so neither player reads it upside down. It renders nothing for
+            an untimed match, but the slot keeps its width so the format label
+            stays centered either way. */}
+        <View className="h-12 w-12 items-center justify-center">
+          <MatchClock variant="board" className="-rotate-90" />
+        </View>
 
         <View className="flex-1 items-center">
           <Text className="font-display text-base tracking-wide text-ink-primary">
@@ -101,8 +104,12 @@ const PlayField = () => {
           )}
         </View>
 
-        {/* Spacer keeps the label centered (Pass button is deferred). */}
-        <View className="h-12 w-12" />
+        <Pressable
+          onPress={openExit}
+          className="h-12 w-12 items-center justify-center rounded-xl bg-elevated active:bg-border"
+        >
+          <Text className="text-2xl leading-none text-ink-secondary">✕</Text>
+        </Pressable>
       </View>
 
       <TrackingField playerId="p1" onEnd={openEnd} />

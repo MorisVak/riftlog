@@ -5,19 +5,25 @@ import type { Game, Match, Player, PlayerId } from '@riftlog/core';
 /**
  * Defaults a match still falls back on. The pre-match setup sheet now supplies
  * format and player names (see MatchConfig); `playerNames` here is the
- * fallback used when a name field is left blank.
+ * fallback used when a name field is left blank. The slots are not
+ * interchangeable — `p1` is always the device owner, `p2` the opponent.
  */
 const DEFAULTS = {
-  playerNames: ['Player 1', 'Player 2'] as const,
+  playerNames: ['You', 'Opponent'] as const,
 };
 
 /**
  * Player-supplied configuration for a new match, collected by the pre-match
  * setup sheet. Names may be blank — `startMatch` falls back to DEFAULTS.
+ *
+ * `timeLimitSeconds` is null for an untimed match (the default). When set, one
+ * countdown covers the whole match and keeps running between games; see
+ * `Match.timeLimitSeconds` and `lib/clock`.
  */
 export type MatchConfig = {
   bestOf: 1 | 3;
   playerNames: [string, string];
+  timeLimitSeconds: number | null;
 };
 
 /**
@@ -103,7 +109,7 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
   const [match, setMatch] = useState<Match | null>(null);
 
   const startMatch = (config: MatchConfig) => {
-    // Blank name fields fall back to the generic "Player 1" / "Player 2".
+    // Blank name fields fall back to the generic "You" / "Opponent".
     const nameFor = (i: 0 | 1) =>
       config.playerNames[i].trim() || DEFAULTS.playerNames[i];
 
@@ -116,6 +122,9 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
       winnerId: null,
       startedAt: nowIso(),
       endedAt: null,
+      // The clock is anchored on game 1's startedAt (stamped in the same tick
+      // by makeGame above), so it begins the moment play begins.
+      timeLimitSeconds: config.timeLimitSeconds,
       hostUserId: null,
       guestUserIds: [],
     };

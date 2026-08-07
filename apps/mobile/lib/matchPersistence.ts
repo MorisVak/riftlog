@@ -34,6 +34,11 @@ export async function saveCompletedMatch(match: Match): Promise<void> {
     players: match.players as unknown as MatchInsert['players'],
     started_at: match.startedAt,
     ended_at: match.endedAt,
+    // Timed mode: only the configured limit is persisted — how long the match
+    // actually ran (and so whether it went to overtime) is derived from
+    // started_at / ended_at. null for an untimed match.
+    // `?? null` covers a match queued in the outbox before timed mode existed.
+    time_limit_seconds: match.timeLimitSeconds ?? null,
     host_user_id: match.hostUserId,
     guest_user_ids: match.guestUserIds,
   };

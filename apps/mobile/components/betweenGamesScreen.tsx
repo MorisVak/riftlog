@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useMatch } from '@/contexts/matchContext';
+import MatchClock from './matchClock';
 import React, { useState } from 'react';
 
 // Result tokens, paired with a letter so color is never the only signal.
@@ -102,6 +103,14 @@ const BetweenGamesScreen = () => {
 
   return (
     <View className="flex-1 items-center justify-center bg-background px-8">
+      {/* The clock does not stop for the break — sideboarding is played on the
+          same countdown — so it stays on screen here. Twice over: the rotated
+          copy up top reads right-way-up for the player across the table, the
+          lower one for the player holding the phone. Both render nothing when
+          the match is untimed. */}
+      <MatchClock variant="screen" className="absolute inset-x-0 top-16 rotate-180" />
+      <MatchClock variant="screen" className="absolute inset-x-0 bottom-10" />
+
       <Text className="font-display text-xs uppercase tracking-widest text-ink-secondary">
         Game {lastGameNumber}
       </Text>
