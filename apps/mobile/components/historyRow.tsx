@@ -12,6 +12,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { HistoryRowVM, Result } from '@/lib/historyView';
+import MatchMeta from './matchMeta';
 
 // Result tokens, paired with a letter + left bar so color is never the only
 // signal (colorblind-safe rule).
@@ -23,6 +24,9 @@ const RESULT: Record<Result, { bar: string; badge: string; text: string }> = {
 
 const INK_SECONDARY = '#868FB0';
 const INK_PRIMARY = '#E4E5F2';
+
+// Separates the two names in the expanded detail, matching the score chips.
+const EN_DASH = '–';
 
 // Expand/collapse share one timing window so the result bar, the detail height,
 // and the chevron all move together — no half-collapsed "cut off" bar.
@@ -173,13 +177,16 @@ const HistoryRow = ({ vm, index, expanded, onToggle, onDelete }: Props) => {
               </View>
 
               <View className="flex-1 py-3">
+                {/* "vs" prefix so the single name reads as the opponent, never
+                    as your own. */}
                 <Text
                   className="font-display text-[15px] font-semibold text-ink-primary"
                   numberOfLines={1}
                 >
+                  <Text className="font-normal text-ink-secondary">vs </Text>
                   {vm.opponent}
                 </Text>
-                <Text className="mt-0.5 text-xs text-ink-secondary">{vm.format}</Text>
+                <MatchMeta vm={vm} />
               </View>
 
               <View className="items-end py-3">
@@ -201,11 +208,35 @@ const HistoryRow = ({ vm, index, expanded, onToggle, onDelete }: Props) => {
             <Animated.View style={detailStyle} className="overflow-hidden">
               <View
                 onLayout={(e) => setDetailH(e.nativeEvent.layout.height)}
-                className="flex-row flex-wrap gap-2 pb-3 pl-[52px] pr-3"
+                className="pb-3 pl-[52px] pr-3"
               >
-                {vm.games.map((g) => (
-                  <GameChip key={g.n} {...g} />
-                ))}
+                {/* Names in the same order as every score line (you–them), so
+                    the chips below read without guessing. */}
+                <Text
+                  className="mb-2 font-display text-[11px] text-ink-secondary"
+                  numberOfLines={1}
+                >
+                  {vm.you} {EN_DASH} {vm.opponent}
+                </Text>
+
+                {/* Timed matches: the clock they were played to and what it
+                    actually took. "overtime" is spelled out, not just colored. */}
+                {vm.timer && (
+                  <Text
+                    className={`mb-2 font-display text-[11px] ${
+                      vm.timer.overtime ? 'text-loss-text' : 'text-ink-secondary'
+                    }`}
+                  >
+                    {vm.timer.limit} round · played {vm.timer.played}
+                    {vm.timer.overtime ? ' (overtime)' : ''}
+                  </Text>
+                )}
+
+                <View className="flex-row flex-wrap gap-2">
+                  {vm.games.map((g) => (
+                    <GameChip key={g.n} {...g} />
+                  ))}
+                </View>
               </View>
             </Animated.View>
           </View>

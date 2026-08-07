@@ -130,10 +130,8 @@ Don't invent terminology that doesn't exist in Riftbound.
   (completed matches save to Postgres, history reads on demand); the on-device
   in-progress store + outbox for offline play are the next slice. Until then a
   match that completes offline isn't saved.
-- Pre-match setup UI (Bo1/Bo3 toggle, player names, timed-mode toggle, deck
-  selection)
-- Timed-game mode (countdown per Bo1/Bo3, pauses between games) — not built
-  and not in the data model yet
+- Deck selection and track-turns in pre-match setup — the setup sheet itself
+  is built (Bo1/Bo3, player names, timed toggle + round length)
 - Between-games UI for Bo3
 - End-game prompt / claim-victory + match resolution flow
 - Deck imports (Piltover Archive parser first, then Riftmana)

@@ -128,11 +128,41 @@ and resolves the match (Bo1 after one game; Bo3 at two game wins, setting
 `Match.winnerId` / `endedAt`). When a Bo3 isn't yet decided the match sits in
 the `between-games` phase until `advanceGame` starts the next game.
 
-Pre-match setup collects **format (Bo1/Bo3)** and **player names** via the
-setup sheet (`components/matchSetup.tsx`), passed to `startMatch` as a
-`MatchConfig`; blank names fall back to "Player 1"/"Player 2". Still deferred
-(specced in `SPEC.md`, not built): timed mode, deck selection, and the
-track-turns control. See the match flow before extending it.
+Pre-match setup collects **format (Bo1/Bo3)**, **player names**, and the
+**timed-match toggle + round length** via the setup sheet
+(`components/matchSetup.tsx`), passed to `startMatch` as a `MatchConfig`; blank
+names fall back to "You"/"Opponent". The two slots are **not interchangeable**:
+`p1` is always the device owner and `p2` the opponent (see the p1-perspective
+rule below). Still deferred (specced in `SPEC.md`, not built): deck selection
+and the track-turns control. See the match flow before extending it.
+
+### Timed mode
+
+`Match.timeLimitSeconds` (null = untimed) is the **only** timed-mode state.
+There is no ticking value in context, no paused flag, nothing on `Game`:
+
+- One clock covers the whole match and **never pauses** — the between-games
+  break in a Bo3 is sideboarding time and runs on the same clock.
+- Remaining time is **derived from wall-clock** in `lib/clock.ts`
+  (`limit - (now - game 1 startedAt)`), so it can't drift and needs no
+  restoring after a background/reload/outbox resume. Don't add a stored
+  countdown or a per-second reducer.
+- At zero it keeps counting **into overtime** (`+mm:ss`, loss-colored, labelled
+  `OT`). Nothing auto-ends — same rule as scoring.
+- `components/matchClock.tsx` renders it and returns `null` when untimed, so it
+  can be dropped in unconditionally. `variant="board"` is the compact one in the
+  play field's center bar (rotated by the caller); `variant="screen"` is the
+  large one on the between-games interstitial, rendered twice (once rotated
+  180°) so both players get an upright clock.
+- History stores only the configured limit; elapsed time and the
+  overtime flag are derived from `started_at`/`ended_at` in `lib/historyView.ts`.
+- The setup sheet offers two presets (30 / 60 min) plus **Custom**, which opens
+  `components/durationPicker.tsx` — minute/second wheels built from a snapping
+  `ScrollView`, not a picker dependency. A timed match at 00:00 can't start; the
+  Start button disables and says so.
+- Because those wheels scroll vertically, the sheet's **drag-to-dismiss is
+  scoped to the grab handle + title**, not the whole sheet. Don't widen it back
+  or the pan will swallow the wheel drag.
 
 Conventions:
 
@@ -145,6 +175,10 @@ Conventions:
 - **Player identity within a match is `'p1' | 'p2'`.** This is independent
   of any future Supabase user account (which would be a separate `userId`
   field on `Player`).
+- **`p1` is always "you", `p2` always the opponent.** History derives
+  win/loss/draw, score order (`you–them`), and the "vs {name}" row label from
+  p1's outcome (`lib/historyView.ts`), and the board puts p1 on the near side.
+  Don't render a bare player name anywhere in history — label the opponent.
 - **Match and Game IDs are UUIDs** generated via `expo-crypto`. Don't use
   incrementing counters.
 - **`gameStarted` is derived, not stored.** Don't add a separate flag.
@@ -262,14 +296,38 @@ locally** — keep the footprint to these two items.
 **Read path.** History reads come straight from Postgres on demand
 (`fetchMatchHistory()`), scoped to the caller by RLS — never mirrored locally.
 
+**History rows** (`lib/historyView.ts` → `components/historyRow.tsx`). The
+view-model is the single place row display is decided; keep the components dumb.
+Rules that are easy to get wrong:
+
+- **Never render a bare player name.** `p1` is you, so the row labels the other
+  side — `vs {opponent}` — and the expanded detail names both in score order
+  (`you – opponent`).
+- **Absent is not zero.** Rows written before a column existed read back as
+  `undefined`, so optional fields use loose `== null` checks. A strict `=== null`
+  on `time_limit_seconds` is what once rendered a `NaN:NaN` clock on every row.
+- **The clock chip is for timed matches only.** `vm.timer` is `null` for an
+  untimed match and the icon + limit are inside that guard — an untimed row
+  shows just `BO1`/`BO3`.
+- **Legacy placeholder names are normalized.** Matches started with blank name
+  fields stored the literal `"Player 1"` / `"Player 2"`; those render as
+  `You` / `Opponent` rather than being shown as if they were real names.
+- **Home's preview row mirrors the History row.** Both render the same
+  `HistoryRowVM` and share `components/matchMeta.tsx` for the format + clock
+  line, so they can't drift. Home's copy just drops the swipe-delete and the
+  expandable detail.
+- **Tapping a Home row deep-links into History.** It navigates with a `matchId`
+  param; History expands that row, resets the filter to `All` so a chip can't
+  hide it, then clears the param (so re-focusing the tab doesn't re-expand, and
+  tapping the same match again still works).
+
 ## What not to build proactively
 
 The user is building incrementally. Don't add the following until its slice
 is explicitly started:
 
-- Timed-mode toggle, deck selection, and track-turns control in pre-match
-  setup (format + player names are built; the rest is deferred)
-- Timed-game mode (clock + data-model fields)
+- Deck selection and the track-turns control in pre-match setup (format,
+  player names, and timed mode are built; the rest is deferred)
 - Deck import/parsing
 - The designed history UI / detail view (only a minimal read-only list exists)
 

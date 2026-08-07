@@ -72,12 +72,16 @@ writing the logic that drives them. Things to know:
    model the Riftbound sections explicitly — champion, legend, main, runes,
    battlefields, sideboard — rather than a flat card list.
 
-3. **Timed mode is not in the data model.** It needs new fields — e.g. on
-   `Match`, whether the match is timed and the configured duration (applied to
-   the Bo1, or to the whole Bo3). Live clock state (remaining time,
-   running/paused) likely lives in context rather than the persisted model.
-   Decide what persists to history (configured duration, whether time expired)
-   versus what's ephemeral. The clock pauses between games in a Bo3.
+3. **Timed mode is in the data model** — one field, `Match.timeLimitSeconds`
+   (`null` = untimed), mirrored by `matches.time_limit_seconds`. One clock
+   covers the whole match (the Bo1's game or the entire Bo3) and **never
+   pauses**: the between-games break is sideboarding time and is played on the
+   same clock. There is no live clock state anywhere — remaining time is derived
+   from wall-clock (`limit - (now - game 1 startedAt)`, see
+   `apps/mobile/lib/clock.ts`), so it survives backgrounding, a JS reload, and
+   an outbox restore. History stores only the configured limit; how long the
+   match ran, and so whether it went to overtime, is derived from
+   `started_at`/`ended_at`.
 
 Forward-compatible fields already in the model (`Player.userId`,
 `Player.deck`, `Match.hostUserId`, `Match.guestUserIds`, `Match.notes`,
@@ -102,11 +106,10 @@ games and the match themselves.
 
 1. **Pre-match setup.** Before a match starts, the player picks format
    (Bo1 / Bo3) and player names. Later this also includes deck selection
-   (Feature 4). The player can also toggle **timed game** and choose a time
-   for the Bo1 or Bo3; a clock then counts down during play and pauses between
-   games in a Bo3. Timed mode is not yet implemented or in the data model.
-   (Today `startMatch()` skips setup entirely and uses defaults — the setup UI
-   replaces that.)
+   (Feature 4). The player can also toggle **timed game** and choose a round
+   length; one clock then counts down for the whole match — it keeps running
+   between games in a Bo3 (sideboarding is on the clock) and past zero into
+   overtime. Built: format, names, and the timed toggle + presets.
 2. **During a game.** `incrementScore` / `decrementScore` / `setScore` adjust
    `Player.gameScore`. Scores can't go below 0; there is no upper bound and no
    auto-end at any value — reaching 8 (or any number) does nothing on its own.
@@ -148,8 +151,9 @@ recorded here so they slot onto this same sheet when their features land:
   affordance could ship earlier than the feature itself (see open questions).
 - **Track turns** toggle → turn tracking (Feature 10); not in the data model.
 
-The designed sheet has **no** timed-game control, whereas the lifecycle above
-describes a timed-game toggle — these need reconciling (see open questions).
+The designed sheet has **no** timed-game control; the built sheet adds one
+(checkbox + round-length presets) per the lifecycle above. **Track turns** is
+still unbuilt — the two are separate toggles, not alternatives.
 
 ---
 
@@ -379,13 +383,18 @@ matching the incremental philosophy in `CLAUDE.md`.
 
 ## Open questions
 
-- **Timed mode** — what happens when the clock reaches zero? Auto-end the game
-  or match, and how is the result decided (current score wins? sudden death?)?
-  What persists to history (configured duration, whether time expired)?
-- **Track turns vs. timed mode** — the designed setup sheet has a **Track
-  turns** toggle and no timed-game control, but Feature 1's lifecycle describes
-  a **timed-game** toggle. Decide which the pre-match toggle actually is —
-  turn tracking, timed game, or both — and which you want first.
+- **Timed mode at zero** — answered for now: nothing auto-ends. The clock runs
+  into overtime (counting up in red, labelled OT) and the players still end the
+  game themselves, matching the no-auto-end rule for scoring. Still open:
+  whether overtime should prompt anything (e.g. suggest ending the round on
+  current standings) and whether presets should be editable / custom.
+- **Track turns** — timed mode shipped first and the two are independent
+  toggles. Whether turn tracking is still wanted alongside it is open
+  (Feature 10).
+- **Clock placement on the board** — the clock currently sits in the left slot
+  of the center bar, rotated a quarter turn so neither player reads it upside
+  down. Deliberately a first pass; the board may want a larger or two-sided
+  treatment.
 - **Scan QR "SOON" teaser** — should the disabled Scan QR affordance ship in v1
   as a teaser for the v2 match-mode feature, or stay out entirely until v2?
 - **`Player.xp`** exists in the model but has no defined product meaning.

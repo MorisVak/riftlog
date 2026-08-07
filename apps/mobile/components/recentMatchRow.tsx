@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import type { HistoryRowVM, Result } from '@/lib/historyView';
+import MatchMeta from './matchMeta';
 
 // Result tokens, paired with a letter + left bar so color is never the only
 // signal (colorblind-safe rule). A trimmed copy of the map in `historyRow.tsx`
@@ -18,9 +19,12 @@ type Props = {
 };
 
 /**
- * Compact, read-only match row for the Home "Recent matches" preview. Tapping
- * routes to the History tab (no match-detail screen exists yet). Score color
- * always rides alongside the letter badge and left bar.
+ * Compact, read-only match row for the Home "Recent matches" preview. It mirrors
+ * the History tab's row — same "vs {opponent}" title and the same meta line
+ * (format, plus the clock for a timed match) — minus the swipe-to-delete and the
+ * expandable per-game detail. Tapping opens the History tab with this match
+ * already expanded. Score color always rides alongside the letter badge and
+ * left bar.
  */
 const RecentMatchRow = ({ vm, onPress }: Props) => {
   const r = RESULT[vm.result];
@@ -40,13 +44,15 @@ const RecentMatchRow = ({ vm, onPress }: Props) => {
         </View>
 
         <View className="ml-3 flex-1">
+          {/* "vs" prefix, same as the History row: the name is the opponent. */}
           <Text
             className="font-display text-[15px] font-semibold text-ink-primary"
             numberOfLines={1}
           >
+            <Text className="font-normal text-ink-secondary">vs </Text>
             {vm.opponent}
           </Text>
-          <Text className="mt-0.5 text-xs text-ink-secondary">{vm.format}</Text>
+          <MatchMeta vm={vm} />
         </View>
 
         <View className="items-end">
