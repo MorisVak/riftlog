@@ -33,6 +33,7 @@ const TrackingField = ({
 
       <ScoringComponent playerId={playerId} />
 
+
       {/* END pinned to the bottom edge of the active player's half, per the
           design — a wide accent pill with a checkmark. The opponent half has no
           END, so nothing sits behind the Dynamic Island up top. */}

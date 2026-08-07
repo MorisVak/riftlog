@@ -67,6 +67,23 @@ module.exports = {
           tint: '#524D42',
           deep: '#2B2102',
         },
+
+        // Scoring actions on the play board — HOW a point was taken (conquer a
+        // battlefield / hold it / a special). Deliberately their own family:
+        // these describe an action, while win/loss/draw describe a result, and
+        // the two must stay separable. `tint` is the dark button fill.
+        conquer: {
+          DEFAULT: '#34D399',
+          tint: '#15352A',
+        },
+        hold: {
+          DEFAULT: '#E0B94A',
+          tint: '#3A3018',
+        },
+        special: {
+          DEFAULT: '#E879C7',
+          tint: '#3A1B31',
+        },
       },
 
       // Periwinkle accent glow under the major accent buttons (design CTAs).

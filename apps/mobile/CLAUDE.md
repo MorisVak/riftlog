@@ -70,6 +70,13 @@ Role of each result token:
 - `-tint` (`bg-win-tint`) — muted row / cell highlight on surface
 - `-deep` (`bg-win-deep`) — faint full-bleed background wash
 
+**Scoring actions** — `conquer` (green), `hold` (gold), `special` (pink), each
+with a dark `-tint` for the button fill:
+
+How a point was taken, on the play board. A separate family from win/loss/draw
+on purpose — those describe a *result*, these describe an *action*, and mixing
+them would make either impossible to restyle alone.
+
 **"Active" is always the accent, never a result color.** The game in progress
 (the board divider's pip) and a paused clock's control both use `accent` plus
 its glow — the same periwinkle the Start-match CTA and the board's END pill
@@ -222,6 +229,11 @@ game counter, nothing taking board space from either player:
 
 Conventions:
 
+- **A point is scored by saying HOW.** Under the numeral sit three buttons —
+  conquer / hold / special — and **tapping the numeral takes a point back**;
+  there is no separate decrement control. All three actions currently just
+  `incrementScore` by 1; which one was pressed is **not** recorded yet (that
+  needs a field on `Game`), so don't assume history can break points down.
 - **Scoring is a manual tally — no auto-end.** Score can't drop below 0;
   there's no upper bound and no win-at-target logic. Games and the match end
   only via explicit user action (with a confirm prompt), so stray or accidental
