@@ -1,9 +1,11 @@
 import { Pressable, Text, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useMatch } from '@/contexts/matchContext';
 import TrackingField from './trackingField';
 import EndGamePrompt from './endGamePrompt';
 import MatchClock from './matchClock';
+import BoardDivider from './boardDivider';
 import React, { useState } from 'react';
 
 /**
@@ -45,34 +47,66 @@ const ExitConfirm = ({
 );
 
 /**
- * Height of the center band on a timed match. The clock is quarter-turned, so
- * the band's height is what caps the clock's text: this fits `+MM:SS` — the
- * longest the clock ever gets, in overtime — at the `board` variant's size.
- * Grow both together or the clock will clip.
+ * Width the clock capsule is laid out at *before* it's rotated — rotation is a
+ * paint transform, so without an explicit width the clock would lay out inside
+ * its narrow slot and truncate ("50:00" → "2…"). After the quarter turn this
+ * becomes the capsule's height on screen.
  */
-const BAND_H = 148;
+const CLOCK_W = 168;
 
 /**
- * Width the clock is laid out at *before* it's rotated — rotation is a paint
- * transform, so without this the clock would lay out inside its narrow slot and
- * truncate ("50:00" → "2…"). After the quarter turn this width becomes the
- * clock's vertical extent, hence its relation to BAND_H.
+ * Height of the invisible overlay strip centered on the divider. It only needs
+ * to clear the rotated clock capsule; it's `box-none` so the player halves
+ * underneath keep taking taps.
  */
-const CLOCK_W = BAND_H - 8;
+const OVERLAY_H = CLOCK_W + 12;
+
+// ink-secondary and accent tokens — Feather takes a raw color prop, not a
+// className.
+const INK_SECONDARY = '#868FB0';
+const ACCENT = '#8B93D9';
+
+/**
+ * Shadows here are plain RN style objects, NOT NativeWind `shadow-*` classes.
+ * Those are parsed at render time, and on this stack (expo-router + NativeWind)
+ * that has been implicated in spurious "Couldn't find a navigation context"
+ * errors — which is exactly what the shadowed elements on this screen threw.
+ * Values mirror the design tokens.
+ *
+ * Mirrors the `accent-btn` glow the END pill and Start CTA carry.
+ */
+const ACCENT_GLOW = {
+  shadowColor: ACCENT,
+  shadowOffset: { width: 0, height: 3 },
+  shadowOpacity: 0.28,
+  shadowRadius: 10,
+} as const;
+
+/**
+ * The same glow for the paused clock, so the capsule and its control light up
+ * together. The offset is symmetric because the capsule is quarter-turned — a
+ * downward offset would rotate with it and cast sideways.
+ */
+const CLOCK_GLOW = {
+  ...ACCENT_GLOW,
+  shadowOffset: { width: 0, height: 0 },
+} as const;
 
 const PlayField = () => {
-  const { match, endMatch } = useMatch();
+  const { match, endMatch, pauseClock, resumeClock } = useMatch();
   const [promptOpen, setPromptOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
 
   if (!match) return null;
 
   const timed = match.timeLimitSeconds != null;
-  const gameNo = match.currentGameIndex + 1;
-  const formatLabel = match.bestOf === 1 ? 'BO1' : 'BO3';
-  // One pip per game in the format; filled once that slot has been decided.
-  const decided = match.players.reduce((n, p) => n + p.gameWins, 0);
-  const pips = Array.from({ length: match.bestOf }, (_, i) => i < decided);
+  const paused = match.clockPausedAt != null;
+
+  const toggleClock = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (paused) resumeClock();
+    else pauseClock();
+  };
 
   const openEnd = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -94,58 +128,83 @@ const PlayField = () => {
     <View className="flex-1">
       <TrackingField className="rotate-180" playerId="p2" />
 
-      {/* Center control bar: clock · format/game/pips · exit. Pass-turn is
-          deferred.
+      {/* The halves are separated by a line, not a band — the Bo3 series pips
+          live inside it (see BoardDivider). */}
+      <BoardDivider />
 
-          A timed match trades board height for a readable clock: the band grows
-          to BAND_H so the quarter-turned clock has room to be big — rotating it
-          means the band's HEIGHT is what limits the text's length, so the two
-          sizes move together. An untimed match keeps the compact bar rather
-          than leaving a tall empty strip. */}
+      <TrackingField playerId="p1" onEnd={openEnd} />
+
+      {/* Clock and controls float over the divider instead of sitting in a bar,
+          so neither player loses board space to them. `box-none` lets taps
+          through to the halves everywhere except on the buttons themselves. */}
       <View
-        style={timed ? { height: BAND_H } : undefined}
-        className={`flex-row items-center gap-3 border-y border-border bg-surface px-4 ${
-          timed ? '' : 'py-4'
-        }`}
+        pointerEvents="box-none"
+        // Asymmetric padding, not `px-4`: the clock + pause sit ~10px further
+        // left, and the exit ~10px further in from the right edge, which is
+        // what balances the two sides by eye.
+        style={{
+          height: OVERLAY_H,
+          marginTop: -OVERLAY_H / 2,
+          paddingLeft: 0,
+          paddingRight: 26,
+        }}
+        className="absolute inset-x-0 top-1/2 flex-row items-center justify-between"
       >
-        {/* Left of the board, at the table's midline, rotated so neither player
-            reads it upside down. Renders nothing when untimed, but the slot
-            keeps its width so the format label stays centered either way. */}
-        <View className="h-full w-20 items-center justify-center">
-          <View style={{ width: CLOCK_W, transform: [{ rotate: '-90deg' }] }}>
-            <MatchClock variant="board" />
-          </View>
-        </View>
-
-        <View className="flex-1 items-center">
-          <Text className="font-display text-base tracking-wide text-ink-primary">
-            {formatLabel} · GAME {gameNo}
-          </Text>
-          {match.bestOf > 1 && (
-            <View className="mt-2 flex-row gap-2">
-              {pips.map((filled, i) => (
-                <View
-                  key={i}
-                  className={`h-1.5 w-6 rounded-full ${filled ? 'bg-accent' : 'bg-border'}`}
-                />
-              ))}
+        {/* Left of the board at the table's midline, quarter-turned so neither
+            player reads it upside down, on a shadowed capsule that lifts it off
+            the play field. Renders nothing when the match is untimed. */}
+        {/* Nudged past the strip's left edge — the clock capsule is centered in
+            a slot wider than itself, so this pulls the visible capsule and the
+            pause button out to where they balance the exit on the right. */}
+        <View className="flex-row items-center gap-2" style={{ marginLeft: -4 }}>
+          <View pointerEvents="none" className="w-24 items-center justify-center">
+            <View
+              style={[
+                { width: CLOCK_W, transform: [{ rotate: '-90deg' }] },
+                timed && paused ? CLOCK_GLOW : null,
+              ]}
+              className={
+                timed
+                  ? `items-center rounded-2xl border-2 bg-elevated px-3 py-2 ${
+                      paused ? 'border-accent' : 'border-ink-tertiary'
+                    }`
+                  : undefined
+              }
+            >
+              <MatchClock variant="board" />
             </View>
+          </View>
+
+          {/* Sits with the clock it controls, not with the exit: stop the clock
+              for an interruption, resume when play restarts. */}
+          {timed && (
+            <Pressable
+              onPress={toggleClock}
+              accessibilityRole="button"
+              accessibilityLabel={paused ? 'Resume clock' : 'Pause clock'}
+              style={paused ? ACCENT_GLOW : undefined}
+              className={`h-12 w-12 items-center justify-center rounded-xl border-2 ${
+                paused
+                  ? 'border-accent bg-elevated'
+                  : 'border-ink-tertiary bg-elevated active:bg-border'
+              }`}
+            >
+              <Feather
+                name={paused ? 'play' : 'pause'}
+                size={19}
+                color={paused ? ACCENT : INK_SECONDARY}
+              />
+            </Pressable>
           )}
         </View>
 
-        {/* Same width as the clock slot, so the format label stays centered on
-            the board rather than being pushed off by the wider left slot. */}
-        <View className="w-20 items-center justify-center">
-          <Pressable
-            onPress={openExit}
-            className="h-12 w-12 items-center justify-center rounded-xl bg-elevated active:bg-border"
-          >
-            <Text className="text-2xl leading-none text-ink-secondary">✕</Text>
-          </Pressable>
-        </View>
+        <Pressable
+          onPress={openExit}
+          className="h-12 w-12 items-center justify-center rounded-xl border-2 border-ink-tertiary bg-elevated active:bg-border"
+        >
+          <Text className="text-2xl leading-none text-ink-secondary">✕</Text>
+        </Pressable>
       </View>
-
-      <TrackingField playerId="p1" onEnd={openEnd} />
 
       {promptOpen && <EndGamePrompt onClose={() => setPromptOpen(false)} />}
       {exitOpen && (

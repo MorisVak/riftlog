@@ -55,6 +55,10 @@ export type MatchContextType = {
   advanceGame: () => void;
   concludeMatch: () => void;
 
+  // Timed mode. No-ops on an untimed match or when already in that state.
+  pauseClock: () => void;
+  resumeClock: () => void;
+
   // Score actions (intent-named, player-oriented)
   incrementScore: (playerId: PlayerId) => void;
   decrementScore: (playerId: PlayerId) => void;
@@ -125,6 +129,8 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
       // The clock is anchored on game 1's startedAt (stamped in the same tick
       // by makeGame above), so it begins the moment play begins.
       timeLimitSeconds: config.timeLimitSeconds,
+      clockPausedAt: null,
+      clockPausedMs: 0,
       hostUserId: null,
       guestUserIds: [],
     };
@@ -233,6 +239,31 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  /**
+   * Stop the clock for an interruption. Only the pause *start* is recorded —
+   * the elapsed pause is banked on resume, so the countdown stays derived from
+   * timestamps instead of being ticked down.
+   */
+  const pauseClock = () => {
+    setMatch((prev) => {
+      if (!prev || prev.timeLimitSeconds == null || prev.clockPausedAt) return prev;
+      return { ...prev, clockPausedAt: nowIso() };
+    });
+  };
+
+  /** Resume, banking however long this pause lasted. */
+  const resumeClock = () => {
+    setMatch((prev) => {
+      if (!prev?.clockPausedAt) return prev;
+      const paused = Date.now() - Date.parse(prev.clockPausedAt);
+      return {
+        ...prev,
+        clockPausedAt: null,
+        clockPausedMs: (prev.clockPausedMs ?? 0) + Math.max(0, paused),
+      };
+    });
+  };
+
   const updatePlayer = (
     playerId: PlayerId,
     updater: (player: Player) => Player,
@@ -286,6 +317,8 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
         endGame,
         advanceGame,
         concludeMatch,
+        pauseClock,
+        resumeClock,
         incrementScore,
         decrementScore,
         setScore,

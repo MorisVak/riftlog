@@ -62,19 +62,25 @@ type Props = {
 
 const MatchClock = ({ variant = 'board', className = '' }: Props) => {
   const { match } = useMatch();
-  const now = useNow(match?.timeLimitSeconds != null);
+  const paused = match?.clockPausedAt != null;
+  // Nothing to repaint while paused — the value is frozen by definition.
+  const now = useNow(match?.timeLimitSeconds != null && !paused);
 
   const remaining = match ? remainingSeconds(match, now) : null;
   if (remaining === null) return null;
 
   const overtime = remaining < 0;
   const v = VARIANT[variant];
+  // A paused clock lights up in the accent — the same color as the glow and the
+  // control that paused it — rather than dimming out. No label: it would grow
+  // the rotated capsule the clock sits in.
+  const label = overtime && !paused ? 'OT' : null;
 
   return (
     <View className={`items-center ${className}`}>
       <Text
         className={`font-mono ${v.time} ${
-          overtime ? 'text-loss-text' : 'text-ink-primary'
+          paused ? 'text-accent' : overtime ? 'text-loss-text' : 'text-ink-primary'
         }`}
         // The clock must never be unreadable. If the box it's given is too
         // narrow for the current value — overtime adds a "+" and a digit — it
@@ -87,11 +93,11 @@ const MatchClock = ({ variant = 'board', className = '' }: Props) => {
 
       {/* Overtime carries a label as well as a color — the same rule the result
           badges follow, so color is never the only signal. */}
-      {overtime && (
+      {label && (
         <Text
           className={`font-display-bold ${v.label} tracking-widest text-loss-text`}
         >
-          OT
+          {label}
         </Text>
       )}
     </View>

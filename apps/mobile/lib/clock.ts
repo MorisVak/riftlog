@@ -21,6 +21,17 @@ export function clockStartedAt(match: Match): number {
 }
 
 /**
+ * Milliseconds the clock has actually run: wall-clock since game 1 started,
+ * minus every pause — those already banked in `clockPausedMs`, plus the one
+ * currently open if the clock is paused right now. While paused this returns a
+ * steady value, which is what freezes the countdown without ticking anything.
+ */
+export function runningMs(match: Match, now: number = Date.now()): number {
+  const openPause = match.clockPausedAt ? now - Date.parse(match.clockPausedAt) : 0;
+  return now - clockStartedAt(match) - (match.clockPausedMs ?? 0) - openPause;
+}
+
+/**
  * Whole seconds left on a timed match. Negative means overtime — the clock runs
  * past zero rather than stopping, because a round that goes long is still being
  * played. `null` for an untimed match.
@@ -29,8 +40,7 @@ export function remainingSeconds(match: Match, now: number = Date.now()): number
   // Loose check on purpose: a match stored on disk (in-progress slot or outbox)
   // before timed mode existed parses back with the field `undefined`.
   if (match.timeLimitSeconds == null) return null;
-  const elapsed = (now - clockStartedAt(match)) / 1000;
-  return Math.round(match.timeLimitSeconds - elapsed);
+  return Math.round(match.timeLimitSeconds - runningMs(match, now) / 1000);
 }
 
 /**

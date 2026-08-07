@@ -20,7 +20,11 @@ module.exports = {
         background: '#0D1B2A',
         surface: '#18223A',
         elevated: '#222D47',
-        border: '#2E3C56',
+        // Brightened from the original #2E3C56: at that value a hairline on
+        // `surface` was nearly invisible, so cards and dividers had no edge.
+        // Same hue, ~35% lighter — still a step below `ink-tertiary`, which is
+        // text and stays the brighter of the two.
+        border: '#3E506E',
 
         // Accent — periwinkle (single brand accent)
         // Translucent accent fills: use opacity, e.g. bg-accent/15

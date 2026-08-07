@@ -40,7 +40,7 @@ system 1:1 so there's no translation step from design to code.
 - `bg-background` `#0D1B2A` — app background
 - `bg-surface` `#18223A` — cards, panels
 - `bg-elevated` `#222D47` — raised surfaces (modals, menus)
-- `border-border` `#2E3C56` — hairlines, dividers
+- `border-border` `#3E506E` — hairlines, dividers
 
 **Accent** — periwinkle, the single brand accent:
 
@@ -69,6 +69,22 @@ Role of each result token:
 - `-text` (`text-win-text`) — result text on a dark background
 - `-tint` (`bg-win-tint`) — muted row / cell highlight on surface
 - `-deep` (`bg-win-deep`) — faint full-bleed background wash
+
+**"Active" is always the accent, never a result color.** The game in progress
+(the board divider's pip) and a paused clock's control both use `accent` plus
+its glow — the same periwinkle the Start-match CTA and the board's END pill
+carry. Don't reach for `draw`'s gold or introduce a second highlight color:
+result colors mean results.
+
+**Shadows: prefer a plain RN style object over a NativeWind `shadow-*` class on
+the play board.** NativeWind parses those classes at render time, and on this
+stack (expo-router + NativeWind) that has been implicated in spurious
+"Couldn't find a navigation context" errors — the board clock's capsule and the
+paused-clock control both threw it until their shadows moved to style objects
+(`CLOCK_SHADOW` / `ACCENT_GLOW` in `playField.tsx`, values mirroring the
+tokens). The `shadow-accent-*` classes elsewhere are fine as they are; if a new
+one starts throwing, this is the first thing to try. See
+https://github.com/expo/expo/issues/38423.
 
 **Colorblind-safe rule (non-negotiable):** result color is NEVER the only
 signal. Every win/loss/draw indicator pairs the color with (a) a `W`/`L`/`D`
@@ -115,6 +131,8 @@ const {
   endMatch, // () => void — discards the active match (completed-match write already happened)
   endGame, // (result: GameResult) => void — freeze current game, resolve match
   advanceGame, // () => void — start the next game of a Bo3 (after between-games)
+  pauseClock, // () => void — stop the timed-match clock (no-op if untimed)
+  resumeClock, // () => void — resume it, banking the pause
   incrementScore, // (playerId: 'p1' | 'p2') => void
   decrementScore, // (playerId: 'p1' | 'p2') => void
   setScore, // (playerId: 'p1' | 'p2', value: number) => void
@@ -154,18 +172,44 @@ There is no ticking value in context, no paused flag, nothing on `Game`:
   the play field's center band; `variant="screen"` is the between-games
   interstitial's, rendered twice (once rotated 180°) so both players get an
   upright clock.
-- **The board's center band and the board clock's text size are coupled.**
-  Because the clock is rotated, the band's *height* is what caps the text
-  length (`+MM:SS` in overtime is the longest it gets) — `BAND_H` in
-  `playField.tsx` is sized for it. Grow one without the other and the clock
-  clips. The band only takes that height on a timed match; untimed keeps the
-  compact bar instead of an empty strip.
+- **The clock can be paused**, so it is *not* purely wall-clock derived any
+  more: `Match.clockPausedAt` + `clockPausedMs` bank the pauses and
+  `runningMs()` subtracts them. Still nothing ticks — a paused clock is a
+  steady derived value, and `MatchClock` stops its own timer while paused.
+  Pause state is not persisted to Postgres, so a completed match's "played"
+  time in history includes any paused time.
 - **Rotating text needs an explicitly sized wrapper.** A transform is paint
   only — it doesn't change layout — so a rotated clock dropped into a narrow
   slot lays out at that slot's width and truncates (`50:00` → `2…`). The board
   clock sits in a wrapper with an explicit pre-rotation width (`CLOCK_W`), and
   the clock text also carries `adjustsFontSizeToFit` so it scales rather than
   ellipsizes if a box is ever too small.
+
+### Board layout
+
+The two halves are separated by a **line, not a bar** — no format label, no
+game counter, nothing taking board space from either player:
+
+- `components/boardDivider.tsx` draws the line. For a Bo3 the series cells sit
+  *inline* with it (line → cells → line) with **no gaps**, so the run reads as
+  one connected honeycomb chain rather than dots on a rule. Cells are hexagons
+  built from plain Views — a body rectangle plus a border-trick triangle at each
+  end, with a smaller fill hexagon centered over an outline one to fake a
+  stroke. There's no polygon primitive in RN and `react-native-svg` isn't a
+  dependency; adding it would force a dev-client rebuild for one shape.
+- Cell states: the game being played is `accent` filled with an `accent-soft`
+  outline and a slow glow (2.2s breath, shadow opacity 0.45→0.95); decided games
+  are solid ink; games not yet reached are hollow outlines, so the comb is
+  visible from the start and fills in as the round is played.
+- The clock and the controls float in an absolutely positioned `box-none`
+  strip centered on the divider, so taps still reach the halves everywhere
+  except on the buttons.
+- Controls are the exit `✕` on the right, and — on a timed match — one
+  pause/resume toggle (`Feather` `pause` ↔ `play`) sitting **with the clock**
+  on the left, since it's the clock it acts on. Paused shows an accent outline
+  + glow and greys the clock; there's deliberately no "PAUSED" label, which
+  would grow the rotated capsule. Nothing else belongs here — the pass-turn
+  control is still deferred.
 - History stores only the configured limit; elapsed time and the
   overtime flag are derived from `started_at`/`ended_at` in `lib/historyView.ts`.
 - The setup sheet offers two presets (30 / 60 min) plus **Custom**, which opens

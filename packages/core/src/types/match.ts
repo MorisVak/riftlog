@@ -47,12 +47,27 @@ export type Match = {
    * counting past zero into overtime.
    *
    * Only the configured limit is stored. Remaining time is always *derived*
-   * from wall-clock (`limit - (now - firstGame.startedAt)`), so there is no
-   * tick state to keep in sync — backgrounding the app, reloading JS, or
-   * restoring an interrupted match from the outbox all recompute the same
-   * value. Elapsed time for a finished match comes from `startedAt`/`endedAt`.
+   * from wall-clock (`limit - (now - firstGame.startedAt) - paused time`), so
+   * there is no tick state to keep in sync — backgrounding the app, reloading
+   * JS, or restoring an interrupted match from the outbox all recompute the
+   * same value. Elapsed time for a finished match comes from
+   * `startedAt`/`endedAt`.
    */
   timeLimitSeconds: number | null;
+
+  /**
+   * When the clock was paused (ISO-8601), or null while it's running. The
+   * players can stop the clock on the board for an interruption — a judge
+   * call, a spill — and resume it after.
+   */
+  clockPausedAt: string | null;
+
+  /**
+   * Total milliseconds the clock has spent paused across the match, banked on
+   * each resume. Subtracting this (plus any in-progress pause) from wall-clock
+   * elapsed is what keeps the countdown derivable rather than ticked.
+   */
+  clockPausedMs: number;
 
   /**
    * Forward-compatible for v2 QR co-recording feature.
