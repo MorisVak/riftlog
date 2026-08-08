@@ -1,6 +1,8 @@
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import type { Match, Player, PlayerId } from '@riftlog/core';
+import { useAuth } from '@/contexts/authContext';
 import { useMatch } from '@/contexts/matchContext';
 import React from 'react';
 
@@ -48,6 +50,8 @@ const PlayerResultRow = ({ player, outcome }: { player: Player; outcome: Outcome
  */
 const MatchOverview = () => {
   const { match, endMatch } = useMatch();
+  const { status } = useAuth();
+  const router = useRouter();
   if (!match) return null;
 
   const nameOf = (id: PlayerId | null) =>
@@ -98,6 +102,26 @@ const MatchOverview = () => {
             </Text>
           </View>
         ))}
+
+        {/* A guest's match ends here and is gone — Done discards it and nothing
+            was ever written. This is the moment that loss is actually felt, so
+            it's the moment worth saying so. */}
+        {status === 'guest' && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/login');
+            }}
+            className="mt-8 rounded-xl border border-border bg-surface px-5 py-4 active:bg-elevated"
+          >
+            <Text className="text-center text-sm text-ink-secondary">
+              This match wasn&apos;t saved.{' '}
+              <Text className="font-display text-accent">Sign in</Text> to keep
+              your history.
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           onPress={onDone}

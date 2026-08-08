@@ -8,13 +8,14 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
 ## Project structure
 
 - `app/` — Expo Router routes. Each file is a screen.
-  - `_layout.tsx` — root layout, wraps everything in `MatchProvider`
-  - `(tabs)/_layout.tsx` — tab navigator (History, Main, Settings)
-  - `(tabs)/index.tsx` — main screen (score tracker entry)
-  - `(tabs)/history.tsx` — placeholder
-  - `(tabs)/settings.tsx` — placeholder
+  - `_layout.tsx` — root layout: `AuthProvider` > `MatchProvider` > `Stack`
+  - `(tabs)/_layout.tsx` — tab navigator (History, Home, Profile)
+  - `(tabs)/index.tsx` — Home; also hosts the whole match flow by `phase`
+  - `(tabs)/history.tsx` — match history (account-gated)
+  - `(tabs)/profile.tsx` — read-only profile + sign out (account-gated)
+  - `login.tsx` / `verify-otp.tsx` — modal auth routes
 - `components/` — reusable UI components
-- `contexts/` — React context providers (currently just `matchContext`)
+- `contexts/` — React context providers (`authContext`, `matchContext`)
 - `assets/` — icons, splash images
 
 ## Styling
@@ -350,9 +351,8 @@ the approach from the official Supabase Expo quickstart. That store holds the
 **session only**. Offline match data uses plain AsyncStorage (see Offline
 outbox) — we deliberately do **not** add a second storage library.
 
-**Auth.** Anonymous sign-in on first launch (`app/_layout.tsx`) gives every
-device an `auth.uid()` to own its rows; `persistSession` restores it afterward.
-Requires anonymous sign-ins enabled on the remote project.
+**Auth.** See the "Auth & guest mode" section below — it's load-bearing enough
+to have its own.
 
 **Write path.** There is no "match completed" callback — completion is
 `match.endedAt` flipping non-null inside the matchContext reducers. `MatchSync`
@@ -404,6 +404,78 @@ Rules that are easy to get wrong:
   hide it, then clears the param (so re-focusing the tab doesn't re-expand, and
   tapping the same match again still works).
 
+## Auth & guest mode
+
+`contexts/authContext.tsx` is the only place session state lives. It exposes
+`session` / `user` / `status` / `signOut`, and is mounted **above**
+`MatchProvider` in `app/_layout.tsx` so `MatchSync` can read both.
+
+- **`status` is `'loading' | 'authed' | 'guest'`, derived, never stored** —
+  same rule as `phase`. `'loading'` is a real third state, not a synonym for
+  guest: treating it as guest flashes the login gate over every account tab on
+  every cold start.
+- **There is no anonymous sign-in.** It was removed. A signed-out user gets a
+  guest sandbox; see the write rules below.
+- The `AppState` → `startAutoRefresh`/`stopAutoRefresh` pair is registered at
+  module scope (process-wide, not per-mount).
+
+### Guest mode — the write rules (don't soften these)
+
+`components/matchSync.tsx` enforces them. A guest's match is **in-memory only**:
+no Postgres row, no in-progress mirror, no outbox entry. On sign-in the guest
+match is **discarded** (`endMatch()`), never uploaded or merged.
+
+Two traps live here, both already handled — don't undo them:
+
+1. **`guestMatchIds`.** Sign-in flips `status` and re-runs the write effect in
+   the *same commit*, while the discard is a `setState` that hasn't landed yet.
+   Gating writes on the current status alone therefore uploads the guest's
+   match into the account that just signed in. Matches seen while signed out
+   are tracked **by id** and stay untouchable regardless of later auth state.
+2. **`clearOutbox()` on sign-out** (`lib/localStore.ts`, called from
+   `signOut()`). Outbox entries carry **no `user_id`** — `matches.user_id`
+   defaults from `auth.uid()` at insert time — so a match queued by account A
+   and flushed while account B is signed in is written to **B**. The queue is
+   only ever valid for the session that filled it.
+
+### Gating
+
+`components/authGate.tsx` wraps History and Profile. Signed out it renders the
+tab's real content inert (`pointerEvents="none"`) under a `BlurView` and a login
+card. **In-place overlay, never a redirect** — and both gated screens skip their
+own fetch while signed out, or they'd paint an RLS error behind the blur. Home is
+guest-usable and shows `components/guestBanner.tsx` throughout.
+
+`BlurView` takes a **style object, not a className** — NativeWind doesn't map
+classes onto third-party native components without `cssInterop`.
+
+### Providers
+
+`lib/auth.ts`, one function per method, each recording `setLastAuthMethod` on
+success. Cancellation returns `'cancelled'` rather than throwing, so a dismissed
+sheet doesn't paint a red error.
+
+- **Discord** — browser flow: `signInWithOAuth({ skipBrowserRedirect: true })` →
+  `WebBrowser.openAuthSessionAsync` → `getQueryParams` → `setSession`. Tokens
+  come back in the URL **fragment**, which `Linking.parse` can't read — hence
+  `expo-auth-session/build/QueryParams`.
+- **Google / Apple** — native `signInWithIdToken`. For Google the **web** client
+  id is the token audience Supabase verifies, not the iOS/Android one; the iOS
+  and Android client ids must additionally be listed in the Supabase provider's
+  *Authorized Client IDs*.
+- **Email** — `signInWithOtp({ shouldCreateUser: true })` → 6-digit
+  `verifyOtp`. `shouldCreateUser` is what makes sign-in and sign-up one action.
+  **No passwords anywhere in this app.**
+
+**These two are native modules, so OAuth does not work in Expo Go** — `pnpm
+mobile start --go` is no longer enough for auth work; use a dev client.
+`app.json`'s `iosUrlScheme` is a placeholder until the real reversed iOS client
+id is filled in by hand.
+
+`lib/authPrefs.ts` holds the "Last used" badge — device-local, non-sensitive,
+readable while signed out, and deliberately **not** in `lib/localStore.ts` so
+that file's "exactly two match keys" contract stays true.
+
 ## What not to build proactively
 
 The user is building incrementally. Don't add the following until its slice
@@ -413,12 +485,20 @@ is explicitly started:
   player names, and timed mode are built; the rest is deferred)
 - Deck import/parsing
 - The designed history UI / detail view (only a minimal read-only list exists)
+- Profile **editing** — renaming the handle, avatar upload, stats. The profile
+  screen is read-only by design; the data model and seeding are done.
+- An onboarding flow, and any manual account-linking UI
 
 Match **history is never mirrored locally** — read from Postgres on demand — so
-don't build a growing on-device history store. Local persistence is bounded to
-exactly two things: the encrypted auth **session** (LargeSecureStore) and the
-**offline match state** (in-progress match + outbox, in AsyncStorage via
-`lib/localStore.ts`). Don't add more local storage than that.
+don't build a growing on-device history store. Local persistence is bounded to:
+the encrypted auth **session** (LargeSecureStore), the **offline match state**
+(in-progress match + outbox, `lib/localStore.ts`), and the one non-sensitive
+"last used sign-in method" key (`lib/authPrefs.ts`). Don't add more.
+
+Also: don't add local persistence for **guest** matches. It looks like a
+kindness and it isn't — anything durable a guest produces has to be either
+migrated at login (merge logic, which this design exists to avoid) or thrown
+away later anyway, more confusingly.
 
 These are specced in `SPEC.md` and sequenced — build them when their roadmap
 step begins, not ahead of it.

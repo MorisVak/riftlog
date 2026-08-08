@@ -65,6 +65,17 @@ export async function enqueueOutbox(match: Match): Promise<void> {
   await AsyncStorage.setItem(KEYS.outbox, JSON.stringify(next));
 }
 
+/**
+ * Drop the whole queue. Called on sign-out: outbox entries carry NO user_id —
+ * `matches.user_id` defaults from `auth.uid()` at insert time — so a match
+ * queued by one account and flushed while another is signed in would be
+ * written to the wrong user. The queue is only ever valid for the session that
+ * filled it.
+ */
+export async function clearOutbox(): Promise<void> {
+  await AsyncStorage.removeItem(KEYS.outbox);
+}
+
 export async function removeFromOutbox(matchId: string): Promise<void> {
   const current = await getOutbox();
   const next = current.filter((m) => m.id !== matchId);

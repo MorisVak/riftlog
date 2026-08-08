@@ -140,10 +140,10 @@ games and the match themselves.
    winner. Same rule for the manual "end round now" escape hatch: the leader
    takes it, level standings are a draw.
 
-**Note:** completing a match saves it to Supabase (anonymous auth gives every
-device an identity to own its rows); only an explicit "abandon/discard"
-(`endMatch()`) throws it away. A match completed offline is queued locally and
-uploaded automatically on reconnect — see Feature 3.
+**Note:** completing a match saves it to Supabase **when signed in**; only an
+explicit "abandon/discard" (`endMatch()`) throws it away. A match completed
+offline is queued locally and uploaded automatically on reconnect — see
+Feature 3. A **guest** match is never saved at all: see Feature 11.
 
 **Designed setup sheet (forward-looking).** Pre-match setup is designed as a
 bottom sheet titled "New match" (from Claude Design), containing top to bottom:
@@ -193,8 +193,8 @@ letter badge and colored left bar (never color alone).
 
 ## Feature 3 — Cloud persistence
 
-**Status:** built (online path + offline outbox). Anonymous auth + the
-`matches`/`games` schema with RLS are live.
+**Status:** built (online path + offline outbox). The `matches`/`games` schema
+with RLS is live. Requires a signed-in account — see Feature 11.
 
 **What it is.** Completed matches are saved to **Supabase** so a player's
 history syncs across their devices and survives reinstalls. **Postgres is the
@@ -216,9 +216,9 @@ connection returns.
 
 **Requirements:**
 
-- Auth provides a user identity to own match rows: **anonymous sign-in** in v1
-  (each device gets an `auth.uid()`); named-account upgrade is later — see
-  Feature 7.
+- Auth provides a user identity to own match rows. Persistence is **account
+  only** — a signed-out player gets the guest sandbox and no saved history
+  (Feature 11). There is no anonymous sign-in.
 - `matches` (the Bo1/Bo3 series) and `games` (the games within it) tables, with
   RLS so a user can only read/write their own rows. The DB never re-derives
   Bo3/draw logic — it stores only outcomes the client has already settled.
@@ -290,16 +290,31 @@ standard Riftbound sections: chosen Champion, Legend, 40-card main deck,
 
 ## Feature 7 — Profile
 
-**Status:** planned. Comes with auth (Supabase), which is pulled forward to
-support cloud persistence.
+**Status:** data model + seeding built (Feature 11); the profile screen is
+read-only. Editing, decks, and stats are the next slice.
 
-**What it is.** A profile screen with a username (and later a profile picture).
+**What it is.** A profile screen with a handle (and later a profile picture).
 From here the player imports decks and reviews their decklists. The profile is
 where a player's owned decks live, distinct from the per-match snapshots.
 
-**Notes:** username is the first piece; profile picture is explicitly "for
-later." Auth (Supabase magic links) is the dependency — and since cloud
-persistence needs an account, auth lands early rather than late.
+**Two names, not one — they do different jobs:**
+
+- **`username`** — the unique `@handle` in *Riftlog's* namespace. Lowercase,
+  case-insensitively unique, and **auto-assigned at signup**: slugified from
+  whatever name the identity provider gave us, with a numeric or short random
+  suffix on collision (`maurice` → `maurice1` → `player_a4f2c1`). This is what
+  another player would eventually use to find you.
+- **`display_name`** — cosmetic and **not** unique, copied from the provider.
+  Two players called "Maurice" is fine; two `@maurice` is not.
+
+**No username-claim step at signup.** Mandatory login already costs a step;
+making people negotiate with a uniqueness check before they can use the app
+costs another, at the worst possible moment. Handles are assigned now and
+renameable later.
+
+**Built:** the `profiles` table (owner-only RLS), the seeding trigger, and a
+read-only profile screen showing avatar / display name / `@handle` / sign out.
+**Not built:** renaming the handle, avatar upload, profile stats, owned decks.
 
 ---
 
@@ -351,6 +366,59 @@ reconcile the two (see open questions).
 
 ---
 
+## Feature 11 — Accounts, guest mode & tab gating
+
+**Status:** built. Replaces anonymous sign-in, which is gone.
+
+**What it is.** Riftlog requires an account to save anything, but not to try
+anything. Those are two separate decisions and the app treats them that way.
+
+**Guest mode (Home only).** A signed-out player can run a full match from Home:
+setup sheet, live board, timed mode, Bo3, the lot. It is **in-memory only** —
+no Postgres write, no in-progress mirror, no offline outbox entry. Closing the
+app loses it. Home shows a persistent, low-key banner the whole time
+("Playing as guest — games aren't saved. Sign in to keep your match history.")
+which taps through to login. The notice is shown *while they play*, not sprung
+on them at the end: a wall that appears the moment something is lost reads as a
+bait and switch, and by then the match is already gone.
+
+**The guest match is DISCARDED on login.** Not uploaded, not merged, not
+resumed. This is the load-bearing decision of the whole feature: it is what
+makes "one data path" true rather than aspirational. Any migration story —
+even a trivial one — means merge logic, conflict rules, and a second way for
+data to reach the database, forever.
+
+**Tab gating.** Every tab stays visible in the tab bar in every auth state.
+Home is guest-usable; **History and Profile are account-gated**. Gated tabs
+render their real content blurred and inert under a login card ("You need to
+log in to use this feature!" + "No account yet? Sign up!"). It is an in-place
+overlay, not a redirect: a guest who taps History should see a
+history-shaped screen behind a lock, because that is what makes an account
+worth making. A redirect shows them nothing and tells them less.
+
+**Sign-in and sign-up are the same action.** Every "Sign up" link routes to the
+same login screen. An unknown email or a first-time OAuth identity creates the
+account (and its profile) on the spot. There is no separate registration flow
+and no password anywhere in the product.
+
+**Methods:** Discord (primary), Google, Apple, and passwordless email — a
+6-digit code, not a magic link. The last method used is remembered on the
+device and badged next time, so returning users don't have to remember which
+one their account is under. That badge is device-local only.
+
+**Identity linking** is Supabase's automatic email matching; there is no manual
+linking UI. **Known accepted limitation:** Apple's "Hide My Email" gives a
+per-app relay address that will never match the user's real Discord or Google
+address, so someone who signs in with Apple *and* Discord can end up with two
+separate accounts holding two separate histories. We are not solving this. A
+rename/merge flow would be a large feature to serve a small case, and the
+alternative (blocking relay addresses) is worse for the user than the problem.
+
+**No profile step after login.** The handle is auto-assigned (Feature 7); the
+user lands back where they were with the gate lifted.
+
+---
+
 ## Roadmap (suggested build order)
 
 Each step should be a working, committed slice before the next begins —
@@ -362,20 +430,24 @@ matching the incremental philosophy in `CLAUDE.md`.
    end-game prompt, game resolution, Bo3 advance, match end. Includes adding
    the timed-mode fields and using the resolution fields in the data model.
    (Feature 1.) The keystone everything else needs.
-3. **Auth + cloud persistence** — anonymous Supabase auth and `matches`/`games`
-   tables with RLS; completed matches save to the cloud, with an offline outbox
-   that flushes on reconnect. Pulled forward because history depends on it.
-   (Features 3 + 7 username.)
+3. **Auth + cloud persistence** — `matches`/`games` tables with RLS; completed
+   matches save to the cloud, with an offline outbox that flushes on reconnect.
+   Pulled forward because history depends on it. (Feature 3.)
 4. **Match history** — list + detail reading from the cloud. (Feature 2.)
-5. **Profile** — username (avatar later); owned decks live here. (Feature 7.)
-6. **Deck import** — Piltover Archive parser first, attach decks to matches.
+5. **Accounts + guest mode** — real sign-in (Discord / Google / Apple / email
+   OTP) replacing anonymous auth, guest-mode Home, gated tabs, and the
+   `profiles` table with auto-assigned handles. (Feature 11 + Feature 7's data
+   model.) _(Done.)_
+6. **Profile screen** — rename the handle, avatar, stats; owned decks live
+   here. (Feature 7.)
+7. **Deck import** — Piltover Archive parser first, attach decks to matches.
    (Feature 4.)
-7. **Deck versioning & diffs** — version on edit, show change snapshots.
+8. **Deck versioning & diffs** — version on edit, show change snapshots.
    (Feature 5.)
-8. **Card art decklists** — once the Riot API key lands. (Feature 6.)
-9. **Match mode (QR)** — v2. (Feature 8.)
-10. **Turn tracking** — exploratory. (Feature 10.)
-11. **Friends** — exploratory. (Feature 9.)
+9. **Card art decklists** — once the Riot API key lands. (Feature 6.)
+10. **Match mode (QR)** — v2. (Feature 8.)
+11. **Turn tracking** — exploratory. (Feature 10.)
+12. **Friends** — exploratory. (Feature 9.)
 
 ## Constraints
 

@@ -22,7 +22,7 @@ describe _how_ the project works; `SPEC.md` describes _what_ is being built.
 - **Mobile:** Expo SDK 54, Expo Router, NativeWind v4, React 19. Animations
   via React Native Reanimated 4 (see `apps/mobile/CLAUDE.md`).
 - **Shared:** `@riftlog/core` package — pure TypeScript, no platform code.
-- **Backend:** Supabase (anonymous auth + Postgres; Edge Functions not yet
+- **Backend:** Supabase (account auth + Postgres; Edge Functions not yet
   used). Postgres is the **single source of truth** for match data. See
   "Persistence architecture" below.
 
@@ -34,16 +34,19 @@ completed-but-unsynced matches that flushes on reconnect. Match **history is
 never mirrored locally** — it's read from Postgres on demand. Local footprint
 stays bounded and self-clearing.
 
-Build status: schema + RLS + generated types (`supabase/`), and the **online**
-write/read path (mobile client, anonymous auth, persist-on-completion, history
-reads) are built. The offline outbox + sync-on-reconnect is the next slice.
+Build status: schema + RLS + generated types (`supabase/`), the write/read path,
+the offline outbox, and account auth + `profiles` are all built.
 
 - **Domain → tables:** `matches` = the Bo1/Bo3 series, `games` = the games
-  within it. The DB **never** re-derives Bo3 / draw logic — `@riftlog/core` /
-  the mobile `matchContext` settle every match, and the DB persists only the
-  settled outcome.
-- **Auth:** anonymous sign-in — each device owns its rows via `auth.uid()`,
-  enforced by RLS. Account upgrade (magic link) is a later concern.
+  within it, `profiles` = one row per account. The DB **never** re-derives
+  Bo3 / draw logic — `@riftlog/core` / the mobile `matchContext` settle every
+  match, and the DB persists only the settled outcome.
+- **Auth: a real account, or nothing is saved.** Sign-in is Discord / Google /
+  Apple / email OTP; rows are owned via `auth.uid()` and enforced by RLS.
+  **There is no anonymous sign-in** — it was removed deliberately. A signed-out
+  user gets an in-memory guest sandbox on Home that writes to nothing, and that
+  match is *discarded* on login rather than migrated. That is what keeps this a
+  single data path with zero merge logic; don't reintroduce a second one.
 
 **Key boundary (publishable vs. secret) — non-negotiable:**
 
@@ -124,16 +127,15 @@ Don't invent terminology that doesn't exist in Riftbound.
 
 ## What's intentionally not built yet
 
-- Account upgrade beyond anonymous auth (magic link) — anonymous sign-in is
-  built; named accounts are a later concern.
-- Offline outbox + sync-on-reconnect — the online persistence path is built
-  (completed matches save to Postgres, history reads on demand); the on-device
-  in-progress store + outbox for offline play are the next slice. Until then a
-  match that completes offline isn't saved.
+- Profile editing — renaming the `@handle`, avatar upload, profile stats, owned
+  decks. The `profiles` table, its seeding trigger, and a **read-only** profile
+  screen are built; nothing writes to that table from the client yet.
+- Manual account-linking UI. Supabase's automatic email linking is on and left
+  alone; Apple "Hide My Email" relay addresses can't match and may produce a
+  second account (accepted, see `SPEC.md`).
+- Onboarding flow — deliberately deferred until the app is more polished.
 - Deck selection and track-turns in pre-match setup — the setup sheet itself
   is built (Bo1/Bo3, player names, timed toggle + round length)
-- Between-games UI for Bo3
-- End-game prompt / claim-victory + match resolution flow
 - Deck imports (Piltover Archive parser first, then Riftmana)
 - Match history view — a minimal read-only list is wired to Postgres; the
   designed history UI / detail view is still to come
