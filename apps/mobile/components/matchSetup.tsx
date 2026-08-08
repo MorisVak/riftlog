@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import Animated, {
+  Easing,
   FadeIn,
   runOnJS,
   useAnimatedStyle,
@@ -21,7 +22,7 @@ import * as Haptics from 'expo-haptics';
 import type { MatchConfig } from '@/contexts/matchContext';
 import { useMatch } from '@/contexts/matchContext';
 import DurationPicker from './durationPicker';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 type MatchSetupProps = {
   onClose: () => void;
@@ -47,8 +48,17 @@ const DEFAULT_CUSTOM = { minutes: 50, seconds: 0 };
 // this, and the sheet closes; otherwise it springs back to rest.
 const DISMISS_DISTANCE = 120;
 const DISMISS_VELOCITY = 800;
-// How far the sheet slides off-screen on dismiss before unmounting.
+// How far the sheet slides off-screen on dismiss before unmounting — also
+// where it starts from on mount, so it has to be taller than the sheet itself.
 const SHEET_TRAVEL = 520;
+// The entrance is a timing curve, not a spring: the sheet is being pulled up
+// into place, so it decelerates into rest and stops. Any spring overshoots, and
+// over a travel this long even a heavily damped one reads as a bounce.
+const ENTER_DURATION = 320;
+const ENTER_EASING = Easing.out(Easing.cubic);
+// The exit is a plain timing — a spring's overshoot on the way out reads as a
+// bounce against the screen edge.
+const EXIT_DURATION = 200;
 
 /**
  * Pre-match setup sheet. Collects the format (Bo1 / Bo3) and both player names —
@@ -103,17 +113,38 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
     onClose();
   };
 
-  const cancel = () => {
+  // Unmounts the sheet. Called once the slide-out has finished, so the parent
+  // never tears it down mid-animation.
+  const close = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onClose();
   };
 
-  // Drag-to-dismiss. The sheet follows the finger downward (never up), and the
-  // backdrop fades as it goes so the two feel connected. Release past the
-  // threshold (or with enough downward velocity) and it slides off and closes;
-  // otherwise it springs back to rest.
-  const translateY = useSharedValue(0);
+  // Drag-to-dismiss, and the entrance/exit. The sheet follows the finger
+  // downward (never up), and the backdrop fades as it goes so the two feel
+  // connected. Release past the threshold (or with enough downward velocity)
+  // and it slides off and closes; otherwise it springs back to rest.
+  //
+  // The same value drives the entrance: it starts a full travel below rest and
+  // springs up on mount, which fades the backdrop in on the way (its opacity is
+  // derived from this) with no second animation to keep in step.
+  const translateY = useSharedValue(SHEET_TRAVEL);
   const startY = useSharedValue(0);
+
+  useEffect(() => {
+    translateY.value = withTiming(0, {
+      duration: ENTER_DURATION,
+      easing: ENTER_EASING,
+    });
+  }, [translateY]);
+
+  // Slide out, then unmount. For a drag-dismiss the slide has already happened,
+  // so that path calls close() directly instead.
+  const dismiss = () => {
+    translateY.value = withTiming(SHEET_TRAVEL, { duration: EXIT_DURATION }, () => {
+      runOnJS(close)();
+    });
+  };
 
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
@@ -132,8 +163,8 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
     })
     .onEnd((e) => {
       if (translateY.value > DISMISS_DISTANCE || e.velocityY > DISMISS_VELOCITY) {
-        translateY.value = withTiming(SHEET_TRAVEL, { duration: 200 }, () => {
-          runOnJS(cancel)();
+        translateY.value = withTiming(SHEET_TRAVEL, { duration: EXIT_DURATION }, () => {
+          runOnJS(close)();
         });
       } else {
         translateY.value = withSpring(0, { damping: 20, stiffness: 220 });
@@ -187,7 +218,7 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
 
   return (
     <View className="absolute inset-0 z-50">
-      <TouchableWithoutFeedback onPress={cancel}>
+      <TouchableWithoutFeedback onPress={dismiss}>
         <Animated.View
           style={backdropStyle}
           className="absolute inset-0 bg-background/80"
