@@ -16,6 +16,7 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
   - `login.tsx` / `verify-otp.tsx` — modal auth routes
 - `components/` — reusable UI components
 - `contexts/` — React context providers (`authContext`, `matchContext`)
+- `hooks/` — shared hooks that aren't components (`useScreenIntro`)
 - `assets/` — icons, splash images
 
 ## Styling
@@ -116,6 +117,22 @@ the Expo template — there is nothing to install.
 - Prefer Reanimated over the legacy `Animated` API and over layout hacks.
   Use `useSharedValue` / `useAnimatedStyle` / `withTiming` / `withSpring`
   and `Animated.View`.
+
+### Screen entrance
+
+Every tab shares one entrance: elements fade in while rising ~10px, each
+starting `STAGGER_MS` after the last, so the screen assembles top-to-bottom
+instead of appearing at once (the design's `.scr` / scrIn). It lives in
+`hooks/useScreenIntro.ts` — `useRise` (boxes), `useFade` (hairlines, which read
+as sliding if they move), and `playIntro(values)`, where array order is the
+stagger order.
+
+Call `playIntro` from the screen's `useFocusEffect` so it **replays on every
+focus**, not just mount. Each screen declares its own `useSharedValue(0)` per
+element rather than the hook allocating them — the count differs per screen and
+allocating in a loop would break the rules of hooks. Don't re-inline the timing
+constants into a screen; three divergent copies is what prompted extracting
+them.
 
 To re-pin SDK-compatible versions (idempotent, safe to run):
 

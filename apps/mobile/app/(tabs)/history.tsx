@@ -8,11 +8,7 @@ import {
   View,
 } from 'react-native';
 import Animated, {
-  Easing,
-  useAnimatedStyle,
   useSharedValue,
-  withDelay,
-  withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -28,6 +24,7 @@ import { toHistoryRowVM, type HistoryRowVM } from '@/lib/historyView';
 import HistoryRow from '@/components/historyRow';
 import AuthGate from '@/components/authGate';
 import { useAuth } from '@/contexts/authContext';
+import { playIntro, useFade, useRise } from '@/hooks/useScreenIntro';
 
 /**
  * History tab. Reads the signed-in user's matches (with their games) from
@@ -47,22 +44,6 @@ type Filter = (typeof FILTERS)[number];
 // title/count row plus the filter-chip row.
 const HEADER_H = 104;
 const BACKGROUND = '#0D1B2A';
-
-// Screen intro, matching the design's `.scr` / scrIn: fade + slight rise.
-const SCREEN_EASING = Easing.bezier(0.2, 0.7, 0.3, 1);
-const INTRO_MS = 340;
-// Small offset between each element's entrance so the screen assembles
-// top-to-bottom (title → filters → matches) instead of all at once.
-const STAGGER_MS = 80;
-
-// A staggered entrance driven by a 0→1 shared value: fade in while rising a few
-// px. Each element drives its own value, kicked off at a progressively later
-// delay (see the focus effect).
-const useRise = (sv: SharedValue<number>) =>
-  useAnimatedStyle(() => ({
-    opacity: sv.value,
-    transform: [{ translateY: (1 - sv.value) * 10 }],
-  }));
 
 const matches = (vm: HistoryRowVM, filter: Filter) => {
   switch (filter) {
@@ -122,7 +103,7 @@ const Header = ({
   const filterStyle = useRise(filterIntro);
   // The hairline divider fades in on its own step, after the title and filters
   // have settled. Opacity only (no rise) so the line doesn't slide.
-  const lineStyle = useAnimatedStyle(() => ({ opacity: dividerIntro.value }));
+  const lineStyle = useFade(dividerIntro);
   return (
     <View className="absolute inset-x-0 top-0 z-10">
       {/* The safe-area inset is padding *inside* the blur, not above it — with
@@ -231,13 +212,7 @@ const History = () => {
       // Replay the intro on each focus, staggering the elements top-to-bottom
       // (title → filters → matches) so the screen assembles dynamically rather
       // than fading in all at once (design `.scr` / scrIn).
-      [titleIntro, filterIntro, dividerIntro, listIntro].forEach((sv, i) => {
-        sv.value = 0;
-        sv.value = withDelay(
-          i * STAGGER_MS,
-          withTiming(1, { duration: INTRO_MS, easing: SCREEN_EASING }),
-        );
-      });
+      playIntro([titleIntro, filterIntro, dividerIntro, listIntro]);
       // Signed out there is nothing to read — RLS would return an empty set at
       // best, and an error at worst, behind a blur nobody can act on.
       if (!authed) {

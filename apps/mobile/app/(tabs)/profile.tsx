@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -14,6 +15,7 @@ import type { Profile as ProfileModel } from '@riftlog/core';
 import { useAuth } from '@/contexts/authContext';
 import { fetchMyProfile } from '@/lib/profile';
 import AuthGate from '@/components/authGate';
+import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 const ACCENT = '#8B93D9';
 const INK_SECONDARY = '#868FB0';
@@ -31,10 +33,21 @@ const Profile = () => {
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
+  const titleIntro = useSharedValue(0);
+  const cardIntro = useSharedValue(0);
+  const noteIntro = useSharedValue(0);
+  const signOutIntro = useSharedValue(0);
+  const titleStyle = useRise(titleIntro);
+  const cardStyle = useRise(cardIntro);
+  const noteStyle = useRise(noteIntro);
+  const signOutStyle = useRise(signOutIntro);
+
   useFocusEffect(
     useCallback(() => {
       let active = true;
       setError(null);
+      // Replay on each focus, matching Home and History.
+      playIntro([titleIntro, cardIntro, noteIntro, signOutIntro]);
       fetchMyProfile()
         .then((p) => {
           if (!active) return;
@@ -49,7 +62,7 @@ const Profile = () => {
       return () => {
         active = false;
       };
-    }, []),
+    }, [titleIntro, cardIntro, noteIntro, signOutIntro]),
   );
 
   const confirmSignOut = () => {
@@ -72,11 +85,16 @@ const Profile = () => {
       className="flex-1 bg-background px-5"
       style={{ paddingTop: insets.top + 14 }}
     >
-      <Text className="mb-7 font-display-bold text-2xl text-ink-primary">
-        Profile
-      </Text>
+      <Animated.View style={titleStyle}>
+        <Text className="mb-7 font-display-bold text-2xl text-ink-primary">
+          Profile
+        </Text>
+      </Animated.View>
 
-      <View className="flex-row items-center gap-4 rounded-2xl border border-border bg-surface p-5">
+      <Animated.View
+        style={cardStyle}
+        className="flex-row items-center gap-4 rounded-2xl border border-border bg-surface p-5"
+      >
         {profile?.avatarUrl ? (
           <Image
             source={{ uri: profile.avatarUrl }}
@@ -117,29 +135,35 @@ const Profile = () => {
             </>
           )}
         </View>
-      </View>
+      </Animated.View>
 
-      {error !== null && (
-        <Text className="mt-4 text-center text-sm text-loss-text">{error}</Text>
-      )}
+      <Animated.View style={noteStyle}>
+        {error !== null && (
+          <Text className="mt-4 text-center text-sm text-loss-text">
+            {error}
+          </Text>
+        )}
 
-      <Text className="mt-4 px-1 text-[12px] leading-4 text-ink-tertiary">
-        Stats, decks, and editing your handle are coming soon.
-      </Text>
+        <Text className="mt-4 px-1 text-[12px] leading-4 text-ink-tertiary">
+          Stats, decks, and editing your handle are coming soon.
+        </Text>
+      </Animated.View>
 
       <View className="flex-1" />
 
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel="Sign out"
-        onPress={confirmSignOut}
-        className="mb-6 flex-row items-center justify-center gap-2 rounded-full border border-border bg-surface px-5 py-4 active:bg-elevated"
-      >
-        <Feather name="log-out" size={16} color={INK_SECONDARY} />
-        <Text className="font-display text-base text-ink-secondary">
-          Sign out
-        </Text>
-      </TouchableOpacity>
+      <Animated.View style={signOutStyle}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Sign out"
+          onPress={confirmSignOut}
+          className="mb-6 flex-row items-center justify-center gap-2 rounded-full border border-border bg-surface px-5 py-4 active:bg-elevated"
+        >
+          <Feather name="log-out" size={16} color={INK_SECONDARY} />
+          <Text className="font-display text-base text-ink-secondary">
+            Sign out
+          </Text>
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 };

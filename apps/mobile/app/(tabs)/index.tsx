@@ -6,14 +6,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming,
-  type SharedValue,
-} from 'react-native-reanimated';
+import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -31,25 +24,10 @@ import {
   type MatchWithGames,
 } from '@/lib/matchPersistence';
 import { toHistoryRowVM, type HistoryRowVM } from '@/lib/historyView';
+import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 const BACKGROUND = '#0D1B2A'; // for Feather icons inside accent fills
 const ACCENT = '#8B93D9';
-
-// Screen intro, matching the History tab's `.scr` / scrIn: fade + slight rise.
-const SCREEN_EASING = Easing.bezier(0.2, 0.7, 0.3, 1);
-const INTRO_MS = 340;
-// Small offset between each element's entrance so the screen assembles
-// top-to-bottom (header → CTA → stats → recent) instead of all at once.
-const STAGGER_MS = 80;
-
-// A staggered entrance driven by a 0→1 shared value: fade in while rising a few
-// px. Each element drives its own value, kicked off at a progressively later
-// delay (see the focus effect).
-const useRise = (sv: SharedValue<number>) =>
-  useAnimatedStyle(() => ({
-    opacity: sv.value,
-    transform: [{ translateY: (1 - sv.value) * 10 }],
-  }));
 
 // Stats derived from the device owner's own matches (Riot-policy safe — own
 // stats only). Win rate ignores draws; with no decisive games it reads "–".
@@ -130,14 +108,8 @@ const Home = () => {
       setError(null);
       // Replay the intro on each focus, staggering the elements top-to-bottom
       // (header → CTA → stats → recent) so the screen assembles dynamically
-      // rather than fading in all at once, matching the History tab.
-      [headerIntro, ctaIntro, statsIntro, recentIntro].forEach((sv, i) => {
-        sv.value = 0;
-        sv.value = withDelay(
-          i * STAGGER_MS,
-          withTiming(1, { duration: INTRO_MS, easing: SCREEN_EASING }),
-        );
-      });
+      // rather than fading in all at once, matching the other tabs.
+      playIntro([headerIntro, ctaIntro, statsIntro, recentIntro]);
       // Home is the one guest-usable screen, so it must not touch the network
       // while signed out — stats read as zeroes and the recent list explains
       // itself instead.
