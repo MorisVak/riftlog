@@ -5,19 +5,25 @@ import type { Game, Match, Player, PlayerId } from '@riftlog/core';
 /**
  * Defaults a match still falls back on. The pre-match setup sheet now supplies
  * format and player names (see MatchConfig); `playerNames` here is the
- * fallback used when a name field is left blank.
+ * fallback used when a name field is left blank. The slots are not
+ * interchangeable — `p1` is always the device owner, `p2` the opponent.
  */
 const DEFAULTS = {
-  playerNames: ['Player 1', 'Player 2'] as const,
+  playerNames: ['You', 'Opponent'] as const,
 };
 
 /**
  * Player-supplied configuration for a new match, collected by the pre-match
  * setup sheet. Names may be blank — `startMatch` falls back to DEFAULTS.
+ *
+ * `timeLimitSeconds` is null for an untimed match (the default). When set, one
+ * countdown covers the whole match and keeps running between games; see
+ * `Match.timeLimitSeconds` and `lib/clock`.
  */
 export type MatchConfig = {
   bestOf: 1 | 3;
   playerNames: [string, string];
+  timeLimitSeconds: number | null;
 };
 
 /**
@@ -48,6 +54,10 @@ export type MatchContextType = {
   endGame: (result: GameResult) => void;
   advanceGame: () => void;
   concludeMatch: () => void;
+
+  // Timed mode. No-ops on an untimed match or when already in that state.
+  pauseClock: () => void;
+  resumeClock: () => void;
 
   // Score actions (intent-named, player-oriented)
   incrementScore: (playerId: PlayerId) => void;
@@ -103,7 +113,7 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
   const [match, setMatch] = useState<Match | null>(null);
 
   const startMatch = (config: MatchConfig) => {
-    // Blank name fields fall back to the generic "Player 1" / "Player 2".
+    // Blank name fields fall back to the generic "You" / "Opponent".
     const nameFor = (i: 0 | 1) =>
       config.playerNames[i].trim() || DEFAULTS.playerNames[i];
 
@@ -116,6 +126,11 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
       winnerId: null,
       startedAt: nowIso(),
       endedAt: null,
+      // The clock is anchored on game 1's startedAt (stamped in the same tick
+      // by makeGame above), so it begins the moment play begins.
+      timeLimitSeconds: config.timeLimitSeconds,
+      clockPausedAt: null,
+      clockPausedMs: 0,
       hostUserId: null,
       guestUserIds: [],
     };
@@ -144,6 +159,10 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
    *   - Bo1 is always settled after its single game (winner or draw).
    *   - Bo3 is settled once a player reaches 2 game wins, OR after the 3rd
    *     game is played — capped at `bestOf` so draws can't run on forever.
+   *   - A drawn game with someone already ahead settles the series too: a draw
+   *     can't be replayed, so the game leader takes it (1–0 then a draw is a
+   *     win for whoever took game 1). Level standings still play on, so an
+   *     opening draw doesn't end a Bo3 at 0–0.
    * On settle, `settleMatch` resolves the winner (or a draw) from standings.
    * When the match isn't settled the game is left frozen and the match enters
    * the `between-games` phase; the next game is created by `advanceGame()`.
@@ -179,8 +198,16 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
       // settleMatch). Without this, draws never settle and advanceGame() runs
       // unbounded into game 4, 5, 6…
       const capReached = prev.currentGameIndex + 1 >= prev.bestOf;
+      // A draw ends the series whenever it leaves someone ahead: the drawn game
+      // yields no win, so the standings can't change in the leader's disfavour
+      // and there's nothing left to decide — game 1 to p1 then a drawn game 2 is
+      // a match win for p1. At level standings (an opening draw, or 1–1) there
+      // IS still something to decide, so those play on to the cap.
+      const wins = (id: PlayerId) =>
+        players.find((p) => p.id === id)?.gameWins ?? 0;
+      const drawnWithLeader = winnerId === null && wins('p1') !== wins('p2');
 
-      if (reachedWins || capReached) {
+      if (reachedWins || capReached || drawnWithLeader) {
         return settleMatch({ ...prev, players, games });
       }
       return { ...prev, players, games };
@@ -221,6 +248,31 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
     setMatch((prev) => {
       if (!prev || prev.endedAt !== null) return prev;
       return settleMatch(prev);
+    });
+  };
+
+  /**
+   * Stop the clock for an interruption. Only the pause *start* is recorded —
+   * the elapsed pause is banked on resume, so the countdown stays derived from
+   * timestamps instead of being ticked down.
+   */
+  const pauseClock = () => {
+    setMatch((prev) => {
+      if (!prev || prev.timeLimitSeconds == null || prev.clockPausedAt) return prev;
+      return { ...prev, clockPausedAt: nowIso() };
+    });
+  };
+
+  /** Resume, banking however long this pause lasted. */
+  const resumeClock = () => {
+    setMatch((prev) => {
+      if (!prev?.clockPausedAt) return prev;
+      const paused = Date.now() - Date.parse(prev.clockPausedAt);
+      return {
+        ...prev,
+        clockPausedAt: null,
+        clockPausedMs: (prev.clockPausedMs ?? 0) + Math.max(0, paused),
+      };
     });
   };
 
@@ -277,6 +329,8 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
         endGame,
         advanceGame,
         concludeMatch,
+        pauseClock,
+        resumeClock,
         incrementScore,
         decrementScore,
         setScore,

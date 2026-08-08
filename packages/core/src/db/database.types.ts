@@ -96,6 +96,7 @@ export type Database = {
           id: string
           players: Json
           started_at: string
+          time_limit_seconds: number | null
           user_id: string
           winner_id: string | null
         }
@@ -108,6 +109,7 @@ export type Database = {
           id: string
           players: Json
           started_at: string
+          time_limit_seconds?: number | null
           user_id?: string
           winner_id?: string | null
         }
@@ -120,6 +122,7 @@ export type Database = {
           id?: string
           players?: Json
           started_at?: string
+          time_limit_seconds?: number | null
           user_id?: string
           winner_id?: string | null
         }

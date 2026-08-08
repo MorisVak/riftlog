@@ -1,11 +1,14 @@
 import type { Player, PlayerId } from '@riftlog/core';
 import type { GameRow, MatchWithGames } from './matchPersistence';
+import { elapsedSeconds, formatClock } from './clock';
 
 /**
  * View-model mapping for the History tab. The device owner is always player
- * `p1` ("you"), so win/loss/draw and score color are derived from p1's
- * outcome. Kept pure and separate from the row component so the component stays
- * dumb and this logic is easy to eyeball.
+ * `p1` ("you"), so win/loss/draw, score color, and score order (`you–them`) are
+ * derived from p1's outcome. Rows label the other side explicitly ("vs Alex")
+ * so a single name is never mistaken for your own. Kept pure and separate from
+ * the row component so the component stays dumb and this logic is easy to
+ * eyeball.
  */
 
 export type Result = 'win' | 'loss' | 'draw';
@@ -24,16 +27,44 @@ export type HistoryRowVM = {
   id: string;
   result: Result;
   letter: 'W' | 'L' | 'D';
+  /** The device owner's name (p1) — shown in the expanded detail only. */
+  you: string;
+  /** Who you played against (p2) — always rendered with a "vs" prefix. */
   opponent: string;
   format: 'BO1' | 'BO3';
   score: string;
   date: string;
   games: HistoryGameVM[];
+  /** Clock summary for a timed match; null when the match was untimed. */
+  timer: HistoryTimerVM | null;
+};
+
+export type HistoryTimerVM = {
+  /** The configured round length, e.g. "50:00". */
+  limit: string;
+  /** How long the match actually ran, start to finish. */
+  played: string;
+  /** True when it ran past the limit — the match went into overtime. */
+  overtime: boolean;
 };
 
 const LETTER: Record<Result, 'W' | 'L' | 'D'> = { win: 'W', loss: 'L', draw: 'D' };
 
 const EN_DASH = '–';
+
+/**
+ * Matches started with blank name fields stored the generic slot placeholders
+ * ("Player 1" / "Player 2") rather than a real name — the setup sheet's old
+ * fallback. Treat those, and empty strings, as "no name given" so a row reads
+ * "vs Opponent" instead of the meaningless "vs Player 2".
+ */
+const PLACEHOLDER = /^player\s*[12]$/i;
+
+const nameOr = (name: string | undefined, fallback: string): string => {
+  const trimmed = name?.trim();
+  if (!trimmed || PLACEHOLDER.test(trimmed)) return fallback;
+  return trimmed;
+};
 
 /** Win/loss/draw from p1's ("your") perspective. */
 function resultFor(winnerId: string | null): Result {
@@ -60,6 +91,23 @@ export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
     ? scoreLine(m.games[0]?.scores_at_end ?? null)
     : `${p1?.gameWins ?? 0}${EN_DASH}${p2?.gameWins ?? 0}`;
 
+  // Timed matches carry their configured clock; how long they actually ran —
+  // and so whether they went to overtime — is measured from the timestamps
+  // rather than stored.
+  // Loose check: a row read back before the time_limit_seconds column existed
+  // (or any row where it's absent) must count as untimed, not as a timed match
+  // with an undefined limit — that rendered a NaN clock on every row.
+  const limitSeconds = m.time_limit_seconds;
+  const playedSeconds = elapsedSeconds(m.started_at, m.ended_at);
+  const timer: HistoryTimerVM | null =
+    limitSeconds == null
+      ? null
+      : {
+          limit: formatClock(limitSeconds),
+          played: formatClock(playedSeconds),
+          overtime: playedSeconds > limitSeconds,
+        };
+
   const games: HistoryGameVM[] = m.games.map((g) => {
     const r = resultFor(g.winner_id);
     return {
@@ -74,7 +122,8 @@ export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
     id: m.id,
     result,
     letter: LETTER[result],
-    opponent: p2?.name ?? 'Player 2',
+    you: nameOr(p1?.name, 'You'),
+    opponent: nameOr(p2?.name, 'Opponent'),
     format: isBo1 ? 'BO1' : 'BO3',
     score,
     date: new Date(m.ended_at).toLocaleDateString(undefined, {
@@ -82,5 +131,6 @@ export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
       day: 'numeric',
     }),
     games,
+    timer,
   };
 }

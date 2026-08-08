@@ -1,13 +1,33 @@
 import { Pressable, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useMatch } from '@/contexts/matchContext';
-import React, { useState } from 'react';
+import MatchClock from './matchClock';
+import React, { useEffect, useState } from 'react';
 
-// Result tokens, paired with a letter so color is never the only signal.
+// Result tokens, paired with a letter so color is never the only signal. The
+// badge is read from p1's perspective — you — so the opponent taking a game is
+// an `L` in loss red, not a `W` in win green. p1 is always the device owner.
 const RESULT = {
   win: { letter: 'W', badge: 'bg-win-tint', text: 'text-win-text' },
+  loss: { letter: 'L', badge: 'bg-loss-tint', text: 'text-loss-text' },
   draw: { letter: 'D', badge: 'bg-draw-tint', text: 'text-draw-text' },
 } as const;
+
+// The live-cell breath from boardDivider.tsx, to the value: the "Start game"
+// CTA is the one live thing on this screen, so it pulses the same way the game
+// in progress does on the board. Kept as a style object rather than a
+// `shadow-*` class — see the shadow note in CLAUDE.md.
+const ACCENT_SOFT = '#A6ADE6';
+const GLOW_MS = 2200;
+const GLOW_MIN = 0.45;
+const GLOW_MAX = 0.95;
 
 /**
  * Confirm for ending the round early (the escape hatch a Bo3 needs when it has
@@ -60,6 +80,22 @@ const EndRoundConfirm = ({
 const BetweenGamesScreen = () => {
   const { match, advanceGame, concludeMatch } = useMatch();
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const glow = useSharedValue(0);
+  useEffect(() => {
+    glow.value = withRepeat(
+      withTiming(1, { duration: GLOW_MS, easing: Easing.inOut(Easing.quad) }),
+      -1,
+      true,
+    );
+  }, [glow]);
+  const glowStyle = useAnimatedStyle(() => ({
+    shadowColor: ACCENT_SOFT,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: GLOW_MIN + glow.value * (GLOW_MAX - GLOW_MIN),
+    shadowRadius: 6 + glow.value * 8,
+  }));
+
   if (!match) return null;
 
   const [p1, p2] = match.players;
@@ -67,9 +103,14 @@ const BetweenGamesScreen = () => {
   const lastGameNumber = match.currentGameIndex + 1;
   const nextGameNumber = match.games.length + 1;
 
-  // A frozen game with no winner is a draw; otherwise someone took it.
+  // A frozen game with no winner is a draw; otherwise someone took it — and
+  // "someone" is scored against p1, who is always you.
   const isDraw = lastGame?.winnerId == null;
-  const r = isDraw ? RESULT.draw : RESULT.win;
+  const r = isDraw
+    ? RESULT.draw
+    : lastGame?.winnerId === 'p1'
+      ? RESULT.win
+      : RESULT.loss;
   const winnerName =
     match.players.find((p) => p.id === lastGame?.winnerId)?.name ?? null;
 
@@ -102,7 +143,15 @@ const BetweenGamesScreen = () => {
 
   return (
     <View className="flex-1 items-center justify-center bg-background px-8">
-      <Text className="font-display text-xs uppercase tracking-widest text-ink-secondary">
+      {/* The clock does not stop for the break — sideboarding is played on the
+          same countdown — so it stays on screen here. Twice over: the rotated
+          copy up top reads right-way-up for the player across the table, the
+          lower one for the player holding the phone. Both render nothing when
+          the match is untimed. */}
+      <MatchClock variant="screen" className="absolute inset-x-0 top-16 rotate-180" />
+      <MatchClock variant="screen" className="absolute inset-x-0 bottom-10" />
+
+      <Text className="font-display text-2xl uppercase tracking-widest text-ink-secondary">
         Game {lastGameNumber}
       </Text>
 
@@ -127,14 +176,20 @@ const BetweenGamesScreen = () => {
         Series {p1?.gameWins ?? 0}–{p2?.gameWins ?? 0}
       </Text>
 
-      <Pressable
-        onPress={onNext}
-        className="mt-12 rounded-full bg-accent px-10 py-4 shadow-accent-btn active:bg-accent-strong"
-      >
-        <Text className="font-display-bold text-lg text-background">
-          Start game {nextGameNumber}
-        </Text>
-      </Pressable>
+      {/* The glow sits on the wrapper, not the Pressable: an iOS shadow is cast
+          from the view's own filled, rounded box, so it needs the accent fill
+          and the pill radius. The Pressable inside paints only the pressed
+          state over it. */}
+      <Animated.View className="mt-12 rounded-full bg-accent" style={glowStyle}>
+        <Pressable
+          onPress={onNext}
+          className="rounded-full px-10 py-4 active:bg-accent-strong"
+        >
+          <Text className="font-display-bold text-lg text-background">
+            Start game {nextGameNumber}
+          </Text>
+        </Pressable>
+      </Animated.View>
 
       {/* Escape hatch: end the round on the current standing (e.g. out of time). */}
       <Pressable onPress={onOpenConfirm} className="mt-5 px-6 py-2 active:opacity-70">

@@ -4,7 +4,8 @@ Database, auth, and Edge Functions for Riftlog. Postgres is the **single source
 of truth** for match data.
 
 **Status (Slice 1 landed):** the project is linked, anonymous auth is configured,
-and the `matches` + `games` schema with RLS is migrated. The mobile client,
+and the `matches` + `games` schema with RLS is migrated — including
+`matches.time_limit_seconds` for timed mode. The mobile client,
 online write/read path, and offline outbox come in later slices (see `../SPEC.md`).
 
 Parent conventions in `../CLAUDE.md` apply. Product detail and sequencing live
@@ -31,7 +32,8 @@ supabase/
 │   ├── .env.example  documents the reserved SUPABASE_ prefix (see below)
 │   └── .gitkeep
 ├── migrations/       SQL migrations (timestamped, append-only)
-│   └── 20260628215604_matches_games.sql
+│   ├── 20260628215604_matches_games.sql
+│   └── 20260807143000_matches_time_limit.sql
 └── config.toml       Supabase CLI config (linked, anon auth enabled)
 
 ## Schema
@@ -43,8 +45,9 @@ Bo1/Bo3 series, a **game** is one game within it):
   (`default auth.uid()`, FK → `auth.users`), `best_of` (smallint, 1|3),
   `winner_id` (text `'p1'`/`'p2'`, null = draw), `players` (jsonb, mirrors the
   `Player[]` shape), `started_at`, `ended_at` (not null — a row only exists for a
-  settled match), `host_user_id` / `guest_user_ids` (forward-compat, unused in
-  v1), `created_at`.
+  settled match), `time_limit_seconds` (integer, **null = untimed** — the
+  configured clock for the whole match; see below), `host_user_id` /
+  `guest_user_ids` (forward-compat, unused in v1), `created_at`.
 - **`games`** — `id` (uuid PK = client `Game.id`), `match_id`
   (FK → `matches.id` `on delete cascade`), `user_id` (**denormalized**,
   `default auth.uid()` — so RLS is a direct column check, no join), `game_index`,
@@ -54,6 +57,13 @@ Bo1/Bo3 series, a **game** is one game within it):
 `winner_id`/`ended_at` on `games` are nullable because an early
 `concludeMatch()` settles the series without freezing the in-progress game — a
 settled match can carry a game with no winner / end time.
+
+**Timed mode stores the limit only.** `matches.time_limit_seconds` is the
+configured clock; how long the match actually took comes from
+`ended_at - started_at`, and "went into overtime" is that duration compared
+against the limit. Don't add elapsed / expired / paused columns — the clock is
+derived from wall-clock on the client (`apps/mobile/lib/clock.ts`) and never
+pauses, not even between games in a Bo3.
 
 **The DB never re-derives Bo3 / draw logic.** The device settles every match in
 `@riftlog/mobile`'s `matchContext` (`settleMatch` / `endGame` / `concludeMatch`);
@@ -93,7 +103,13 @@ over the access token (no DB password needed); applying migrations does.
 
 - Created via `pnpm dlx supabase migration new <name>`
 - Append-only — **never edit a committed migration**; add a new one
-- Push to remote: `pnpm db:push` (= `supabase db push`, needs the DB password)
+- Push to remote: `pnpm db:push` (= `supabase db push`). The DB password was
+  cached in the macOS keychain when the project was linked, so this runs
+  non-interactively. It prints a `failed to cache migrations catalog … Docker`
+  warning — that's only the local catalog cache; the migration still applies.
+- **After every push, run `pnpm db:types`.** The generated `Database` type is
+  what the client codes against; skipping it means the new column is invisible
+  to TypeScript and the write silently omits it.
 - Local `supabase db reset` / `supabase start` need Docker (currently
   unavailable on this machine — schema is applied directly to the remote)
 

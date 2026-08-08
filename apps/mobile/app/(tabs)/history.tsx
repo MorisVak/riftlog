@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,7 +15,7 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -118,11 +118,11 @@ const Header = ({
   // have settled. Opacity only (no rise) so the line doesn't slide.
   const lineStyle = useAnimatedStyle(() => ({ opacity: dividerIntro.value }));
   return (
-    <View
-      className="absolute inset-x-0 top-0 z-10"
-      style={{ paddingTop: insets.top }}
-    >
-      <BlurView tint="dark" intensity={48}>
+    <View className="absolute inset-x-0 top-0 z-10">
+      {/* The safe-area inset is padding *inside* the blur, not above it — with
+          it on the wrapper the pane started below the notch and rows scrolled
+          past the dynamic island unblurred. */}
+      <BlurView tint="dark" intensity={48} style={{ paddingTop: insets.top }}>
         <View style={{ height: HEADER_H }} className="justify-end px-4 pb-3">
           <Animated.View
             style={titleStyle}
@@ -166,6 +166,19 @@ const History = () => {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('All');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Arriving from a Home "Recent matches" row: open that match straight away.
+  // The filter is reset too, otherwise an active chip (e.g. Wins) could hide
+  // the very row we were asked to show. The param is cleared once applied, so
+  // returning to this tab later doesn't re-expand it — and so tapping the same
+  // match again from Home is a fresh param change that re-triggers this.
+  const { matchId } = useLocalSearchParams<{ matchId?: string }>();
+  useEffect(() => {
+    if (!matchId) return;
+    setFilter('All');
+    setExpandedId(matchId);
+    router.setParams({ matchId: '' });
+  }, [matchId]);
 
   const titleIntro = useSharedValue(0);
   const filterIntro = useSharedValue(0);

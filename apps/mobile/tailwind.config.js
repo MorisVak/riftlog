@@ -20,7 +20,11 @@ module.exports = {
         background: '#0D1B2A',
         surface: '#18223A',
         elevated: '#222D47',
-        border: '#2E3C56',
+        // Brightened from the original #2E3C56: at that value a hairline on
+        // `surface` was nearly invisible, so cards and dividers had no edge.
+        // Same hue, ~35% lighter — still a step below `ink-tertiary`, which is
+        // text and stays the brighter of the two.
+        border: '#3E506E',
 
         // Accent — periwinkle (single brand accent)
         // Translucent accent fills: use opacity, e.g. bg-accent/15
@@ -62,6 +66,23 @@ module.exports = {
           text: '#D8C290',
           tint: '#524D42',
           deep: '#2B2102',
+        },
+
+        // Scoring actions on the play board — HOW a point was taken (conquer a
+        // battlefield / hold it / a special). Deliberately their own family:
+        // these describe an action, while win/loss/draw describe a result, and
+        // the two must stay separable. `tint` is the dark button fill.
+        conquer: {
+          DEFAULT: '#34D399',
+          tint: '#15352A',
+        },
+        hold: {
+          DEFAULT: '#E0B94A',
+          tint: '#3A3018',
+        },
+        special: {
+          DEFAULT: '#E879C7',
+          tint: '#3A1B31',
         },
       },
 
