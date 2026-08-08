@@ -159,6 +159,10 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
    *   - Bo1 is always settled after its single game (winner or draw).
    *   - Bo3 is settled once a player reaches 2 game wins, OR after the 3rd
    *     game is played — capped at `bestOf` so draws can't run on forever.
+   *   - A drawn game with someone already ahead settles the series too: a draw
+   *     can't be replayed, so the game leader takes it (1–0 then a draw is a
+   *     win for whoever took game 1). Level standings still play on, so an
+   *     opening draw doesn't end a Bo3 at 0–0.
    * On settle, `settleMatch` resolves the winner (or a draw) from standings.
    * When the match isn't settled the game is left frozen and the match enters
    * the `between-games` phase; the next game is created by `advanceGame()`.
@@ -194,8 +198,16 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
       // settleMatch). Without this, draws never settle and advanceGame() runs
       // unbounded into game 4, 5, 6…
       const capReached = prev.currentGameIndex + 1 >= prev.bestOf;
+      // A draw ends the series whenever it leaves someone ahead: the drawn game
+      // yields no win, so the standings can't change in the leader's disfavour
+      // and there's nothing left to decide — game 1 to p1 then a drawn game 2 is
+      // a match win for p1. At level standings (an opening draw, or 1–1) there
+      // IS still something to decide, so those play on to the cap.
+      const wins = (id: PlayerId) =>
+        players.find((p) => p.id === id)?.gameWins ?? 0;
+      const drawnWithLeader = winnerId === null && wins('p1') !== wins('p2');
 
-      if (reachedWins || capReached) {
+      if (reachedWins || capReached || drawnWithLeader) {
         return settleMatch({ ...prev, players, games });
       }
       return { ...prev, players, games };

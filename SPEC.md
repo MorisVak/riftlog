@@ -117,17 +117,28 @@ games and the match themselves.
    prompt confirms the intent. On confirm, the current `Game` is frozen:
    `scoresAtEnd` is copied from the players' live scores, `winnerId` is set,
    `endedAt` is stamped, and the winner's `Player.gameWins` increments. Then,
-   depending on format and standings, it either ends the match (Bo1, or the
-   2nd win in a Bo3) and routes to the match overview (the history detail view
-   for that match), or advances to the next game.
-4. **Advance (Bo3).** If neither player has reached 2 game wins, a new `Game`
-   is created and `currentGameIndex` advances; a between-games screen shows
-   the match score (e.g. "1–0") before the next game. If a player has 2 wins,
-   the match is decided.
-5. **Match end.** When the match is decided (Bo1: one game; Bo3: 2 game
-   wins), `Match.winnerId` and `Match.endedAt` are set and the completed match
-   is saved to history (Feature 2/3). A draw is possible where the format
-   allows it; record it as a draw rather than forcing a winner.
+   depending on format and standings, it either ends the match (see "Match
+   end" below) and routes to the match overview (the history detail view for
+   that match), or advances to the next game.
+4. **Advance (Bo3).** If the series isn't decided, a new `Game` is created and
+   `currentGameIndex` advances; a between-games screen shows the match score
+   (e.g. "1–0") before the next game.
+5. **Match end.** A Bo1 ends after its single game. A Bo3 ends on any of:
+   a player reaching **2 game wins**; the **3rd game** being played (the format
+   cap); or a **drawn game while someone leads** — see Draws below. On end,
+   `Match.winnerId` and `Match.endedAt` are set and the completed match is
+   saved to history (Feature 2/3). A settled Bo3 may therefore hold only two
+   games.
+6. **Draws.** A game ends in a draw by the players declaring it (the third
+   option on the end-game prompt); it freezes with `winnerId: null` and
+   increments nobody's `gameWins`. Because a drawn game can't be replayed and
+   yields no win, it **settles the series in favour of whoever is ahead**:
+   1–0 followed by a drawn game 2 is a match win for the player who took game
+   1, with no game 3. At level standings there's still something to decide, so
+   an opening draw or a draw at 1–1 plays on to the format cap; a series still
+   level at the cap is recorded as a **match draw** rather than forcing a
+   winner. Same rule for the manual "end round now" escape hatch: the leader
+   takes it, level standings are a draw.
 
 **Note:** completing a match saves it to Supabase (anonymous auth gives every
 device an identity to own its rows); only an explicit "abandon/discard"
@@ -399,8 +410,13 @@ matching the incremental philosophy in `CLAUDE.md`.
   as a teaser for the v2 match-mode feature, or stay out entirely until v2?
 - **`Player.xp`** exists in the model but has no defined product meaning.
   Decide what it represents (a gamification/progression idea?) or remove it.
-- **Draws** — which formats/situations can end in a draw, and how is that
-  surfaced in scoring and history?
+- **Draws** — answered for the match flow: any game can be declared a draw, a
+  drawn game settles the series for the player who's ahead, and a series level
+  at the format cap is recorded as a match draw (full rule in Feature 1, step
+  6). Surfacing is built — `D` badge in the `draw` tokens on the between-games
+  screen, the overview, and history rows. Still open: whether an untimed Bo1
+  should offer Draw at all, and whether a match draw needs its own overview
+  treatment rather than reusing the win/loss layout.
 - **Match mode mechanism** — transfer vs. co-record vs. host/join (Feature 8).
 - **Deck ownership vs. snapshots** — confirm the relationship between a
   player's editable owned decks and the immutable per-match snapshots in the

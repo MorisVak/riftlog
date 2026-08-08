@@ -149,9 +149,24 @@ const {
 `GameResult` is `PlayerId | 'draw'` (exported from `matchContext`): the result a
 player declares when ending a game. `endGame` freezes the current `Game`
 (`scoresAtEnd` / `winnerId` / `endedAt`), increments the winner's `gameWins`,
-and resolves the match (Bo1 after one game; Bo3 at two game wins, setting
-`Match.winnerId` / `endedAt`). When a Bo3 isn't yet decided the match sits in
-the `between-games` phase until `advanceGame` starts the next game.
+and resolves the match, setting `Match.winnerId` / `endedAt`. When a Bo3 isn't
+yet decided the match sits in the `between-games` phase until `advanceGame`
+starts the next game.
+
+A Bo3 settles on any of three conditions — all in `endGame`:
+
+- a player reaches **two game wins**;
+- the **third game** is played (the `bestOf` cap; without it, draws would let
+  `advanceGame` run into game 4, 5, 6…);
+- a game is **drawn while someone leads** — a draw can't be replayed and yields
+  no win, so 1–0 followed by a drawn game 2 is a match win for whoever took
+  game 1, with no game 3. Level standings (an opening draw, or 1–1) still have
+  something to decide, so they play on to the cap and settle as a match draw if
+  still level.
+
+A settled Bo3 can therefore have fewer than three games; nothing downstream
+(overview, history, persistence) assumes a fixed count — they all map over
+`match.games`.
 
 Pre-match setup collects **format (Bo1/Bo3)**, **player names**, and the
 **timed-match toggle + round length** via the setup sheet
