@@ -9,6 +9,40 @@ type EndGamePromptProps = {
 };
 
 /**
+ * One of the two winner buttons, tinted by the result it records for p1 — the
+ * device owner. `win` is you taking the game, `loss` the opponent taking it.
+ */
+const ResultChoice = ({
+  result,
+  label,
+  onPress,
+}: {
+  result: 'win' | 'loss';
+  label: string;
+  onPress: () => void;
+}) => {
+  const won = result === 'win';
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      className={`mb-3 rounded-xl border px-5 py-4 ${
+        won
+          ? 'border-win/40 bg-win-tint active:bg-win-deep'
+          : 'border-loss/40 bg-loss-tint active:bg-loss-deep'
+      }`}
+    >
+      <Text
+        className={`text-center text-base font-bold ${
+          won ? 'text-win-text' : 'text-loss-text'
+        }`}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
+/**
  * Confirm overlay shown when the player taps END. Guards against accidental
  * taps (nothing auto-ends) and captures who won the game — or a draw. On a
  * choice it freezes the game via endGame() and closes.
@@ -40,23 +74,21 @@ const EndGamePrompt = ({ onClose }: EndGamePromptProps) => {
           Who won?
         </Text>
 
-        <TouchableOpacity
+        {/* Bare names: the prompt above already asks "Who won?", so each button
+            is just an answer to it. They carry the result they'd record from
+            p1's perspective — green for your win, red for the opponent's — so
+            the outcome is telegraphed before the tap. The hue isn't carrying
+            the meaning on its own (the question does), so no W/L badge. */}
+        <ResultChoice
+          result="win"
+          label={p1?.name ?? 'Player 1'}
           onPress={() => choose('p1')}
-          className="mb-3 rounded-xl bg-accent px-5 py-4 active:bg-accent-strong"
-        >
-          <Text className="text-center text-base font-bold text-background">
-            {p1?.name ?? 'Player 1'} wins
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
+        />
+        <ResultChoice
+          result="loss"
+          label={p2?.name ?? 'Player 2'}
           onPress={() => choose('p2')}
-          className="mb-3 rounded-xl bg-accent px-5 py-4 active:bg-accent-strong"
-        >
-          <Text className="text-center text-base font-bold text-background">
-            {p2?.name ?? 'Player 2'} wins
-          </Text>
-        </TouchableOpacity>
+        />
 
         <TouchableOpacity
           onPress={() => choose('draw')}
