@@ -117,10 +117,23 @@ Supabase default; `enable_manual_linking` stays `false`.
 
 > Manual steps — `config.toml` only configures the LOCAL stack. On the **remote**
 > project (dashboard → Authentication): disable Anonymous sign-ins; configure the
-> Discord, Google, and Apple providers; add the redirect URLs; and edit the email
+> Discord, Google, and Apple providers; set the URLs below; and edit the email
 > template so it contains **`{{ .Token }}`** — at the default
 > `{{ .ConfirmationURL }}` Supabase sends a magic link and the app's 6-digit code
 > screen has nothing to accept.
+
+**URL Configuration — exact values.** Both must be `riftlog://auth-callback`,
+matching `AUTH_REDIRECT_URI` in `apps/mobile/lib/auth.ts`:
+
+- **Redirect URLs** → add `riftlog://auth-callback`.
+- **Site URL** → `riftlog://auth-callback`, *not* the default
+  `http://localhost:3000`.
+
+Site URL matters more than it looks: it is the **fallback** Supabase redirects to
+when an OAuth `redirect_to` fails allow-list validation. It does not raise an
+error, so a missing Redirect URL presents as the browser dead-ending on an
+unreachable page while the app waits forever for a callback. Pointing Site URL at
+the app turns that into a survivable bounce instead of a dead end.
 
 ### Profile seeding trigger
 

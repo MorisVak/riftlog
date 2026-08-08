@@ -1,7 +1,6 @@
 import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { makeRedirectUri } from 'expo-auth-session';
 import { getQueryParams } from 'expo-auth-session/build/QueryParams';
 import {
   GoogleSignin,
@@ -30,6 +29,24 @@ WebBrowser.maybeCompleteAuthSession();
 
 export type SignInOutcome = 'signed-in' | 'cancelled';
 
+/**
+ * Where Supabase sends the browser back to after an OAuth round trip. Mirrors
+ * `expo.scheme` in app.json, already registered in Info.plist as `riftlog`.
+ *
+ * **This must match a Redirect URL in the Supabase dashboard exactly**
+ * (Authentication → URL Configuration). If it doesn't, Supabase does not error
+ * — it silently falls back to Site URL, the browser lands on a page that isn't
+ * there, and the app is left waiting for a callback that never comes.
+ *
+ * Deliberately NOT `makeRedirectUri()`. Called with no arguments it only
+ * resolves to a bare `riftlog://` when expo-linking considers the app
+ * "Expo hosted"; otherwise it bakes the Metro host into the URL
+ * (`riftlog://192.168.0.34:8081`). That value moves with the dev machine's
+ * network, so it can never be reliably allow-listed. A fixed path is the whole
+ * point: one value, allow-listed once, stable in dev and production.
+ */
+export const AUTH_REDIRECT_URI = 'riftlog://auth-callback';
+
 // ---- Discord: web redirect ------------------------------------------------
 
 /**
@@ -38,12 +55,10 @@ export type SignInOutcome = 'signed-in' | 'cancelled';
  * tokens on the returned deep link for a session.
  */
 export async function signInWithDiscord(): Promise<SignInOutcome> {
-  const redirectTo = makeRedirectUri();
-
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'discord',
     options: {
-      redirectTo,
+      redirectTo: AUTH_REDIRECT_URI,
       // We drive the browser ourselves; letting supabase-js redirect would
       // leave the app with no way to observe the result.
       skipBrowserRedirect: true,
@@ -52,8 +67,27 @@ export async function signInWithDiscord(): Promise<SignInOutcome> {
   if (error) throw error;
   if (!data.url) throw new Error('Discord sign-in did not return an auth URL.');
 
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-  if (result.type !== 'success') return 'cancelled';
+  const result = await WebBrowser.openAuthSessionAsync(
+    data.url,
+    AUTH_REDIRECT_URI,
+  );
+
+  if (result.type !== 'success') {
+    // A misconfigured redirect is INDISTINGUISHABLE from a real cancel here:
+    // the browser is sent somewhere that never deep-links back, the user
+    // dismisses the sheet, and we land in this branch either way. So we keep
+    // the UI silent (a real cancel must not paint an error) and say it out
+    // loud in the logs instead.
+    if (__DEV__) {
+      console.warn(
+        `[auth] Discord sign-in ended as "${result.type}" without a callback. ` +
+          `If this wasn't a cancel, check that "${AUTH_REDIRECT_URI}" is listed ` +
+          `under Supabase → Authentication → URL Configuration → Redirect URLs. ` +
+          `When it isn't, Supabase silently redirects to Site URL instead.`,
+      );
+    }
+    return 'cancelled';
+  }
 
   // Tokens come back in the URL fragment, which Linking.parse doesn't read —
   // getQueryParams handles both `?` and `#`.
@@ -63,7 +97,11 @@ export async function signInWithDiscord(): Promise<SignInOutcome> {
   const accessToken = params.access_token;
   const refreshToken = params.refresh_token;
   if (!accessToken || !refreshToken) {
-    throw new Error('Discord sign-in returned no session tokens.');
+    throw new Error(
+      `Discord sign-in came back to ${AUTH_REDIRECT_URI} with no session ` +
+        `tokens. The redirect reached the app but carried no session — check ` +
+        `the Discord provider's client ID and secret in Supabase.`,
+    );
   }
 
   const { error: sessionError } = await supabase.auth.setSession({

@@ -459,6 +459,23 @@ sheet doesn't paint a red error.
   `WebBrowser.openAuthSessionAsync` → `getQueryParams` → `setSession`. Tokens
   come back in the URL **fragment**, which `Linking.parse` can't read — hence
   `expo-auth-session/build/QueryParams`.
+
+**The redirect URI is a hard-coded constant, `AUTH_REDIRECT_URI`
+(`riftlog://auth-callback`) — do not "improve" it back into `makeRedirectUri()`.**
+Called with no arguments, `makeRedirectUri()` only yields a bare `riftlog://`
+when expo-linking considers the app Expo-hosted; otherwise it bakes the Metro
+host in (`riftlog://192.168.0.34:8081`), so the value moves with the dev
+machine's network and can't be allow-listed. One fixed value, allow-listed once,
+identical in dev and production.
+
+**Failure mode to know, because it is silent.** If that URI isn't in Supabase →
+Authentication → URL Configuration → Redirect URLs, Supabase does **not** return
+an error — it redirects to **Site URL** instead. The browser lands on a page that
+isn't there, no deep link ever fires, and from the app's side that is
+indistinguishable from the user cancelling. Hence the `__DEV__` warning on the
+non-success branch in `signInWithDiscord`: if a sign-in "cancels" itself, read
+the Metro logs. Site URL is set to the same app URL so a future misconfiguration
+at least bounces back into Riftlog.
 - **Google / Apple** — native `signInWithIdToken`. For Google the **web** client
   id is the token audience Supabase verifies, not the iOS/Android one; the iOS
   and Android client ids must additionally be listed in the Supabase provider's
