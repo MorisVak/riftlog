@@ -111,9 +111,17 @@ discarded on login rather than migrated. Don't reintroduce anonymous auth: it
 would recreate the second data path (anon-owned rows needing conversion/merge)
 that removing it eliminated.
 
-Providers: Discord (browser redirect), Google and Apple (native id-token), and
-passwordless email OTP. Automatic email-based identity linking is left at the
-Supabase default; `enable_manual_linking` stays `false`.
+Providers: Discord and Google (both browser redirect), Apple (native
+id-token), and passwordless email OTP. Automatic email-based identity linking is
+left at the Supabase default; `enable_manual_linking` stays `false`.
+
+**The provider split decides what you configure here.** Discord and Google run
+through Supabase's `/authorize` endpoint, so the dashboard holds their client id
++ secret and the app sends only a provider name — nothing to add under
+*Authorized Client IDs*, which is a native-flow field. Apple is the opposite: the
+app sends an id-token minted for the **iOS bundle**, so `com.m-mecke.riftlog`
+must be listed in the Apple provider's Client IDs or `signInWithIdToken` rejects
+it.
 
 > Manual steps — `config.toml` only configures the LOCAL stack. On the **remote**
 > project (dashboard → Authentication): disable Anonymous sign-ins; configure the
@@ -144,8 +152,11 @@ the app turns that into a survivable bounce instead of a dead end.
   races the OAuth redirect and silently misses every user who bounces mid-flow.
 - `display_name` is probed across provider metadata keys (Discord `global_name`,
   Google `full_name`/`name`, …) → email local part → `'Player'`. **Never assume
-  Apple returns a name** — it sends one only on the very first authorization,
-  and not at all if the user declines.
+  a provider returns a name** — Apple sends one only on the very first
+  authorization and never inside the token, and the email-OTP path supplies none
+  at all. The client backfills Apple's name to user metadata after sign-in, but
+  that lands *after* this trigger has already inserted the row, so Apple users
+  normally get a fallback handle. Accepted — it's renameable.
 - `username` is slugified from that seed and made unique by **retrying the
   INSERT on `unique_violation`** (`maurice` → `maurice1` → … →
   `player_<6 hex>`). It deliberately does *not* pre-check availability with a

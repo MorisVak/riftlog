@@ -406,6 +406,18 @@ and no password anywhere in the product.
 device and badged next time, so returning users don't have to remember which
 one their account is under. That badge is device-local only.
 
+**Two mechanisms, deliberately.** Discord *and Google* both run the browser
+redirect: `signInWithOAuth` → system auth session → tokens off the deep link.
+They share one code path that takes the provider as an argument, and one
+allow-listed redirect URI. Neither needs an SDK, a client id in the app, or a
+config plugin — Supabase holds the credentials. Apple is the exception: iOS
+offers no browser flow for it, so it uses the native id-token path via
+`expo-apple-authentication`.
+
+Sign in with Apple was briefly removed and then **restored**: App Store
+Guideline 4.8 requires it once an app offers other third-party sign-in, so
+shipping without it is not an option.
+
 **Identity linking** is Supabase's automatic email matching; there is no manual
 linking UI. **Known accepted limitation:** Apple's "Hide My Email" gives a
 per-app relay address that will never match the user's real Discord or Google
@@ -413,6 +425,12 @@ address, so someone who signs in with Apple *and* Discord can end up with two
 separate accounts holding two separate histories. We are not solving this. A
 rename/merge flow would be a large feature to serve a small case, and the
 alternative (blocking relay addresses) is worse for the user than the problem.
+
+Apple also returns the user's name *only* on the first authorization and never
+inside the identity token, so we back it up to user metadata on that one pass.
+The profile row is already seeded by then, so Apple users typically get a
+`display_name` from the fallback chain (email local part → `'Player'`). That is
+accepted, not a bug — the handle is renameable.
 
 **No profile step after login.** The handle is auto-assigned (Feature 7); the
 user lands back where they were with the gate lifted.

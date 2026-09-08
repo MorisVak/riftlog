@@ -43,6 +43,11 @@ the offline outbox, and account auth + `profiles` are all built.
   match, and the DB persists only the settled outcome.
 - **Auth: a real account, or nothing is saved.** Sign-in is Discord / Google /
   Apple / email OTP; rows are owned via `auth.uid()` and enforced by RLS.
+  **Discord and Google share one browser-redirect handler** parameterised by
+  provider — no SDK, no client id in the app, no config plugin. **Apple is the
+  one native flow** (id-token), because iOS gives it no browser path. Apple is
+  also required by App Store Guideline 4.8 once other third-party sign-in is
+  offered, so it is not optional.
   **There is no anonymous sign-in** — it was removed deliberately. A signed-out
   user gets an in-memory guest sandbox on Home that writes to nothing, and that
   match is *discarded* on login rather than migrated. That is what keeps this a

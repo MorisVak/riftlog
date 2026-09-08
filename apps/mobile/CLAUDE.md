@@ -328,8 +328,9 @@ pnpm --filter @riftlog/mobile exec expo install --check
 
 - Run on simulator: `pnpm mobile start` then press `i`
 - Run on phone via Expo Go: `pnpm mobile start --go` then scan QR with iOS Camera
-  (**OAuth does not work in Expo Go** — Google and Apple sign-in are native
-  modules. Use a dev build for anything touching auth.)
+  (**Apple sign-in does not work in Expo Go** — `expo-apple-authentication` is
+  a native module. Discord and Google are browser-redirect flows and do run in
+  Expo Go, but use a dev build for anything touching auth.)
 - Clear cache when config changes (Babel/Metro/tailwind): `pnpm mobile start --clear`
 
 ### iOS native build: RN must be built from source
@@ -526,18 +527,32 @@ indistinguishable from the user cancelling. Hence the `__DEV__` warning on the
 non-success branch in `signInWithDiscord`: if a sign-in "cancels" itself, read
 the Metro logs. Site URL is set to the same app URL so a future misconfiguration
 at least bounces back into Riftlog.
-- **Google / Apple** — native `signInWithIdToken`. For Google the **web** client
-  id is the token audience Supabase verifies, not the iOS/Android one; the iOS
-  and Android client ids must additionally be listed in the Supabase provider's
-  *Authorized Client IDs*.
+- **Google — the same handler as Discord.** `signInWithRedirectProvider` takes
+  the provider as an argument; `signInWithDiscord` / `signInWithGoogle` are thin
+  wrappers over it. One browser flow, one redirect URI, two callers. Google
+  needs **no** client id in the app, **no** `EXPO_PUBLIC_GOOGLE_*` var, and
+  **no** config plugin — Supabase holds the credentials. Native Google
+  (`@react-native-google-signin`) was evaluated and removed: it bought nothing
+  over the redirect and cost a client id, a reversed-client-id URL scheme, and
+  a plugin. Don't reintroduce it.
+- **Apple — the one native flow**, because iOS offers no browser path for it.
+  `signInAsync` → `identityToken` → `signInWithIdToken`. Enabled by the
+  `expo-apple-authentication` plugin **plus** `ios.usesAppleSignIn` in
+  `app.json`, which together provision the `com.apple.developer.applesignin`
+  entitlement at prebuild. Never hand-edit `ios/` for this — `ios/` is
+  gitignored and regenerated. Required by App Store Guideline 4.8 once other
+  third-party sign-in is offered.
+- Apple's `fullName` arrives only on the first authorization and never in the
+  token, so `signInWithApple` backfills it via `updateUser`. That call is
+  intentionally non-fatal: the user is already signed in, and a cosmetic name
+  is not worth failing a sign-in over.
 - **Email** — `signInWithOtp({ shouldCreateUser: true })` → 6-digit
   `verifyOtp`. `shouldCreateUser` is what makes sign-in and sign-up one action.
   **No passwords anywhere in this app.**
 
-**These two are native modules, so OAuth does not work in Expo Go** — `pnpm
-mobile start --go` is no longer enough for auth work; use a dev client.
-`app.json`'s `iosUrlScheme` is a placeholder until the real reversed iOS client
-id is filled in by hand.
+**Apple sign-in is a native module, so it does not work in Expo Go** — `pnpm
+mobile start --go` is not enough for auth work; use a dev client. Discord and
+Google, being browser redirects, do work there.
 
 `lib/authPrefs.ts` holds the "Last used" badge — device-local, non-sensitive,
 readable while signed out, and deliberately **not** in `lib/localStore.ts` so

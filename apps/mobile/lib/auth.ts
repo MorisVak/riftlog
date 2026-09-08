@@ -2,22 +2,28 @@ import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { getQueryParams } from 'expo-auth-session/build/QueryParams';
-import {
-  GoogleSignin,
-  isSuccessResponse,
-} from '@react-native-google-signin/google-signin';
 import { supabase } from '@/lib/supabase';
 import { setLastAuthMethod } from '@/lib/authPrefs';
 
 /**
  * Provider wiring. Every function here is a PLAIN sign-in: sign-in and sign-up
- * are the same action, and there is no anonymous conversion, no `linkIdentity`,
- * and no `updateUser` anywhere. A first-time user gets an account and a profile
- * row (seeded by the Postgres trigger); a returning user gets their session.
+ * are the same action, and there is no anonymous conversion and no
+ * `linkIdentity` anywhere. A first-time user gets an account and a profile row
+ * (seeded by the Postgres trigger); a returning user gets their session.
+ *
+ * Two shapes, for a reason:
+ *   - **Discord and Google** go through the browser redirect below. Neither
+ *     needs an SDK or a client id in the app — Supabase holds the credentials
+ *     and we only ever name the provider.
+ *   - **Apple** has no browser flow on iOS, so it stays on the native
+ *     id-token path.
+ *
+ * The single `updateUser` call in this file is Apple's name backfill; see
+ * `signInWithApple`. Nothing else here mutates the user.
  *
  * Supabase's automatic email linking is left ON, so the same address across
- * Discord/Google/Apple resolves to one account. The known exception is Apple's
- * "Hide My Email" relay address, which can't match — see SPEC.md.
+ * providers resolves to one account. Apple's "Hide My Email" relay address is
+ * the known exception, which can't match — see SPEC.md.
  *
  * Cancellation is not an error: the caller gets `'cancelled'` back rather than
  * a thrown exception, so a dismissed sheet doesn't paint a red message.
@@ -44,19 +50,43 @@ export type SignInOutcome = 'signed-in' | 'cancelled';
  * (`riftlog://192.168.0.34:8081`). That value moves with the dev machine's
  * network, so it can never be reliably allow-listed. A fixed path is the whole
  * point: one value, allow-listed once, stable in dev and production.
+ *
+ * Discord and Google share this value, so adding Google needed no new entry in
+ * the Supabase allow-list.
  */
 export const AUTH_REDIRECT_URI = 'riftlog://auth-callback';
 
-// ---- Discord: web redirect ------------------------------------------------
+// ---- Discord + Google: web redirect ---------------------------------------
+
+/** Providers driven through the browser rather than a native SDK. */
+export type RedirectProvider = 'discord' | 'google';
+
+const PROVIDER_LABEL: Record<RedirectProvider, string> = {
+  discord: 'Discord',
+  google: 'Google',
+};
 
 /**
- * Discord has no native SDK worth the surface area, so this is the browser
- * flow: open Supabase's authorize URL in an auth session, then trade the
- * tokens on the returned deep link for a session.
+ * The browser flow: open Supabase's authorize URL in an auth session, then
+ * trade the tokens on the returned deep link for a session.
+ *
+ * Neither provider justifies a native SDK here. Discord has none worth the
+ * surface area, and Google's would drag in a client id, a reversed-client-id
+ * URL scheme, and a config plugin to deliver the same session this does.
+ *
+ * The client runs the **implicit** flow (`lib/supabase.ts` leaves `flowType`
+ * at the auth-js default), so the session arrives as tokens in the URL
+ * fragment. That is why this reads `access_token`/`refresh_token` and calls
+ * `setSession` rather than `exchangeCodeForSession`, which is the PKCE
+ * counterpart and would find no `code` to exchange.
  */
-export async function signInWithDiscord(): Promise<SignInOutcome> {
+export async function signInWithRedirectProvider(
+  provider: RedirectProvider,
+): Promise<SignInOutcome> {
+  const label = PROVIDER_LABEL[provider];
+
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'discord',
+    provider,
     options: {
       redirectTo: AUTH_REDIRECT_URI,
       // We drive the browser ourselves; letting supabase-js redirect would
@@ -65,7 +95,7 @@ export async function signInWithDiscord(): Promise<SignInOutcome> {
     },
   });
   if (error) throw error;
-  if (!data.url) throw new Error('Discord sign-in did not return an auth URL.');
+  if (!data.url) throw new Error(`${label} sign-in did not return an auth URL.`);
 
   const result = await WebBrowser.openAuthSessionAsync(
     data.url,
@@ -80,7 +110,7 @@ export async function signInWithDiscord(): Promise<SignInOutcome> {
     // loud in the logs instead.
     if (__DEV__) {
       console.warn(
-        `[auth] Discord sign-in ended as "${result.type}" without a callback. ` +
+        `[auth] ${label} sign-in ended as "${result.type}" without a callback. ` +
           `If this wasn't a cancel, check that "${AUTH_REDIRECT_URI}" is listed ` +
           `under Supabase → Authentication → URL Configuration → Redirect URLs. ` +
           `When it isn't, Supabase silently redirects to Site URL instead.`,
@@ -98,9 +128,9 @@ export async function signInWithDiscord(): Promise<SignInOutcome> {
   const refreshToken = params.refresh_token;
   if (!accessToken || !refreshToken) {
     throw new Error(
-      `Discord sign-in came back to ${AUTH_REDIRECT_URI} with no session ` +
+      `${label} sign-in came back to ${AUTH_REDIRECT_URI} with no session ` +
         `tokens. The redirect reached the app but carried no session — check ` +
-        `the Discord provider's client ID and secret in Supabase.`,
+        `the ${label} provider's client ID and secret in Supabase.`,
     );
   }
 
@@ -110,57 +140,15 @@ export async function signInWithDiscord(): Promise<SignInOutcome> {
   });
   if (sessionError) throw sessionError;
 
-  await setLastAuthMethod('discord');
+  await setLastAuthMethod(provider);
   return 'signed-in';
 }
 
-// ---- Google: native id-token ----------------------------------------------
+export const signInWithDiscord = (): Promise<SignInOutcome> =>
+  signInWithRedirectProvider('discord');
 
-const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
-
-let googleConfigured = false;
-
-const configureGoogle = () => {
-  if (googleConfigured) return;
-  if (!GOOGLE_WEB_CLIENT_ID) {
-    throw new Error(
-      'Missing EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID. See apps/mobile/.env.example.',
-    );
-  }
-  GoogleSignin.configure({
-    // The WEB client id is what Google mints the id_token's audience against,
-    // and it's the one Supabase verifies — not the iOS/Android client id.
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
-  });
-  googleConfigured = true;
-};
-
-/**
- * Native flow: the system account picker hands us an id_token directly, so
- * there's no browser bounce. Requires a dev client — this does not work in
- * Expo Go.
- */
-export async function signInWithGoogle(): Promise<SignInOutcome> {
-  configureGoogle();
-  await GoogleSignin.hasPlayServices();
-
-  const response = await GoogleSignin.signIn();
-  if (!isSuccessResponse(response)) return 'cancelled';
-
-  const idToken = response.data.idToken;
-  if (!idToken) throw new Error('Google sign-in returned no id token.');
-
-  const { error } = await supabase.auth.signInWithIdToken({
-    provider: 'google',
-    token: idToken,
-  });
-  if (error) throw error;
-
-  await setLastAuthMethod('google');
-  return 'signed-in';
-}
+export const signInWithGoogle = (): Promise<SignInOutcome> =>
+  signInWithRedirectProvider('google');
 
 // ---- Apple: native Sign in with Apple -------------------------------------
 
@@ -169,10 +157,16 @@ export const isAppleSignInAvailable = async (): Promise<boolean> =>
   Platform.OS === 'ios' && (await AppleAuthentication.isAvailableAsync());
 
 /**
- * Apple returns the user's name ONLY on the very first authorization for this
- * app, and returns nothing at all if they decline to share it — so nothing here
- * depends on getting one. The profile trigger falls back to the email local
- * part and then to 'Player'.
+ * Apple stays native because there is no browser flow to share: on iOS the
+ * system sheet is the only supported entry point.
+ *
+ * The name is the awkward part. Apple returns `fullName` ONLY on the very
+ * first authorization for this app, never inside the identity token, and not
+ * at all if the user declines to share it — so we back it up to user metadata
+ * on the one pass where it exists. The profile row is already seeded by then
+ * (the trigger fires on insert, before this runs), so in practice Apple users
+ * get a `display_name` from the fallback chain — email local part, then
+ * 'Player'. That is accepted, not a bug: `display_name` is renameable.
  */
 export async function signInWithApple(): Promise<SignInOutcome> {
   try {
@@ -192,6 +186,25 @@ export async function signInWithApple(): Promise<SignInOutcome> {
       token: credential.identityToken,
     });
     if (error) throw error;
+
+    const nameParts = [
+      credential.fullName?.givenName,
+      credential.fullName?.familyName,
+    ].filter((part): part is string => typeof part === 'string' && part !== '');
+
+    if (nameParts.length > 0) {
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { full_name: nameParts.join(' ') },
+      });
+      // Deliberately not thrown: the user IS signed in at this point, and
+      // failing the whole sign-in over a cosmetic, renameable name would be
+      // the worse outcome.
+      if (updateError !== null && __DEV__) {
+        console.warn(
+          `[auth] Apple sign-in succeeded but saving the name failed: ${updateError.message}`,
+        );
+      }
+    }
 
     await setLastAuthMethod('apple');
     return 'signed-in';
