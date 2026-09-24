@@ -84,6 +84,20 @@ module.exports = {
           DEFAULT: '#E879C7',
           tint: '#3A1B31',
         },
+
+        // Riftbound's six domains (card color identities), for deck views:
+        // domain chips and the rune proportion bar. Their own family again —
+        // a domain is an identity, not a result or a scoring action. Base is
+        // the solid / text color on a dark ground; `tint` is the dark chip
+        // fill. Domain color is never the only signal: chips carry the name.
+        domain: {
+          fury: { DEFAULT: '#E5484D', tint: '#3A1A1D' },
+          calm: { DEFAULT: '#3FB27F', tint: '#15332A' },
+          mind: { DEFAULT: '#4C8DEB', tint: '#172A45' },
+          body: { DEFAULT: '#E8883A', tint: '#3A2716' },
+          chaos: { DEFAULT: '#9D6CE6', tint: '#2A1D42' },
+          order: { DEFAULT: '#E6C35C', tint: '#3A3219' },
+        },
       },
 
       // Periwinkle accent glow under the major accent buttons (design CTAs).
