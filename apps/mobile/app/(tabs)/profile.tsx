@@ -1,23 +1,32 @@
-import React, { useCallback } from 'react';
-import { Alert, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { useSharedValue } from 'react-native-reanimated';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/authContext';
 import { useProfile } from '@/contexts/profileContext';
 import AuthGate from '@/components/authGate';
 import Avatar from '@/components/avatar';
 import Icon from '@/components/icon';
+import DeckRow from '@/components/deck/deckRow';
+import { fetchMyDecks, type Deck } from '@/lib/decks';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
+type DecksState = { kind: 'loading' } | { kind: 'ready'; decks: Deck[] } | { kind: 'error' };
+
 /**
- * Profile tab — read-only for now. The handle is claimed at onboarding; the
- * rename UI, stats, and decks come later. Sign out sits in the header because
- * there's nowhere else for it yet.
+ * Profile tab: identity header, then "My decks". The handle is claimed at
+ * onboarding; the rename UI and stats come later. Sign out sits in the header
+ * because there's nowhere else for it yet.
+ *
+ * "My decks" is deliberately bare — a plain list plus an import entry point;
+ * its final placement is still to be decided.
  */
 const Profile = () => {
   const insets = useSafeAreaInsets();
-  const { signOut } = useAuth();
+  const router = useRouter();
+  const { signOut, status } = useAuth();
+  const [decksState, setDecksState] = useState<DecksState>({ kind: 'loading' });
   // Read from profileContext (the same row that drives the onboarding gate),
   // re-fetched on focus so a change made elsewhere shows up here.
   const { profile, profileStatus, refresh } = useProfile();
@@ -25,17 +34,31 @@ const Profile = () => {
 
   const titleIntro = useSharedValue(0);
   const headerIntro = useSharedValue(0);
-  const noteIntro = useSharedValue(0);
+  const decksIntro = useSharedValue(0);
   const titleStyle = useRise(titleIntro);
   const headerStyle = useRise(headerIntro);
-  const noteStyle = useRise(noteIntro);
+  const decksStyle = useRise(decksIntro);
 
   useFocusEffect(
     useCallback(() => {
       // Replay on each focus, matching Home and History.
-      playIntro([titleIntro, headerIntro, noteIntro]);
+      playIntro([titleIntro, headerIntro, decksIntro]);
       void refresh();
-    }, [titleIntro, headerIntro, noteIntro, refresh]),
+      // Signed out, this screen renders behind the login gate; fetching
+      // would only paint an RLS error under the blur.
+      if (status !== 'authed') return;
+      let active = true;
+      fetchMyDecks()
+        .then((decks) => {
+          if (active) setDecksState({ kind: 'ready', decks });
+        })
+        .catch(() => {
+          if (active) setDecksState({ kind: 'error' });
+        });
+      return () => {
+        active = false;
+      };
+    }, [titleIntro, headerIntro, decksIntro, refresh, status]),
   );
 
   const confirmSignOut = () => {
@@ -53,10 +76,17 @@ const Profile = () => {
     );
   };
 
+  const openImport = () => router.push('/decks/import');
+
   return (
-    <View
-      className="flex-1 bg-background px-5"
-      style={{ paddingTop: insets.top + 14 }}
+    <ScrollView
+      className="flex-1 bg-background"
+      contentContainerStyle={{
+        paddingHorizontal: 20,
+        paddingTop: insets.top + 14,
+        paddingBottom: 32,
+      }}
+      showsVerticalScrollIndicator={false}
     >
       <Animated.View style={titleStyle}>
         <Text className="mb-7 font-display-bold text-2xl text-ink-primary">
@@ -99,18 +129,65 @@ const Profile = () => {
         </TouchableOpacity>
       </Animated.View>
 
-      <Animated.View style={noteStyle}>
-        {profileStatus === 'error' && (
-          <Text className="mt-4 text-center text-sm text-loss-text">
-            {"Couldn't load your profile. Check your connection."}
-          </Text>
-        )}
-
-        <Text className="mt-6 px-1 text-[12px] leading-4 text-ink-tertiary">
-          Stats and decks are coming soon.
+      {profileStatus === 'error' && (
+        <Text className="mt-4 text-center text-sm text-loss-text">
+          {"Couldn't load your profile. Check your connection."}
         </Text>
+      )}
+
+      <Animated.View style={decksStyle} className="mt-8">
+        <View className="mb-3 flex-row items-center justify-between">
+          <Text className="font-display text-xs uppercase tracking-wider text-ink-secondary">
+            My decks
+          </Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={openImport}
+            hitSlop={8}
+            className="flex-row items-center gap-1.5"
+          >
+            <Icon name="plus" size={14} className="text-accent" />
+            <Text className="font-display text-[13px] text-accent">
+              Import deck
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {decksState.kind === 'loading' ? (
+          <Text className="py-6 text-center text-sm text-ink-tertiary">
+            Loading decks…
+          </Text>
+        ) : decksState.kind === 'error' ? (
+          <Text className="py-6 text-center text-sm text-ink-secondary">
+            {"Couldn't load your decks. Check your connection."}
+          </Text>
+        ) : decksState.decks.length === 0 ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={openImport}
+            className="items-center rounded-2xl border border-dashed border-border px-6 py-8 active:bg-surface"
+          >
+            <Icon name="layers" size={20} className="text-ink-tertiary" />
+            <Text className="mt-2 font-display text-[15px] text-ink-primary">
+              No decks yet
+            </Text>
+            <Text className="mt-1 text-center text-[13px] leading-[18px] text-ink-secondary">
+              Paste a decklist from Piltover Archive to import your first deck.
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View className="gap-2.5">
+            {decksState.decks.map((deck) => (
+              <DeckRow
+                key={deck.id}
+                deck={deck}
+                onPress={() => router.push(`/decks/${deck.id}`)}
+              />
+            ))}
+          </View>
+        )}
       </Animated.View>
-    </View>
+    </ScrollView>
   );
 };
 
