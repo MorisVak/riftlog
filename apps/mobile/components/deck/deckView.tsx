@@ -8,6 +8,7 @@ import {
   type DeckList,
 } from '@riftlog/core';
 import CardArt from '@/components/deck/cardArt';
+import CardList from '@/components/deck/cardList';
 import CardRow from '@/components/deck/cardRow';
 import DeckSection from '@/components/deck/deckSection';
 import { DomainChips, RuneBar, domainLabel } from '@/components/deck/domain';
@@ -47,7 +48,7 @@ const DeckView = ({ name, list }: { name: string; list: DeckList }) => {
           title="Additional legends"
           count={list.additionalLegends.length}
         >
-          <Rows cards={list.additionalLegends} />
+          <CardList cards={list.additionalLegends} />
         </DeckSection>
       )}
 
@@ -64,7 +65,7 @@ const DeckView = ({ name, list }: { name: string; list: DeckList }) => {
         ) : (
           // Rune names that don't read as "<Domain> Rune": list them as-is
           // rather than guess at domains.
-          <Rows cards={list.runes} />
+          <CardList cards={list.runes} />
         )}
       </DeckSection>
 
@@ -73,43 +74,22 @@ const DeckView = ({ name, list }: { name: string; list: DeckList }) => {
         count={totals.battlefields}
         target={DECK_TARGETS.battlefields}
       >
-        <Rows cards={list.battlefields} />
+        <CardList cards={list.battlefields} />
       </DeckSection>
 
       <DeckSection title="Main deck" count={totals.main} target={DECK_TARGETS.main}>
         {list.champion && (
           <CardRow card={list.champion} tag="Chosen" divider={false} />
         )}
-        <Rows cards={list.main} firstDivider={list.champion !== null} />
+        <CardList cards={list.main} firstDivider={list.champion !== null} />
       </DeckSection>
 
       <DeckSection title="Sideboard" count={totals.sideboard}>
-        <Rows cards={list.sideboard} />
+        <CardList cards={list.sideboard} />
       </DeckSection>
     </View>
   );
 };
-
-const Rows = ({
-  cards,
-  firstDivider = false,
-}: {
-  cards: CardRef[];
-  firstDivider?: boolean;
-}) =>
-  cards.length === 0 ? (
-    <Text className="pb-3 pt-1 text-[13px] text-ink-tertiary">None</Text>
-  ) : (
-    <>
-      {cards.map((card, i) => (
-        <CardRow
-          key={`${card.name}-${i}`}
-          card={card}
-          divider={i > 0 || firstDivider}
-        />
-      ))}
-    </>
-  );
 
 /**
  * Legend / chosen champion, side by side as the deck's identity. Riftbound

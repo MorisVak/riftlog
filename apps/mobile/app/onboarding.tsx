@@ -30,6 +30,7 @@ import {
 } from '@/lib/profile';
 import Avatar from '@/components/avatar';
 import Icon from '@/components/icon';
+import { CTA_GLOW } from '@/components/ctaGlow';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 /**
@@ -49,21 +50,6 @@ import { playIntro, useRise } from '@/hooks/useScreenIntro';
  */
 
 type HandleStatus = 'empty' | 'checking' | 'error' | HandleAvailability;
-
-/**
- * The Continue button's glow, as a style object rather than the
- * `shadow-accent-btn` class. Toggling that class at render time (the button
- * enables as the form becomes valid) threw "Couldn't find a navigation
- * context" here — the NativeWind + expo-router issue documented in
- * apps/mobile/CLAUDE.md (expo/expo#38423). Values mirror the `accent-btn`
- * boxShadow token in tailwind.config.js.
- */
-const CTA_GLOW = {
-  shadowColor: '#8B93D9', // accent
-  shadowOffset: { width: 0, height: 3 },
-  shadowOpacity: 0.28,
-  shadowRadius: 10,
-} as const;
 
 const CHECK_DEBOUNCE_MS = 300;
 /** Variant chips offered when a handle is taken. */
@@ -280,12 +266,11 @@ const Onboarding = () => {
               value={displayName}
               onChangeText={setDisplayName}
               placeholder="Your name"
-              placeholderClassName="text-ink-tertiary"
               maxLength={DISPLAY_NAME_MAX}
               autoCorrect={false}
               returnKeyType="next"
               accessibilityLabel="Display name"
-              className="rounded-xl border border-border bg-elevated px-4 py-3 text-base text-ink-primary"
+              className="rounded-xl border border-border bg-elevated px-4 py-3 text-base text-ink-primary placeholder:text-ink-tertiary"
             />
             <Text className="mb-6 mt-1.5 px-1 text-[12px] text-ink-tertiary">
               {nameValid || displayName === ''
@@ -312,7 +297,6 @@ const Onboarding = () => {
                   setHandle(t.toLowerCase().replace(/\s+/g, '_'))
                 }
                 placeholder="your_handle"
-                placeholderClassName="text-ink-tertiary"
                 maxLength={HANDLE_MAX}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -321,7 +305,7 @@ const Onboarding = () => {
                 returnKeyType="done"
                 onSubmitEditing={() => void onContinue()}
                 accessibilityLabel="Handle"
-                className="flex-1 py-3 pl-0.5 font-mono-medium text-base text-ink-primary"
+                className="flex-1 py-3 pl-0.5 font-mono-medium text-base text-ink-primary placeholder:text-ink-tertiary"
               />
             </View>
 

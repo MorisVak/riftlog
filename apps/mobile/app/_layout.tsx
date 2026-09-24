@@ -51,6 +51,10 @@ const RootStack = () => {
             name="verify-otp"
             options={{ headerShown: false, presentation: 'modal' }}
           />
+          <Stack.Screen
+            name="decks/import"
+            options={{ headerShown: false, presentation: 'modal' }}
+          />
           <Stack.Screen name="decks/[id]" options={{ headerShown: false }} />
         </Stack.Protected>
         <Stack.Protected guard={needsOnboarding}>

@@ -105,8 +105,10 @@ https://github.com/expo/expo/issues/38423.
 **Icons take token classes, not hex.** `components/icon.tsx` is Feather wrapped
 with NativeWind's `cssInterop`, so `<Icon name="user" className="text-ink-tertiary" />`
 routes the class's color into Feather's `color` prop. Use it for new icons
-instead of mirroring a token as a hex constant. Likewise `TextInput` takes
-`placeholderClassName="text-ink-tertiary"` instead of `placeholderTextColor`.
+instead of mirroring a token as a hex constant. Likewise a `TextInput`'s
+placeholder color comes from the **`placeholder:` variant** in its `className`
+(`placeholder:text-ink-tertiary`), not `placeholderTextColor`. Note:
+`placeholderClassName` type-checks but does nothing at runtime in NativeWind v4.
 (Older screens still use the hex-constant pattern; migrate them opportunistically.)
 
 **One avatar.** `components/avatar.tsx` is the only avatar in the app — profile,
