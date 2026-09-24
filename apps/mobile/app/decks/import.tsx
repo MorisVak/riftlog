@@ -20,15 +20,6 @@ import { CTA_GLOW } from '@/components/ctaGlow';
 /** Mirrors the `decks.name` CHECK. */
 const NAME_MAX = 60;
 
-const PLACEHOLDER = `Legend:
-1 Kennen, Heart of the Tempest
-
-Champion:
-1 Kennen, Storm of Shuriken
-
-MainDeck:
-3 Traveling Merchant
-…`;
 
 /**
  * "Kennen, Heart of the Tempest" → "Kennen". Riftbound card names read
@@ -214,7 +205,7 @@ const ImportDeck = () => {
               setText(t);
               setNotice(null);
             }}
-            placeholder={PLACEHOLDER}
+            placeholder="Paste your decklist here"
             multiline
             textAlignVertical="top"
             autoCapitalize="none"
@@ -224,7 +215,8 @@ const ImportDeck = () => {
             className="max-h-64 min-h-[160px] rounded-xl border border-border bg-elevated px-4 py-3 font-mono-medium text-[13px] leading-5 text-ink-primary placeholder:text-ink-tertiary"
           />
           <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
-            In Piltover Archive, open a deck and use Export → Text.
+            Export your deck as text, e.g. Piltover Archive → Export → Text,
+            then paste it here.
           </Text>
 
           {isCode && (

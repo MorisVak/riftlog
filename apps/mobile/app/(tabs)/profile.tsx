@@ -140,14 +140,15 @@ const Profile = () => {
           <Text className="font-display text-xs uppercase tracking-wider text-ink-secondary">
             My decks
           </Text>
+          {/* A real touch target (44pt tall), not a text link. */}
           <TouchableOpacity
             accessibilityRole="button"
+            accessibilityLabel="Import deck"
             onPress={openImport}
-            hitSlop={8}
-            className="flex-row items-center gap-1.5"
+            className="h-11 flex-row items-center gap-2 rounded-full border border-accent/40 bg-accent/15 px-4 active:bg-accent/25"
           >
-            <Icon name="plus" size={14} className="text-accent" />
-            <Text className="font-display text-[13px] text-accent">
+            <Icon name="plus" size={17} className="text-accent" />
+            <Text className="font-display text-[15px] text-accent">
               Import deck
             </Text>
           </TouchableOpacity>
