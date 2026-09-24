@@ -12,13 +12,10 @@ import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { looksLikeDeckCode, parseDeckText } from '@riftlog/core';
-import { createDeck } from '@/lib/decks';
+import { createDeck, DECK_NAME_MAX, isValidDeckName } from '@/lib/decks';
 import ImportPreview from '@/components/deck/importPreview';
 import Icon from '@/components/icon';
 import { CTA_GLOW } from '@/components/ctaGlow';
-
-/** Mirrors the `decks.name` CHECK. */
-const NAME_MAX = 60;
 
 
 /**
@@ -26,7 +23,7 @@ const NAME_MAX = 60;
  * "Champion, Title"; the champion part is what players call the deck.
  */
 const defaultDeckName = (legendName: string | undefined): string =>
-  (legendName ?? '').split(',')[0]?.trim().slice(0, NAME_MAX) ?? '';
+  (legendName ?? '').split(',')[0]?.trim().slice(0, DECK_NAME_MAX) ?? '';
 
 /**
  * Import a deck by pasting a plain-text decklist (Piltover Archive →
@@ -71,8 +68,7 @@ const ImportDeck = () => {
     !saving &&
     hasCards &&
     errorCount === 0 &&
-    trimmedName.length >= 1 &&
-    trimmedName.length <= NAME_MAX;
+    isValidDeckName(name);
 
   const close = () => {
     if (router.canGoBack()) router.back();
@@ -238,7 +234,7 @@ const ImportDeck = () => {
                 value={name}
                 onChangeText={setNameOverride}
                 placeholder="Name this deck"
-                maxLength={NAME_MAX}
+                maxLength={DECK_NAME_MAX}
                 accessibilityLabel="Deck name"
                 className="rounded-xl border border-border bg-elevated px-4 py-3 text-base text-ink-primary placeholder:text-ink-tertiary"
               />

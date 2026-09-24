@@ -21,15 +21,26 @@ import { DomainChips, RuneBar, domainLabel } from '@/components/deck/domain';
  * Pure presentation of a DeckList; the detail screen and the import preview
  * both render through it so the two can't drift.
  */
-const DeckView = ({ name, list }: { name: string; list: DeckList }) => {
+const DeckView = ({
+  name,
+  list,
+  title,
+}: {
+  name: string;
+  list: DeckList;
+  /** Replaces the name heading, e.g. with an editable one. */
+  title?: React.ReactNode;
+}) => {
   const totals = sectionTotals(list);
   const domains = deckDomains(list);
 
   return (
     <View>
-      <Text className="font-display-bold text-[26px] tracking-tight text-ink-primary">
-        {name}
-      </Text>
+      {title ?? (
+        <Text className="font-display-bold text-[26px] tracking-tight text-ink-primary">
+          {name}
+        </Text>
+      )}
 
       <View className="mt-4 flex-row gap-3">
         <IdentityCard label="Legend" card={list.legend} />

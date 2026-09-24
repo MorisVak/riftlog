@@ -15,6 +15,14 @@ import { supabase } from './supabase';
  * version. Versions are immutable; an edit (not built yet) will add one.
  */
 
+/** Mirrors the `decks.name` CHECK (trimmed, 1–60). */
+export const DECK_NAME_MAX = 60;
+
+export const isValidDeckName = (name: string): boolean => {
+  const trimmed = name.trim();
+  return trimmed.length >= 1 && trimmed.length <= DECK_NAME_MAX;
+};
+
 /** A deck with the list of its current version. */
 export type Deck = {
   id: string;
@@ -126,4 +134,23 @@ export async function createDeck(input: {
   });
   if (error) throw error;
   return data;
+}
+
+/**
+ * Rename a deck — the one direct write clients have (`UPDATE (name)` on
+ * `decks`, owner-only by RLS). The list itself is immutable and unaffected.
+ * Returns the saved (trimmed) name and the new `updated_at`.
+ */
+export async function renameDeck(
+  id: string,
+  name: string,
+): Promise<{ name: string; updatedAt: string }> {
+  const { data, error } = await supabase
+    .from('decks')
+    .update({ name: name.trim() })
+    .eq('id', id)
+    .select('name, updated_at')
+    .single();
+  if (error) throw error;
+  return { name: data.name, updatedAt: data.updated_at };
 }

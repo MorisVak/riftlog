@@ -3,8 +3,9 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchDeck, type Deck } from '@/lib/decks';
+import { fetchDeck, renameDeck, type Deck } from '@/lib/decks';
 import DeckView from '@/components/deck/deckView';
+import DeckNameEditor from '@/components/deck/deckNameEditor';
 import Icon from '@/components/icon';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
@@ -15,8 +16,9 @@ type LoadState =
   | { kind: 'error' };
 
 /**
- * One saved deck, read from Postgres (its current version). Read-only:
- * editing — which will add a new immutable version — isn't built yet.
+ * One saved deck, read from Postgres (its current version). The name can be
+ * changed in place; the list is read-only — editing it will add a new
+ * immutable version, which isn't built yet.
  */
 const DeckDetail = () => {
   const insets = useSafeAreaInsets();
@@ -45,6 +47,15 @@ const DeckDetail = () => {
   }, [id, intro]);
 
   useEffect(load, [load]);
+
+  const rename = async (name: string) => {
+    if (state.kind !== 'ready') return;
+    const saved = await renameDeck(state.deck.id, name);
+    setState({
+      kind: 'ready',
+      deck: { ...state.deck, name: saved.name, updatedAt: saved.updatedAt },
+    });
+  };
 
   const back = () => {
     if (router.canGoBack()) router.back();
@@ -75,10 +86,17 @@ const DeckDetail = () => {
             paddingTop: 8,
             paddingBottom: insets.bottom + 32,
           }}
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <Animated.View style={introStyle}>
-            <DeckView name={state.deck.name} list={state.deck.list} />
+            <DeckView
+              name={state.deck.name}
+              list={state.deck.list}
+              title={
+                <DeckNameEditor name={state.deck.name} onSave={rename} />
+              }
+            />
           </Animated.View>
         </ScrollView>
       ) : (

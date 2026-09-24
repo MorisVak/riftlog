@@ -484,8 +484,10 @@ locally** — keep the footprint to these two items.
 
 **Decks** (`lib/decks.ts`) follow the same rule: `fetchMyDecks()` /
 `fetchDeck(id)` read on demand (the deck plus its current version's list,
-narrowed with core's `isDeckList`), never cached on-device. The only write is
-`createDeck()` → the `create_deck` RPC. Parsing is local and pure
+narrowed with core's `isDeckList`), never cached on-device. The writes are
+`createDeck()` → the `create_deck` RPC, and `renameDeck()` → a plain update
+of `decks.name` (the one column clients may write; the deck screen's pencil
+button). Name rules live in `DECK_NAME_MAX` / `isValidDeckName`. Parsing is local and pure
 (`parseDeckText` in `@riftlog/core`); the import screen shows each diagnostic
 inside its section and blocks saving only on errors, never on count warnings.
 Pasted deck codes are detected (`looksLikeDeckCode`) and get a pointer to the
