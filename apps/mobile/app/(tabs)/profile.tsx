@@ -1,11 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import { Alert, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { Profile as ProfileModel } from '@riftlog/core';
 import { useAuth } from '@/contexts/authContext';
-import { fetchMyProfile } from '@/lib/profile';
+import { useProfile } from '@/contexts/profileContext';
 import AuthGate from '@/components/authGate';
 import Avatar from '@/components/avatar';
 import Icon from '@/components/icon';
@@ -19,9 +18,10 @@ import { playIntro, useRise } from '@/hooks/useScreenIntro';
 const Profile = () => {
   const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
-  const [profile, setProfile] = useState<ProfileModel | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  // Read from profileContext (the same row that drives the onboarding gate),
+  // re-fetched on focus so a change made elsewhere shows up here.
+  const { profile, profileStatus, refresh } = useProfile();
+  const loaded = profileStatus === 'ready' || profileStatus === 'error';
 
   const titleIntro = useSharedValue(0);
   const headerIntro = useSharedValue(0);
@@ -32,25 +32,10 @@ const Profile = () => {
 
   useFocusEffect(
     useCallback(() => {
-      let active = true;
-      setError(null);
       // Replay on each focus, matching Home and History.
       playIntro([titleIntro, headerIntro, noteIntro]);
-      fetchMyProfile()
-        .then((p) => {
-          if (!active) return;
-          setProfile(p);
-          setLoaded(true);
-        })
-        .catch((e) => {
-          if (!active) return;
-          setError(e?.message ?? 'Failed to load profile');
-          setLoaded(true);
-        });
-      return () => {
-        active = false;
-      };
-    }, [titleIntro, headerIntro, noteIntro]),
+      void refresh();
+    }, [titleIntro, headerIntro, noteIntro, refresh]),
   );
 
   const confirmSignOut = () => {
@@ -115,9 +100,9 @@ const Profile = () => {
       </Animated.View>
 
       <Animated.View style={noteStyle}>
-        {error !== null && (
+        {profileStatus === 'error' && (
           <Text className="mt-4 text-center text-sm text-loss-text">
-            {error}
+            {"Couldn't load your profile. Check your connection."}
           </Text>
         )}
 
