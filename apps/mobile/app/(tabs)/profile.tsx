@@ -1,52 +1,41 @@
 import React, { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Alert, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
 import type { Profile as ProfileModel } from '@riftlog/core';
 import { useAuth } from '@/contexts/authContext';
 import { fetchMyProfile } from '@/lib/profile';
 import AuthGate from '@/components/authGate';
+import Avatar from '@/components/avatar';
+import Icon from '@/components/icon';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
-const ACCENT = '#8B93D9';
-const INK_SECONDARY = '#868FB0';
-
 /**
- * Profile tab — read-only for now. Handles are auto-assigned at signup (see the
- * profiles trigger), so there is nothing to claim here; renaming and
- * decks are the next slice. Sign out lives here because there's nowhere else
- * for it yet.
+ * Profile tab — read-only for now. The handle is claimed at onboarding; the
+ * rename UI, stats, and decks come later. Sign out sits in the header because
+ * there's nowhere else for it yet.
  */
 const Profile = () => {
   const insets = useSafeAreaInsets();
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const [profile, setProfile] = useState<ProfileModel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   const titleIntro = useSharedValue(0);
-  const cardIntro = useSharedValue(0);
+  const headerIntro = useSharedValue(0);
   const noteIntro = useSharedValue(0);
-  const signOutIntro = useSharedValue(0);
   const titleStyle = useRise(titleIntro);
-  const cardStyle = useRise(cardIntro);
+  const headerStyle = useRise(headerIntro);
   const noteStyle = useRise(noteIntro);
-  const signOutStyle = useRise(signOutIntro);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       setError(null);
       // Replay on each focus, matching Home and History.
-      playIntro([titleIntro, cardIntro, noteIntro, signOutIntro]);
+      playIntro([titleIntro, headerIntro, noteIntro]);
       fetchMyProfile()
         .then((p) => {
           if (!active) return;
@@ -61,7 +50,7 @@ const Profile = () => {
       return () => {
         active = false;
       };
-    }, [titleIntro, cardIntro, noteIntro, signOutIntro]),
+    }, [titleIntro, headerIntro, noteIntro]),
   );
 
   const confirmSignOut = () => {
@@ -90,42 +79,39 @@ const Profile = () => {
         </Text>
       </Animated.View>
 
-      <Animated.View
-        style={cardStyle}
-        className="flex-row items-center gap-4 rounded-2xl border border-border bg-surface p-5"
-      >
-        <View className="h-16 w-16 items-center justify-center rounded-full bg-accent/15">
-          <Feather name="user" size={26} color={ACCENT} />
-        </View>
+      <Animated.View style={headerStyle} className="flex-row items-center gap-4">
+        <Avatar size={64} />
 
         <View className="flex-1">
-          {!loaded ? (
-            <ActivityIndicator color={INK_SECONDARY} />
-          ) : (
-            <>
-              <Text
-                className="font-display-bold text-lg text-ink-primary"
-                numberOfLines={1}
-              >
-                {profile?.displayName ?? 'Player'}
-              </Text>
-              {/* The @handle is the unique identity; display name is cosmetic
-                  and may collide. Absent only in the rare case the seeding
-                  trigger swallowed a failure — degrade, don't crash. */}
-              <Text className="mt-0.5 font-mono-medium text-[13px] text-accent">
-                {profile ? `@${profile.username}` : '—'}
-              </Text>
-              {user?.email ? (
-                <Text
-                  className="mt-1 text-[12px] text-ink-tertiary"
-                  numberOfLines={1}
-                >
-                  {user.email}
-                </Text>
-              ) : null}
-            </>
-          )}
+          {/* Until the row loads, hold the header's shape with placeholders
+              rather than a spinner, so nothing jumps when it arrives. A missing
+              row (the seed trigger swallowed a failure) degrades the same way;
+              onboarding repairs it. */}
+          <Text
+            className="font-display-bold text-lg text-ink-primary"
+            numberOfLines={1}
+          >
+            {profile?.displayName ?? (loaded ? 'Player' : ' ')}
+          </Text>
+          {/* The @handle is the unique identity; display name is cosmetic
+              and may collide. */}
+          <Text
+            className="mt-0.5 font-mono-medium text-[13px] text-ink-secondary"
+            numberOfLines={1}
+          >
+            {profile ? `@${profile.username}` : loaded ? '—' : ' '}
+          </Text>
         </View>
+
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Sign out"
+          onPress={confirmSignOut}
+          hitSlop={8}
+          className="h-10 w-10 items-center justify-center rounded-full border border-border bg-surface active:bg-elevated"
+        >
+          <Icon name="log-out" size={17} className="text-ink-secondary" />
+        </TouchableOpacity>
       </Animated.View>
 
       <Animated.View style={noteStyle}>
@@ -135,25 +121,9 @@ const Profile = () => {
           </Text>
         )}
 
-        <Text className="mt-4 px-1 text-[12px] leading-4 text-ink-tertiary">
-          Stats, decks, and editing your handle are coming soon.
+        <Text className="mt-6 px-1 text-[12px] leading-4 text-ink-tertiary">
+          Stats and decks are coming soon.
         </Text>
-      </Animated.View>
-
-      <View className="flex-1" />
-
-      <Animated.View style={signOutStyle}>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Sign out"
-          onPress={confirmSignOut}
-          className="mb-6 flex-row items-center justify-center gap-2 rounded-full border border-border bg-surface px-5 py-4 active:bg-elevated"
-        >
-          <Feather name="log-out" size={16} color={INK_SECONDARY} />
-          <Text className="font-display text-base text-ink-secondary">
-            Sign out
-          </Text>
-        </TouchableOpacity>
       </Animated.View>
     </View>
   );
