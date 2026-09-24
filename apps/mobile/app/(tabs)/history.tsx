@@ -8,11 +8,7 @@ import {
   View,
 } from 'react-native';
 import Animated, {
-  Easing,
-  useAnimatedStyle,
   useSharedValue,
-  withDelay,
-  withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -26,12 +22,19 @@ import {
 } from '@/lib/matchPersistence';
 import { toHistoryRowVM, type HistoryRowVM } from '@/lib/historyView';
 import HistoryRow from '@/components/historyRow';
+import AuthGate from '@/components/authGate';
+import { useAuth } from '@/contexts/authContext';
+import { playIntro, useFade, useRise } from '@/hooks/useScreenIntro';
 
 /**
  * History tab. Reads the signed-in user's matches (with their games) from
  * Postgres on focus — history is never mirrored locally (Slice 2, online path).
  * RLS scopes the result to the caller's own rows. The device owner is player
  * p1, so results read from p1's perspective.
+ *
+ * Account-gated: a guest gets this same screen, blurred, under a login card
+ * (see AuthGate). The fetch is skipped while signed out — calling it would only
+ * paint an RLS error behind the blur.
  */
 
 const FILTERS = ['All', 'Wins', 'Losses', 'BO3'] as const;
@@ -41,22 +44,6 @@ type Filter = (typeof FILTERS)[number];
 // title/count row plus the filter-chip row.
 const HEADER_H = 104;
 const BACKGROUND = '#0D1B2A';
-
-// Screen intro, matching the design's `.scr` / scrIn: fade + slight rise.
-const SCREEN_EASING = Easing.bezier(0.2, 0.7, 0.3, 1);
-const INTRO_MS = 340;
-// Small offset between each element's entrance so the screen assembles
-// top-to-bottom (title → filters → matches) instead of all at once.
-const STAGGER_MS = 80;
-
-// A staggered entrance driven by a 0→1 shared value: fade in while rising a few
-// px. Each element drives its own value, kicked off at a progressively later
-// delay (see the focus effect).
-const useRise = (sv: SharedValue<number>) =>
-  useAnimatedStyle(() => ({
-    opacity: sv.value,
-    transform: [{ translateY: (1 - sv.value) * 10 }],
-  }));
 
 const matches = (vm: HistoryRowVM, filter: Filter) => {
   switch (filter) {
@@ -116,7 +103,7 @@ const Header = ({
   const filterStyle = useRise(filterIntro);
   // The hairline divider fades in on its own step, after the title and filters
   // have settled. Opacity only (no rise) so the line doesn't slide.
-  const lineStyle = useAnimatedStyle(() => ({ opacity: dividerIntro.value }));
+  const lineStyle = useFade(dividerIntro);
   return (
     <View className="absolute inset-x-0 top-0 z-10">
       {/* The safe-area inset is padding *inside* the blur, not above it — with
@@ -160,8 +147,40 @@ const Header = ({
   );
 };
 
+/**
+ * Placeholder rows shown to a guest, underneath the blur. Nothing here is real
+ * data — it exists so the locked tab reads as "your history, locked" instead of
+ * a blurred empty screen, which communicates nothing at all.
+ */
+const HistorySkeleton = ({ topPad }: { topPad: number }) => (
+  <View
+    className="flex-1 gap-2 px-4"
+    style={{ paddingTop: topPad }}
+    pointerEvents="none"
+  >
+    {[0, 1, 2, 3, 4].map((i) => (
+      <View
+        key={i}
+        className="flex-row overflow-hidden rounded-xl border border-border bg-surface"
+      >
+        <View className="w-1 self-stretch bg-border" />
+        <View className="min-h-[64px] flex-1 flex-row items-center gap-3 px-3 py-2">
+          <View className="h-8 w-8 rounded-lg bg-elevated" />
+          <View className="flex-1 gap-2">
+            <View className="h-3 w-2/5 rounded-full bg-elevated" />
+            <View className="h-2.5 w-1/4 rounded-full bg-elevated" />
+          </View>
+          <View className="h-4 w-10 rounded-full bg-elevated" />
+        </View>
+      </View>
+    ))}
+  </View>
+);
+
 const History = () => {
   const insets = useSafeAreaInsets();
+  const { status } = useAuth();
+  const authed = status === 'authed';
   const [rows, setRows] = useState<MatchWithGames[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('All');
@@ -193,20 +212,21 @@ const History = () => {
       // Replay the intro on each focus, staggering the elements top-to-bottom
       // (title → filters → matches) so the screen assembles dynamically rather
       // than fading in all at once (design `.scr` / scrIn).
-      [titleIntro, filterIntro, dividerIntro, listIntro].forEach((sv, i) => {
-        sv.value = 0;
-        sv.value = withDelay(
-          i * STAGGER_MS,
-          withTiming(1, { duration: INTRO_MS, easing: SCREEN_EASING }),
-        );
-      });
+      playIntro([titleIntro, filterIntro, dividerIntro, listIntro]);
+      // Signed out there is nothing to read — RLS would return an empty set at
+      // best, and an error at worst, behind a blur nobody can act on.
+      if (!authed) {
+        return () => {
+          active = false;
+        };
+      }
       fetchMatchHistory()
         .then((data) => active && setRows(data))
         .catch((e) => active && setError(e?.message ?? 'Failed to load history'));
       return () => {
         active = false;
       };
-    }, [titleIntro, filterIntro, dividerIntro, listIntro]),
+    }, [authed, titleIntro, filterIntro, dividerIntro, listIntro]),
   );
 
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
@@ -246,7 +266,9 @@ const History = () => {
   const count = error === null && rows !== null ? vms.length : null;
 
   let body;
-  if (loading) {
+  if (!authed) {
+    body = <HistorySkeleton topPad={topPad} />;
+  } else if (loading) {
     body = (
       <View className="flex-1 items-center justify-center" style={{ paddingTop: topPad }}>
         <ActivityIndicator color="#8B93D9" />
@@ -312,4 +334,10 @@ const History = () => {
   );
 };
 
-export default History;
+const HistoryTab = () => (
+  <AuthGate>
+    <History />
+  </AuthGate>
+);
+
+export default HistoryTab;

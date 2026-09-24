@@ -156,11 +156,16 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://127.0.0.1:3000"
+# Riftlog is a mobile app, so "the website" is the app itself. This is also the
+# FALLBACK Supabase redirects to when an OAuth `redirect_to` isn't allow-listed
+# below — it does not error, it just sends the browser here. Pointing it at the
+# app means a misconfiguration lands back in Riftlog instead of on a dead page.
+# Must match AUTH_REDIRECT_URI in apps/mobile/lib/auth.ts.
+site_url = "riftlog://auth-callback"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+additional_redirect_urls = ["riftlog://auth-callback"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -175,7 +180,9 @@ refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
 enable_signup = true
 # Allow/disallow anonymous sign-ins to your project.
-enable_anonymous_sign_ins = true
+# OFF: Riftlog requires a real account. Guests use Home as an ephemeral sandbox
+# that writes nothing — see SPEC.md. Also disable this in the remote dashboard.
+enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
@@ -316,23 +323,13 @@ max_frequency = "5s"
 # enroll_enabled = true
 # verify_enabled = true
 
-# Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
-# `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
-# `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
-[auth.external.apple]
-enabled = false
-client_id = ""
-# DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
-secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
-# Overrides the default auth callback URL derived from auth.external_url.
-redirect_uri = ""
-# Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,
-# or any other third-party OIDC providers.
-url = ""
-# If enabled, the nonce check will be skipped. Required for local sign in with Google auth.
-skip_nonce_check = false
-# If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
-email_optional = false
+# External OAuth providers (Discord, Google, Apple) are configured on the REMOTE
+# project (dashboard → Authentication), not here — this file only drives the
+# local stack, and no [auth.external.*] block is currently declared. Note the
+# split: Discord and Google are browser-redirect flows, so Supabase holds their
+# client id + secret and the app sends only a provider name. Apple is the native
+# id-token flow, so the iOS bundle id (com.m-mecke.riftlog) must be listed in
+# that provider's Client IDs field or signInWithIdToken rejects the token.
 
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
 # You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.

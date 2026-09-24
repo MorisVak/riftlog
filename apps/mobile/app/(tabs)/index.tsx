@@ -6,19 +6,14 @@ import {
   Text,
   View,
 } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming,
-  type SharedValue,
-} from 'react-native-reanimated';
+import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '@/contexts/authContext';
 import { useMatch } from '@/contexts/matchContext';
+import GuestBanner from '@/components/guestBanner';
 import PlayField from '@/components/playField';
 import BetweenGamesScreen from '@/components/betweenGamesScreen';
 import MatchOverview from '@/components/matchOverview';
@@ -29,25 +24,10 @@ import {
   type MatchWithGames,
 } from '@/lib/matchPersistence';
 import { toHistoryRowVM, type HistoryRowVM } from '@/lib/historyView';
+import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 const BACKGROUND = '#0D1B2A'; // for Feather icons inside accent fills
 const ACCENT = '#8B93D9';
-
-// Screen intro, matching the History tab's `.scr` / scrIn: fade + slight rise.
-const SCREEN_EASING = Easing.bezier(0.2, 0.7, 0.3, 1);
-const INTRO_MS = 340;
-// Small offset between each element's entrance so the screen assembles
-// top-to-bottom (header → CTA → stats → recent) instead of all at once.
-const STAGGER_MS = 80;
-
-// A staggered entrance driven by a 0→1 shared value: fade in while rising a few
-// px. Each element drives its own value, kicked off at a progressively later
-// delay (see the focus effect).
-const useRise = (sv: SharedValue<number>) =>
-  useAnimatedStyle(() => ({
-    opacity: sv.value,
-    transform: [{ translateY: (1 - sv.value) * 10 }],
-  }));
 
 // Stats derived from the device owner's own matches (Riot-policy safe — own
 // stats only). Win rate ignores draws; with no decisive games it reads "–".
@@ -86,8 +66,20 @@ const HistoryEmptyState = () => (
       No saved matches yet
     </Text>
     <Text className="mt-2 text-center text-sm text-ink-secondary">
-      Play your first match to start a history. Sign-in &amp; cloud sync are
-      coming soon.
+      Play your first match to start a history.
+    </Text>
+  </View>
+);
+
+/** What a guest sees where recent matches would be. The banner above already
+ *  says games aren't saved; this says what they'd be getting instead. */
+const GuestRecentState = () => (
+  <View className="rounded-2xl border border-border bg-surface px-6 py-8">
+    <Text className="text-center font-display text-base text-ink-primary">
+      No history in guest mode
+    </Text>
+    <Text className="mt-2 text-center text-sm text-ink-secondary">
+      Sign in and every match you finish is saved here automatically.
     </Text>
   </View>
 );
@@ -95,6 +87,8 @@ const HistoryEmptyState = () => (
 const Home = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { status } = useAuth();
+  const authed = status === 'authed';
   const [setupOpen, setSetupOpen] = useState(false);
   const [rows, setRows] = useState<MatchWithGames[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -114,28 +108,34 @@ const Home = () => {
       setError(null);
       // Replay the intro on each focus, staggering the elements top-to-bottom
       // (header → CTA → stats → recent) so the screen assembles dynamically
-      // rather than fading in all at once, matching the History tab.
-      [headerIntro, ctaIntro, statsIntro, recentIntro].forEach((sv, i) => {
-        sv.value = 0;
-        sv.value = withDelay(
-          i * STAGGER_MS,
-          withTiming(1, { duration: INTRO_MS, easing: SCREEN_EASING }),
-        );
-      });
+      // rather than fading in all at once, matching the other tabs.
+      playIntro([headerIntro, ctaIntro, statsIntro, recentIntro]);
+      // Home is the one guest-usable screen, so it must not touch the network
+      // while signed out — stats read as zeroes and the recent list explains
+      // itself instead.
+      if (!authed) {
+        return () => {
+          active = false;
+        };
+      }
       fetchMatchHistory()
         .then((data) => active && setRows(data))
         .catch((e) => active && setError(e?.message ?? 'Failed to load matches'));
       return () => {
         active = false;
       };
-    }, [headerIntro, ctaIntro, statsIntro, recentIntro]),
+    }, [authed, headerIntro, ctaIntro, statsIntro, recentIntro]),
   );
 
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
   const recent = useMemo(() => vms.slice(0, 3), [vms]);
   const stats = useMemo(() => deriveStats(vms), [vms]);
 
-  const loading = rows === null && error === null;
+  // A guest never fetches, so `rows === null` isn't "still loading" for them.
+  // Session restore counts as loading though — otherwise every cold start
+  // flashes the guest state at a signed-in user before the session resolves.
+  const loading =
+    status === 'loading' || (authed && rows === null && error === null);
 
   return (
     <View className="flex-1 bg-background">
@@ -168,6 +168,12 @@ const Home = () => {
           >
             <Feather name="user" size={18} color={ACCENT} />
           </Pressable>
+        </Animated.View>
+
+        {/* Guest notice. Renders nothing when signed in; rides the header's
+            entrance so it doesn't pop in against the staggered intro. */}
+        <Animated.View style={headerStyle}>
+          <GuestBanner />
         </Animated.View>
 
         {/* Start CTA */}
@@ -231,6 +237,8 @@ const Home = () => {
           <View className="items-center py-10">
             <ActivityIndicator color={ACCENT} />
           </View>
+        ) : status === 'guest' ? (
+          <GuestRecentState />
         ) : error !== null ? (
           <View className="rounded-2xl border border-border bg-surface px-6 py-8">
             <Text className="text-center text-sm text-loss-text">{error}</Text>

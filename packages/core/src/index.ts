@@ -9,6 +9,19 @@ export const RIFTLOG_CORE_VERSION = '0.0.0';
 
 export type { DeckSnapshot } from './types/deck';
 export type { PlayerId, Player, Game, Match } from './types/match';
+export type { Profile } from './types/profile';
+
+export {
+  HANDLE_PATTERN,
+  HANDLE_MIN,
+  HANDLE_MAX,
+  HANDLE_RULE_TEXT,
+  DISPLAY_NAME_MAX,
+  isValidHandleFormat,
+  slugifyHandle,
+  handleVariants,
+  handleSuggestionSource,
+} from './handles';
 
 // Generated Supabase schema types (pure types, no runtime/IO). Regenerate with
 // `pnpm db:types`. See packages/core/src/db/database.types.ts.

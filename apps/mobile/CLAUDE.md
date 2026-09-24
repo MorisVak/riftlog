@@ -8,13 +8,18 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
 ## Project structure
 
 - `app/` — Expo Router routes. Each file is a screen.
-  - `_layout.tsx` — root layout, wraps everything in `MatchProvider`
-  - `(tabs)/_layout.tsx` — tab navigator (History, Main, Settings)
-  - `(tabs)/index.tsx` — main screen (score tracker entry)
-  - `(tabs)/history.tsx` — placeholder
-  - `(tabs)/settings.tsx` — placeholder
+  - `_layout.tsx` — root layout: `AuthProvider` > `ProfileProvider` >
+    `MatchProvider` > `Stack` (with the onboarding guard, see below)
+  - `(tabs)/_layout.tsx` — tab navigator (History, Home, Profile)
+  - `(tabs)/index.tsx` — Home; also hosts the whole match flow by `phase`
+  - `(tabs)/history.tsx` — match history (account-gated)
+  - `(tabs)/profile.tsx` — read-only profile header + sign out (account-gated)
+  - `login.tsx` / `verify-otp.tsx` — modal auth routes
+  - `onboarding.tsx` — first-login handle + display-name step (guarded)
 - `components/` — reusable UI components
-- `contexts/` — React context providers (currently just `matchContext`)
+- `contexts/` — React context providers (`authContext`, `profileContext`,
+  `matchContext`)
+- `hooks/` — shared hooks that aren't components (`useScreenIntro`)
 - `assets/` — icons, splash images
 
 ## Styling
@@ -89,9 +94,26 @@ stack (expo-router + NativeWind) that has been implicated in spurious
 "Couldn't find a navigation context" errors — the board clock's capsule and the
 paused-clock control both threw it until their shadows moved to style objects
 (`CLOCK_SHADOW` / `ACCENT_GLOW` in `playField.tsx`, values mirroring the
-tokens). The `shadow-accent-*` classes elsewhere are fine as they are; if a new
-one starts throwing, this is the first thing to try. See
+tokens). The onboarding Continue button hit it too — its `shadow-accent-btn`
+was toggled on as the form became valid — and now uses `CTA_GLOW`. The
+`shadow-accent-*` classes elsewhere are fine as they are; if a new one starts
+throwing, this is the first thing to try. Note the stack trace can point at an
+unrelated hook (it blamed `useSafeAreaInsets`); the Metro log's code frame
+names the real element. See
 https://github.com/expo/expo/issues/38423.
+
+**Icons take token classes, not hex.** `components/icon.tsx` is Feather wrapped
+with NativeWind's `cssInterop`, so `<Icon name="user" className="text-ink-tertiary" />`
+routes the class's color into Feather's `color` prop. Use it for new icons
+instead of mirroring a token as a hex constant. Likewise `TextInput` takes
+`placeholderClassName="text-ink-tertiary"` instead of `placeholderTextColor`.
+(Older screens still use the hex-constant pattern; migrate them opportunistically.)
+
+**One avatar.** `components/avatar.tsx` is the only avatar in the app — profile,
+onboarding, and later match mode and friend lists: a `user` silhouette in a
+`bg-surface` circle, sized by a `size` prop. There are **no profile pictures**
+anywhere (none stored, none read from the identity provider), so it has no
+image prop on purpose. Don't add one.
 
 **Colorblind-safe rule (non-negotiable):** result color is NEVER the only
 signal. Every win/loss/draw indicator pairs the color with (a) a `W`/`L`/`D`
@@ -115,6 +137,22 @@ the Expo template — there is nothing to install.
 - Prefer Reanimated over the legacy `Animated` API and over layout hacks.
   Use `useSharedValue` / `useAnimatedStyle` / `withTiming` / `withSpring`
   and `Animated.View`.
+
+### Screen entrance
+
+Every tab shares one entrance: elements fade in while rising ~10px, each
+starting `STAGGER_MS` after the last, so the screen assembles top-to-bottom
+instead of appearing at once (the design's `.scr` / scrIn). It lives in
+`hooks/useScreenIntro.ts` — `useRise` (boxes), `useFade` (hairlines, which read
+as sliding if they move), and `playIntro(values)`, where array order is the
+stagger order.
+
+Call `playIntro` from the screen's `useFocusEffect` so it **replays on every
+focus**, not just mount. Each screen declares its own `useSharedValue(0)` per
+element rather than the hook allocating them — the count differs per screen and
+allocating in a loop would break the rules of hooks. Don't re-inline the timing
+constants into a screen; three divergent copies is what prompted extracting
+them.
 
 To re-pin SDK-compatible versions (idempotent, safe to run):
 
@@ -310,7 +348,41 @@ pnpm --filter @riftlog/mobile exec expo install --check
 
 - Run on simulator: `pnpm mobile start` then press `i`
 - Run on phone via Expo Go: `pnpm mobile start --go` then scan QR with iOS Camera
+  (**Apple sign-in does not work in Expo Go** — `expo-apple-authentication` is
+  a native module. Discord and Google are browser-redirect flows and do run in
+  Expo Go, but use a dev build for anything touching auth.)
 - Clear cache when config changes (Babel/Metro/tailwind): `pnpm mobile start --clear`
+
+### iOS native build: RN must be built from source
+
+A fresh `ios/` fails to link with:
+
+```
+Undefined symbols for architecture arm64
+  _OBJC_CLASS_$_RCTPackagerConnection
+  Referenced from: libexpo-dev-launcher.a(EXDevLauncherController.o)
+```
+
+RN 0.81.5 ships React Native as a **prebuilt** `React.xcframework`, and that
+binary doesn't export `RCTPackagerConnection` — verified with `nm`: it has
+`RCTDevMenu`, `RCTDevSettings`, and `RCTInspector*`, but zero matches for the
+packager class that `expo-dev-launcher` links against. It is not caused by
+anything in this project's source.
+
+Fix — build React-Core from source instead:
+
+    cd apps/mobile/ios && RCT_USE_PREBUILT_RNCORE=0 pod install
+
+**Setting the env var on `expo run:ios` alone does nothing.** It skips
+`pod install` when `Podfile.lock` is unchanged, so the flag never reaches
+CocoaPods and you get the identical link error a second time. Run `pod install`
+directly first, confirm `ios/Pods/React-Core-prebuilt/` is **gone**, then build.
+
+Repeat after any wipe-and-prebuild of `ios/`. Clean builds get noticeably
+slower, which is the trade. This is deliberately *not* baked into the Podfile:
+`ios/` is gitignored and regenerated by prebuild, so a Podfile edit wouldn't
+survive anyway — making it stick would need a config plugin, which is its own
+decision.
 
 ## EAS
 
@@ -350,9 +422,8 @@ the approach from the official Supabase Expo quickstart. That store holds the
 **session only**. Offline match data uses plain AsyncStorage (see Offline
 outbox) — we deliberately do **not** add a second storage library.
 
-**Auth.** Anonymous sign-in on first launch (`app/_layout.tsx`) gives every
-device an `auth.uid()` to own its rows; `persistSession` restores it afterward.
-Requires anonymous sign-ins enabled on the remote project.
+**Auth.** See the "Auth & guest mode" section below — it's load-bearing enough
+to have its own.
 
 **Write path.** There is no "match completed" callback — completion is
 `match.endedAt` flipping non-null inside the matchContext reducers. `MatchSync`
@@ -404,6 +475,144 @@ Rules that are easy to get wrong:
   hide it, then clears the param (so re-focusing the tab doesn't re-expand, and
   tapping the same match again still works).
 
+## Auth & guest mode
+
+`contexts/authContext.tsx` is the only place session state lives. It exposes
+`session` / `user` / `status` / `signOut`, and is mounted **above**
+`MatchProvider` in `app/_layout.tsx` so `MatchSync` can read both.
+
+- **`status` is `'loading' | 'authed' | 'guest'`, derived, never stored** —
+  same rule as `phase`. `'loading'` is a real third state, not a synonym for
+  guest: treating it as guest flashes the login gate over every account tab on
+  every cold start.
+- **There is no anonymous sign-in.** It was removed. A signed-out user gets a
+  guest sandbox; see the write rules below.
+- The `AppState` → `startAutoRefresh`/`stopAutoRefresh` pair is registered at
+  module scope (process-wide, not per-mount).
+
+### Guest mode — the write rules (don't soften these)
+
+`components/matchSync.tsx` enforces them. A guest's match is **in-memory only**:
+no Postgres row, no in-progress mirror, no outbox entry. On sign-in the guest
+match is **discarded** (`endMatch()`), never uploaded or merged.
+
+Two traps live here, both already handled — don't undo them:
+
+1. **`guestMatchIds`.** Sign-in flips `status` and re-runs the write effect in
+   the *same commit*, while the discard is a `setState` that hasn't landed yet.
+   Gating writes on the current status alone therefore uploads the guest's
+   match into the account that just signed in. Matches seen while signed out
+   are tracked **by id** and stay untouchable regardless of later auth state.
+2. **`clearOutbox()` on sign-out** (`lib/localStore.ts`, called from
+   `signOut()`). Outbox entries carry **no `user_id`** — `matches.user_id`
+   defaults from `auth.uid()` at insert time — so a match queued by account A
+   and flushed while account B is signed in is written to **B**. The queue is
+   only ever valid for the session that filled it.
+
+### Profile & onboarding
+
+`contexts/profileContext.tsx` holds the signed-in user's `profiles` row, read
+from Postgres per user (keyed on user id, so token refreshes don't refetch) and
+**never cached on-device**. It exposes `profile`, `profileStatus`
+(`idle | loading | ready | error`), derived `needsOnboarding`, and `refresh()`.
+
+**The onboarding gate is a `Stack.Protected` guard in `app/_layout.tsx`, not a
+redirect effect.** While `needsOnboarding` holds (`ready` and `onboarded_at`
+null, or no row at all), the tabs/login routes don't exist and `onboarding` is
+the only screen. Rules that keep it correct:
+
+- **Resumable by construction.** Nothing on the device records "mid-onboarding";
+  the gate is re-derived from `onboarded_at` on every launch. Don't add a local
+  flag for it.
+- **An `error` read does not gate.** The live tracker must work offline, so an
+  offline launch opens the app normally and retries on reconnect / foreground.
+- **While the first read is `loading`,** a blank `bg-background` overlay covers
+  the app (overlay, not swapping out `<Stack>`, so the navigator stays mounted)
+  — otherwise the tabs flash and are then yanked away.
+- **Continue is one RPC.** `completeOnboarding()` (`lib/profile.ts`) calls
+  `complete_onboarding`, which claims the handle, sets the name, and stamps
+  `onboarded_at` atomically; then `refresh()` flips the guard. It's idempotent,
+  so a failed refresh is fixed by pressing Continue again.
+- **Handles can't be written with a plain update** (column grants), only via
+  the RPCs — see `../../supabase/CLAUDE.md`. `display_name` can.
+- The handle field checks format locally (`HANDLE_PATTERN` in `@riftlog/core`
+  mirrors the DB CHECK — keep them in lockstep), then asks
+  `is_username_available` after a 300ms debounce, guarding against stale
+  responses. Suggestions come from `handleSuggestionSource` — provider names
+  only, **never the email**.
+- There is **no deck step**: deck import doesn't exist yet. When it does, an
+  optional, skippable step goes *after* `onboarded_at` is set, so it can never
+  hold the gate.
+
+### Gating
+
+`components/authGate.tsx` wraps History and Profile. Signed out it renders the
+tab's real content inert (`pointerEvents="none"`) under a `BlurView` and a login
+card. **In-place overlay, never a redirect** — and both gated screens skip their
+own fetch while signed out, or they'd paint an RLS error behind the blur. Home is
+guest-usable and shows `components/guestBanner.tsx` throughout.
+
+`BlurView` takes a **style object, not a className** — NativeWind doesn't map
+classes onto third-party native components without `cssInterop`.
+
+### Providers
+
+`lib/auth.ts`, one function per method, each recording `setLastAuthMethod` on
+success. Cancellation returns `'cancelled'` rather than throwing, so a dismissed
+sheet doesn't paint a red error.
+
+- **Discord** — browser flow: `signInWithOAuth({ skipBrowserRedirect: true })` →
+  `WebBrowser.openAuthSessionAsync` → `getQueryParams` → `setSession`. Tokens
+  come back in the URL **fragment**, which `Linking.parse` can't read — hence
+  `expo-auth-session/build/QueryParams`.
+
+**The redirect URI is a hard-coded constant, `AUTH_REDIRECT_URI`
+(`riftlog://auth-callback`) — do not "improve" it back into `makeRedirectUri()`.**
+Called with no arguments, `makeRedirectUri()` only yields a bare `riftlog://`
+when expo-linking considers the app Expo-hosted; otherwise it bakes the Metro
+host in (`riftlog://192.168.0.34:8081`), so the value moves with the dev
+machine's network and can't be allow-listed. One fixed value, allow-listed once,
+identical in dev and production.
+
+**Failure mode to know, because it is silent.** If that URI isn't in Supabase →
+Authentication → URL Configuration → Redirect URLs, Supabase does **not** return
+an error — it redirects to **Site URL** instead. The browser lands on a page that
+isn't there, no deep link ever fires, and from the app's side that is
+indistinguishable from the user cancelling. Hence the `__DEV__` warning on the
+non-success branch in `signInWithDiscord`: if a sign-in "cancels" itself, read
+the Metro logs. Site URL is set to the same app URL so a future misconfiguration
+at least bounces back into Riftlog.
+- **Google — the same handler as Discord.** `signInWithRedirectProvider` takes
+  the provider as an argument; `signInWithDiscord` / `signInWithGoogle` are thin
+  wrappers over it. One browser flow, one redirect URI, two callers. Google
+  needs **no** client id in the app, **no** `EXPO_PUBLIC_GOOGLE_*` var, and
+  **no** config plugin — Supabase holds the credentials. Native Google
+  (`@react-native-google-signin`) was evaluated and removed: it bought nothing
+  over the redirect and cost a client id, a reversed-client-id URL scheme, and
+  a plugin. Don't reintroduce it.
+- **Apple — the one native flow**, because iOS offers no browser path for it.
+  `signInAsync` → `identityToken` → `signInWithIdToken`. Enabled by the
+  `expo-apple-authentication` plugin **plus** `ios.usesAppleSignIn` in
+  `app.json`, which together provision the `com.apple.developer.applesignin`
+  entitlement at prebuild. Never hand-edit `ios/` for this — `ios/` is
+  gitignored and regenerated. Required by App Store Guideline 4.8 once other
+  third-party sign-in is offered.
+- Apple's `fullName` arrives only on the first authorization and never in the
+  token, so `signInWithApple` backfills it via `updateUser`. That call is
+  intentionally non-fatal: the user is already signed in, and a cosmetic name
+  is not worth failing a sign-in over.
+- **Email** — `signInWithOtp({ shouldCreateUser: true })` → 6-digit
+  `verifyOtp`. `shouldCreateUser` is what makes sign-in and sign-up one action.
+  **No passwords anywhere in this app.**
+
+**Apple sign-in is a native module, so it does not work in Expo Go** — `pnpm
+mobile start --go` is not enough for auth work; use a dev client. Discord and
+Google, being browser redirects, do work there.
+
+`lib/authPrefs.ts` holds the "Last used" badge — device-local, non-sensitive,
+readable while signed out, and deliberately **not** in `lib/localStore.ts` so
+that file's "exactly two match keys" contract stays true.
+
 ## What not to build proactively
 
 The user is building incrementally. Don't add the following until its slice
@@ -413,12 +622,23 @@ is explicitly started:
   player names, and timed mode are built; the rest is deferred)
 - Deck import/parsing
 - The designed history UI / detail view (only a minimal read-only list exists)
+- Profile **editing** — the handle rename UI and stats. `claim_username`
+  already enforces the rules (30-day limit); nothing calls it from the client
+  yet. The profile screen is read-only by design.
+- **Profile pictures of any kind** — not deferred, ruled out. One default
+  avatar for everyone.
+- Any manual account-linking UI
 
 Match **history is never mirrored locally** — read from Postgres on demand — so
-don't build a growing on-device history store. Local persistence is bounded to
-exactly two things: the encrypted auth **session** (LargeSecureStore) and the
-**offline match state** (in-progress match + outbox, in AsyncStorage via
-`lib/localStore.ts`). Don't add more local storage than that.
+don't build a growing on-device history store. Local persistence is bounded to:
+the encrypted auth **session** (LargeSecureStore), the **offline match state**
+(in-progress match + outbox, `lib/localStore.ts`), and the one non-sensitive
+"last used sign-in method" key (`lib/authPrefs.ts`). Don't add more.
+
+Also: don't add local persistence for **guest** matches. It looks like a
+kindness and it isn't — anything durable a guest produces has to be either
+migrated at login (merge logic, which this design exists to avoid) or thrown
+away later anyway, more confusingly.
 
 These are specced in `SPEC.md` and sequenced — build them when their roadmap
 step begins, not ahead of it.
