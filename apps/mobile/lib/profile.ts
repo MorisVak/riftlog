@@ -31,3 +31,74 @@ export async function fetchMyProfile(): Promise<Profile | null> {
     updatedAt: data.updated_at,
   };
 }
+
+// ---- Handles & onboarding --------------------------------------------------
+
+/** What `is_username_available` answers. Mirrors the SQL function. */
+export type HandleAvailability =
+  | 'available'
+  | 'invalid_format'
+  | 'reserved'
+  | 'taken';
+
+/** What `complete_onboarding` answers. Mirrors the SQL function. */
+export type OnboardingResult =
+  | 'ok'
+  | 'invalid_display_name'
+  | 'invalid_format'
+  | 'reserved'
+  | 'taken'
+  | 'rate_limited'
+  | 'no_profile';
+
+const AVAILABILITY: readonly HandleAvailability[] = [
+  'available',
+  'invalid_format',
+  'reserved',
+  'taken',
+];
+const ONBOARDING: readonly OnboardingResult[] = [
+  'ok',
+  'invalid_display_name',
+  'invalid_format',
+  'reserved',
+  'taken',
+  'rate_limited',
+  'no_profile',
+];
+
+// The generated types say `string`; narrow at the boundary so an unexpected
+// code from a future migration fails loudly here, not as a silent UI state.
+function narrow<T extends string>(allowed: readonly T[], value: string): T {
+  if ((allowed as readonly string[]).includes(value)) return value as T;
+  throw new Error(`Unexpected response code: ${value}`);
+}
+
+/**
+ * Live availability for the handle field. Advisory only — the unique index,
+ * enforced inside `complete_onboarding` / `claim_username`, is the guarantee.
+ */
+export async function checkHandle(handle: string): Promise<HandleAvailability> {
+  const { data, error } = await supabase.rpc('is_username_available', {
+    p_username: handle,
+  });
+  if (error) throw error;
+  return narrow(AVAILABILITY, data);
+}
+
+/**
+ * Claim the handle, set the display name, and stamp `onboarded_at` in one
+ * server-side transaction. `ok` is idempotent — calling it again after
+ * success changes nothing.
+ */
+export async function completeOnboarding(
+  handle: string,
+  displayName: string,
+): Promise<OnboardingResult> {
+  const { data, error } = await supabase.rpc('complete_onboarding', {
+    p_username: handle,
+    p_display_name: displayName,
+  });
+  if (error) throw error;
+  return narrow(ONBOARDING, data);
+}
