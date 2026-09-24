@@ -4,8 +4,8 @@ Database, auth, and Edge Functions for Riftlog. Postgres is the **single source
 of truth** for match data.
 
 **Status:** the project is linked; `matches` + `games` (with
-`time_limit_seconds`), `profiles` (claimed handles + onboarding), and
-`reserved_names` are migrated with RLS; the mobile client,
+`time_limit_seconds`), `profiles` (claimed handles + onboarding),
+`reserved_names`, and `decks` + `deck_versions` are migrated with RLS; the mobile client,
 the online write/read path, and the offline outbox are all built. Auth is
 account-only — **anonymous sign-in has been removed** (see Auth below).
 
@@ -37,14 +37,16 @@ supabase/
 │   ├── 20260807143000_matches_time_limit.sql
 │   ├── 20260808123409_profiles.sql
 │   ├── 20260924151001_profile_identity.sql
-│   └── 20260924151509_drop_profile_avatar.sql
+│   ├── 20260924151509_drop_profile_avatar.sql
+│   └── 20260924155255_decks.sql
 └── config.toml       Supabase CLI config (linked, anon auth OFF)
 
 ## Schema
 
-Three domain tables plus one lookup table. Two mirror the `@riftlog/core`
-domain terms (a **match** is the Bo1/Bo3 series, a **game** is one game within
-it); the third is the account's profile:
+Match, profile, and deck tables plus one lookup table. `matches` / `games`
+mirror the `@riftlog/core` domain terms (a **match** is the Bo1/Bo3 series, a
+**game** is one game within it); `profiles` is the account; `decks` /
+`deck_versions` are the player's saved decks:
 
 - **`matches`** — `id` (uuid PK = client `Match.id`), `user_id`
   (`default auth.uid()`, FK → `auth.users`), `best_of` (smallint, 1|3),
@@ -85,6 +87,36 @@ it); the third is the account's profile:
   `is_username_available`. It's a table rather than a list in a function so a
   future teams namespace can share it via `is_name_reserved(text)`, and adding
   a word is a data insert.
+
+- **`decks`** — `id` (uuid PK), `owner_id` (`default auth.uid()`, FK →
+  `auth.users` `on delete cascade`), `name` (trimmed, 1–60), `import_source`
+  (`'text' | 'piltover_code' | 'manual'`), `source_code` (nullable; only
+  allowed on `piltover_code` imports), `current_version_id`, `created_at`,
+  `updated_at` (trigger).
+- **`deck_versions`** — `id` (uuid PK), `deck_id`, `owner_id` (denormalized,
+  like `games.user_id`), `list` (jsonb = the core `DeckList`; shape-checked by
+  `is_deck_list()`, ≤ 64 KB), `created_at`. **Immutable** — no update or delete
+  for any client, ever.
+
+  Two composite FKs keep them honest: a version's `(deck_id, owner_id)` must
+  match its deck, and a deck's `(id, current_version_id)` must name one of
+  *its own* versions.
+
+  **Versions are what everything pins.** Match history, per-deck stats, and a
+  match-mode opponent's view will reference `deck_versions.id`, so an edit is
+  a *new* version plus moving `current_version_id` (Feature 5), never an
+  update in place. For the same reason there is no deck delete yet, and when
+  there is it must be a **soft delete** (`archived_at`) — a hard delete would
+  cascade away versions that history points at.
+
+  Designed for, not built: attaching versions to matches (`Player.deck` in the
+  `players` jsonb, or a `match_decks` table), `profiles.favorite_deck_id`, and
+  an extra `select` policy on `deck_versions` letting an opponent read the one
+  version used in a shared match. **Card catalog (future):** a `cards` table
+  keyed by the full printing code (`SFD-149a`) with name / type / domains /
+  art, filled server-side once the Riot API key exists. Lists keep
+  `CardRef.code`; text imports (code null) resolve art by normalized name at
+  read time, so no stored list ever needs migrating.
 
 `winner_id`/`ended_at` on `games` are nullable because an early
 `concludeMatch()` settles the series without freezing the in-progress game — a
@@ -155,6 +187,24 @@ types-gen reads the schema, not the grants.
 `authenticated` explicitly**, not just via `PUBLIC`. Any new function must
 `revoke ... from public, anon, authenticated` and grant back only what's meant
 to be callable.
+
+### Deck access
+
+Owner-only `select` on both deck tables. Clients hold `SELECT` on both and
+`UPDATE (name)` on `decks` — nothing else: no direct inserts (so a deck can
+never exist without a version), no deletes, no version writes.
+
+**`create_deck(p_name, p_import_source, p_source_code, p_list)`** → deck id.
+`security definer`, `require_account()`, `authenticated` only. Inserts the
+deck, its first version, and sets `current_version_id` in one transaction.
+Invalid input raises `22023` with `invalid_name` / `invalid_source` /
+`invalid_list` as the message (the client validates first, so this is a bug
+path). `p_source_code` has no SQL default, so the generated type requires a
+string: pass `''` for "none" — the function stores it as null.
+
+The client embeds the current version with
+`deck_versions!decks_current_version_fkey(...)`; the FK name is required
+because the two tables are related both ways.
 
 ## Auth
 
@@ -290,14 +340,17 @@ See parent `CLAUDE.md`. Specifically for backend:
 ## What's not built yet
 
 Done: link + `config.toml`, `matches` / `games` / `profiles` /
-`reserved_names` schema + RLS, the profile seeding trigger, the profile RPCs
-(availability, claim, onboarding), account auth, generated types, and the
-mobile client's write/read path + offline outbox. Still ahead (later slices / features):
+`reserved_names` / `decks` / `deck_versions` schema + RLS, the profile seeding
+trigger, the profile RPCs (availability, claim, onboarding), `create_deck`,
+account auth, generated types, and the mobile client's write/read path +
+offline outbox. Still ahead (later slices / features):
 
 - Remote provider configuration (manual dashboard steps, see Auth above)
 - The handle rename UI — `claim_username` supports it (30-day limit), no
   client calls it yet
-- `decks` / `deck_versions` tables (the `DeckSnapshot` type) for deck import
-- First Edge Function (deck import is the natural first one)
+- Deck editing (`add_deck_version`), soft delete, and attaching deck versions
+  to matches
+- The card catalog (`cards`), once the Riot API key exists
+- First Edge Function (none needed so far — text import parses on-device)
 
 Build incrementally. Verify each step before moving on.

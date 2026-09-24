@@ -22,6 +22,7 @@ describe _how_ the project works; `SPEC.md` describes _what_ is being built.
 - **Mobile:** Expo SDK 54, Expo Router, NativeWind v4, React 19. Animations
   via React Native Reanimated 4 (see `apps/mobile/CLAUDE.md`).
 - **Shared:** `@riftlog/core` package — pure TypeScript, no platform code.
+  Tested with Vitest: `pnpm test` from the root (see `packages/core/CLAUDE.md`).
 - **Backend:** Supabase (account auth + Postgres; Edge Functions not yet
   used). Postgres is the **single source of truth** for match data. See
   "Persistence architecture" below.
@@ -136,7 +137,7 @@ Don't invent terminology that doesn't exist in Riftbound.
 
 ## What's intentionally not built yet
 
-- Profile editing — the `@handle` rename UI, profile stats, owned decks. The
+- Profile editing — the `@handle` rename UI, profile stats. The
   `profiles` table, seeding trigger, onboarding (claim handle + display name),
   and a **read-only** profile screen are built; the rename RPC exists but no
   client UI calls it yet. Profile pictures are ruled out, not deferred.
@@ -144,10 +145,13 @@ Don't invent terminology that doesn't exist in Riftbound.
   alone; Apple "Hide My Email" relay addresses can't match and may produce a
   second account (accepted, see `SPEC.md`).
 - Onboarding beyond the required handle step — the optional deck-import step
-  waits for deck imports.
+  isn't built, even though text import now exists; it goes *after*
+  `onboarded_at` is set so it can never block the gate.
 - Deck selection and track-turns in pre-match setup — the setup sheet itself
   is built (Bo1/Bo3, player names, timed toggle + round length)
-- Deck imports (Piltover Archive parser first, then Riftmana)
+- Deck imports beyond plain text — Piltover Archive deck-code decoding, then
+  Riftmana. Plain-text import, the sectioned deck view, and a bare "My decks"
+  list on Profile are built; decks aren't attached to matches yet.
 - Match history view — a minimal read-only list is wired to Postgres; the
   designed history UI / detail view is still to come
 - v2 QR co-recording feature (data model has placeholder fields)

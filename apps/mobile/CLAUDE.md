@@ -13,10 +13,12 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
   - `(tabs)/_layout.tsx` — tab navigator (History, Home, Profile)
   - `(tabs)/index.tsx` — Home; also hosts the whole match flow by `phase`
   - `(tabs)/history.tsx` — match history (account-gated)
-  - `(tabs)/profile.tsx` — read-only profile header + sign out (account-gated)
+  - `(tabs)/profile.tsx` — profile header, sign out, "My decks" (account-gated)
   - `login.tsx` / `verify-otp.tsx` — modal auth routes
   - `onboarding.tsx` — first-login handle + display-name step (guarded)
-- `components/` — reusable UI components
+  - `decks/import.tsx` — paste-a-decklist import (modal)
+  - `decks/[id].tsx` — one saved deck, read-only
+- `components/` — reusable UI components; deck UI lives in `components/deck/`
 - `contexts/` — React context providers (`authContext`, `profileContext`,
   `matchContext`)
 - `hooks/` — shared hooks that aren't components (`useScreenIntro`)
@@ -82,6 +84,18 @@ How a point was taken, on the play board. A separate family from win/loss/draw
 on purpose — those describe a *result*, these describe an *action*, and mixing
 them would make either impossible to restyle alone.
 
+**Domains** — `domain-{fury,calm,mind,body,chaos,order}` (base) and
+`domain-*-tint` (dark chip fill), for deck views: domain chips and the rune
+proportion bar. An identity family, separate from results and scoring actions.
+
+- fury `#E5484D` / `#3A1A1D` · calm `#3FB27F` / `#15332A` · mind `#4C8DEB` / `#172A45`
+- body `#E8883A` / `#3A2716` · chaos `#9D6CE6` / `#2A1D42` · order `#E6C35C` / `#3A3219`
+
+NativeWind only compiles class names that appear literally in source, so
+per-domain classes come from the `DOMAIN_CLASSES` map in
+`components/deck/domain.tsx` — never build `bg-domain-${d}` at runtime. Chips
+always show the domain's name, so color is never the only signal.
+
 **"Active" is always the accent, never a result color.** The game in progress
 (the board divider's pip) and a paused clock's control both use `accent` plus
 its glow — the same periwinkle the Start-match CTA and the board's END pill
@@ -116,6 +130,13 @@ onboarding, and later match mode and friend lists: a `user` silhouette in a
 `bg-surface` circle, sized by a `size` prop. There are **no profile pictures**
 anywhere (none stored, none read from the identity provider), so it has no
 image prop on purpose. Don't add one.
+
+**One place for card art.** Every card on every deck surface renders through
+`components/deck/cardRow.tsx` → `components/deck/cardArt.tsx`, and
+`cardArt.tsx`'s `resolveArt(card)` is the single spot art is looked up (by
+`card.code` when present, else by name — text imports have no code). Today it
+resolves nothing: rows stay text-only and identity cards show a card-shaped
+placeholder. Don't render card images anywhere else.
 
 **Colorblind-safe rule (non-negotiable):** result color is NEVER the only
 signal. Every win/loss/draw indicator pairs the color with (a) a `W`/`L`/`D`
@@ -346,6 +367,15 @@ To verify alignment with the SDK after installs:
 
 pnpm --filter @riftlog/mobile exec expo install --check
 
+**A native module means a new dev client.** After adding one (most recently
+`expo-clipboard`), rebuild: `cd ios && RCT_USE_PREBUILT_RNCORE=0 pod install`
+(see the iOS build section), then build for the simulator — XcodeBuildMCP's
+`build_run_sim`, or Xcode. `expo run:ios --device "<simulator name>"`
+misidentified the simulator as a physical device and failed on code signing.
+**Restart Metro with `--clear` too**: a Metro started before the install
+can't resolve the new package ("Unable to resolve module") even though it's
+in `node_modules`. Physical devices need a new EAS build.
+
 ## Development
 
 - Run on simulator: `pnpm mobile start` then press `i`
@@ -451,6 +481,15 @@ locally** — keep the footprint to these two items.
 
 **Read path.** History reads come straight from Postgres on demand
 (`fetchMatchHistory()`), scoped to the caller by RLS — never mirrored locally.
+
+**Decks** (`lib/decks.ts`) follow the same rule: `fetchMyDecks()` /
+`fetchDeck(id)` read on demand (the deck plus its current version's list,
+narrowed with core's `isDeckList`), never cached on-device. The only write is
+`createDeck()` → the `create_deck` RPC. Parsing is local and pure
+(`parseDeckText` in `@riftlog/core`); the import screen shows each diagnostic
+inside its section and blocks saving only on errors, never on count warnings.
+Pasted deck codes are detected (`looksLikeDeckCode`) and get a pointer to the
+text export — decoding isn't built.
 
 **History rows** (`lib/historyView.ts` → `components/historyRow.tsx`). The
 view-model is the single place row display is decided; keep the components dumb.
@@ -622,7 +661,9 @@ is explicitly started:
 
 - Deck selection and the track-turns control in pre-match setup (format,
   player names, and timed mode are built; the rest is deferred)
-- Deck import/parsing
+- Deck **code** decoding (detected only), Riftmana import, deck editing /
+  versions, deck delete (must be a soft delete), and attaching decks to
+  matches. Text import, the deck view, and "My decks" are built.
 - The designed history UI / detail view (only a minimal read-only list exists)
 - Profile **editing** — the handle rename UI and stats. `claim_username`
   already enforces the rules (30-day limit); nothing calls it from the client

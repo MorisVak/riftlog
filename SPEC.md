@@ -50,8 +50,10 @@ glossary). The ones that matter for the product:
   deck is later edited or deleted.
 
 A Riftbound deck is structured as: a chosen **Champion**, a **Legend**, a
-**40-card main deck**, **12 Runes**, **3 Battlefields**, and an **8-card
-sideboard**.
+**40-card main deck** (the chosen champion counts toward it), **12 Runes**,
+**3 Battlefields**, and a **sideboard** (SPEC originally said 8 cards;
+Piltover Archive currently shows decks with 10, so Riftlog shows the sideboard
+as a plain count and never checks its size).
 
 ## Data model
 
@@ -67,10 +69,14 @@ writing the logic that drives them. Things to know:
    get set. This is the single most important behavior to get right, because
    the entire win/loss/draw result system depends on it.
 
-2. **`DeckSnapshot` is currently generic** (`cards[]`, optional `legend`,
-   optional `sideboard`). When full decklists ship (Feature 6), it needs to
-   model the Riftbound sections explicitly — champion, legend, main, runes,
-   battlefields, sideboard — rather than a flat card list.
+2. **Decks are modelled by section.** A `DeckList` holds `legend`,
+   `champion`, `main`, `battlefields`, `runes`, `sideboard` (and
+   `additionalLegends`, not in the game yet and hidden while empty) as
+   `CardRef { name, code, count }`. `main` **excludes the chosen-champion
+   copy**, matching the text export: 39 + the champion = 40. `code` is null for
+   text imports; later it holds the full printing code (e.g. `SFD-149a`).
+   `DeckSnapshot` carries a `DeckList` plus the `deckId` / `versionId` it was
+   taken from, so a match can pin the exact immutable version played.
 
 3. **Timed mode is in the data model** — one field, `Match.timeLimitSeconds`
    (`null` = untimed), mirrored by `matches.time_limit_seconds`. One clock
@@ -227,32 +233,68 @@ connection returns.
 
 ## Feature 4 — Deck import
 
-**Status:** planned. `DeckSnapshot` type exists; no parsers, no import UI.
+**Status:** plain-text import built (paste → live preview → save), plus a
+deck detail view and a bare "My decks" list on Profile. Piltover Archive deck
+**codes** are recognised but not decoded ("coming soon"). Riftmana, manual
+entry, and attaching decks to matches are not built.
 
 **What it is.** Players import a deck into Riftlog so they can attach it to
 matches and review it later. Import sources, in priority order: **Piltover
 Archive**, then **Riftmana**, then **manual** entry. Imported decks are stored
-as decks the player owns; attaching one to a match captures an immutable
-snapshot at that moment.
+as decks the player owns; attaching one to a match will pin an immutable
+version of it.
 
-**Entry point:** the **Your deck** carousel on the pre-match setup sheet
-(Feature 1), where the player picks which owned deck they're running for the
-match before starting it.
+**Plain-text import (built).** The player pastes Piltover Archive's
+*Export → Text* output (or taps "Paste from clipboard"). The parser is
+forgiving: headers in any case, with or without a colon (`MainDeck` /
+`Main Deck` / `Main`, `Sideboard` / `Side Deck`, `Legend` / `Legends`, …),
+`3 Name` or `3x Name`, blank lines and stray whitespace; duplicate lines in a
+section merge. The preview shows every section with its total and each problem
+next to the line it came from:
+
+- **Errors** (a line that couldn't be read, an unknown section, a card before
+  any header) block saving, so nothing pasted silently disappears.
+- **Warnings** (wrong main / rune / battlefield count, a missing legend or
+  champion) never block. The sideboard size is never checked.
+
+The deck name defaults to the legend's champion ("Kennen") and is editable.
+
+**Deck codes (not built).** The import screen shows a disabled "Deck code —
+Coming soon" option. A pasted code gets a friendly note pointing to
+*Export → Text* instead of parse errors.
+
+**Deck view (built).** Laid out like Piltover Archive's: the legend and chosen
+champion side by side as the deck's identity with its domains (derived from
+rune names, e.g. "Chaos Rune" → Chaos; hidden if the names don't match), then
+runes (split + a proportion bar in domain colors, x/12), battlefields (x/3),
+the main deck (x/40, chosen champion first and tagged), and the sideboard
+(plain count). Text only until card art exists (Feature 6).
+
+**Storage.** A deck is a named thing the player owns; its list lives in
+**immutable versions**. Saving creates the deck and its first version
+together. Only the name can be edited directly; a list edit will add a
+version (Feature 5). There is no delete yet — when there is, it must be a
+*soft* delete, because match history will pin versions.
+
+**Entry points:** "My decks" on Profile today. Later, the **Your deck**
+carousel on the pre-match setup sheet (Feature 1), where the player picks the
+deck they're running before a match.
 
 **Requirements:**
 
-- Parse a deck from a source URL into the structured Riftbound sections.
+- Parse a deck into the structured Riftbound sections.
 - Respect third-party site rate limits; don't hammer Piltover Archive /
   Riftmana.
-- Parsers belong in `@riftlog/core` (`parsers/piltover.ts`, etc.) as pure
-  functions — no platform or network code in core; the app does the fetching
-  and hands raw input to the parser.
+- Parsers belong in `@riftlog/core` (`src/decks/`) as pure functions — no
+  platform or network code in core; the app does any fetching and hands raw
+  input to the parser.
 
 ---
 
 ## Feature 5 — Deck versioning & change snapshots
 
-**Status:** planned. Depends on Features 3 and 4.
+**Status:** planned. The storage is ready: deck lists already live in
+immutable versions, with the deck pointing at its current one.
 
 **What it is.** When a player edits a deck they've already used and plays a new
 game with the updated list, Riftlog records a new version. The history then
@@ -268,21 +310,22 @@ diff. The diff logic (`diffDecks`) is a pure function in `@riftlog/core`.
 
 ## Feature 6 — Decklists & card art
 
-**Status:** deferred — blocked on a Riot API key (not yet obtained).
+**Status:** sectioned decklists built (text only, Feature 4); card art
+deferred — blocked on a Riot API key (not yet obtained).
 
 **What it is.** Viewing a decklist shows the actual card arts, broken into the
 standard Riftbound sections: chosen Champion, Legend, 40-card main deck,
-12 Runes, 3 Battlefields, 8-card sideboard.
+12 Runes, 3 Battlefields, sideboard.
 
 **Dependencies & notes:**
 
 - Requires a production API key from developer.riotgames.com for card data /
   imagery.
-- `DeckSnapshot` needs extending to model the sections explicitly (see Data
-  model note 2).
-- Until the key exists, decklists can render structurally (names, quantities,
-  sections) without art — art is a later enhancement, not a blocker for the
-  rest of deck features.
+- Sections are modelled (Data model note 2) and render structurally today.
+- **Adding art must not migrate deck data.** A future card catalog keyed by
+  printing code supplies art; lists that have a code use it, text imports
+  (no code) match by card name. In the app, every card renders through one
+  component, so art arrives in one place.
 - Any use of Riftbound imagery carries the fan-made disclaimer (see Riot
   policy in `CLAUDE.md`).
 
@@ -325,7 +368,9 @@ identity provider.
 **Built:** the `profiles` table (owner-only access; handle changes via RPC
 only), the seeding trigger, onboarding (Feature 11), and a read-only profile
 screen (avatar, display name, `@handle`, sign out). **Not built:** the handle
-rename UI (the server side already supports it), profile stats, owned decks.
+rename UI (the server side already supports it), profile stats. A bare
+"My decks" list sits under the header (Feature 4); its final placement is
+still to be decided.
 
 ---
 
@@ -486,8 +531,9 @@ matching the incremental philosophy in `CLAUDE.md`.
 6. **Profile identity + onboarding** — claimed handles, reserved names, rename
    rate limit, first-login onboarding, default avatar. (Features 7 + 11.)
    _(Done.)_ Next: handle rename UI, stats; owned decks live here.
-7. **Deck import** — Piltover Archive parser first, attach decks to matches.
-   (Feature 4.)
+7. **Deck import** — plain-text import, sectioned deck view, "My decks".
+   (Feature 4.) _(Text import done.)_ Next: Piltover deck-code decoding,
+   attaching decks to matches.
 8. **Deck versioning & diffs** — version on edit, show change snapshots.
    (Feature 5.)
 9. **Card art decklists** — once the Riot API key lands. (Feature 6.)
