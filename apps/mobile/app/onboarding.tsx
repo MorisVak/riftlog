@@ -50,6 +50,21 @@ import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 type HandleStatus = 'empty' | 'checking' | 'error' | HandleAvailability;
 
+/**
+ * The Continue button's glow, as a style object rather than the
+ * `shadow-accent-btn` class. Toggling that class at render time (the button
+ * enables as the form becomes valid) threw "Couldn't find a navigation
+ * context" here — the NativeWind + expo-router issue documented in
+ * apps/mobile/CLAUDE.md (expo/expo#38423). Values mirror the `accent-btn`
+ * boxShadow token in tailwind.config.js.
+ */
+const CTA_GLOW = {
+  shadowColor: '#8B93D9', // accent
+  shadowOffset: { width: 0, height: 3 },
+  shadowOpacity: 0.28,
+  shadowRadius: 10,
+} as const;
+
 const CHECK_DEBOUNCE_MS = 300;
 /** Variant chips offered when a handle is taken. */
 const MAX_VARIANTS = 3;
@@ -351,10 +366,9 @@ const Onboarding = () => {
               accessibilityState={{ disabled: !canContinue, busy: submitting }}
               disabled={!canContinue}
               onPress={() => void onContinue()}
+              style={canContinue ? CTA_GLOW : undefined}
               className={`items-center rounded-full px-5 py-4 ${
-                canContinue
-                  ? 'bg-accent shadow-accent-btn active:bg-accent-strong'
-                  : 'bg-surface'
+                canContinue ? 'bg-accent active:bg-accent-strong' : 'bg-surface'
               }`}
             >
               <Text
