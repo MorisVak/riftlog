@@ -7,7 +7,35 @@
 
 export const RIFTLOG_CORE_VERSION = '0.0.0';
 
-export type { DeckSnapshot } from './types/deck';
+export type {
+  CardRef,
+  DeckList,
+  DeckImportSource,
+  DeckSnapshot,
+} from './types/deck';
+
+export {
+  parseDeckText,
+  type DeckDiagnostic,
+  type DeckDiagnosticCode,
+  type ParsedDeck,
+} from './decks/parseText';
+export { formatDeckText } from './decks/formatText';
+export { looksLikeDeckCode } from './decks/deckCode';
+export {
+  DECK_TARGETS,
+  emptyDeckList,
+  sectionTotals,
+  type DeckSection,
+  type SectionTotals,
+} from './decks/sections';
+export {
+  DOMAINS,
+  deckDomains,
+  domainFromRuneName,
+  type Domain,
+  type DomainCount,
+} from './decks/domains';
 export type { PlayerId, Player, Game, Match } from './types/match';
 export type { Profile } from './types/profile';
 
