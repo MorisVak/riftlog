@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Text,
   TouchableOpacity,
   View,
@@ -22,7 +21,7 @@ const INK_SECONDARY = '#868FB0';
 
 /**
  * Profile tab — read-only for now. Handles are auto-assigned at signup (see the
- * profiles trigger), so there is nothing to claim here; renaming, avatars, and
+ * profiles trigger), so there is nothing to claim here; renaming and
  * decks are the next slice. Sign out lives here because there's nowhere else
  * for it yet.
  */
@@ -95,17 +94,9 @@ const Profile = () => {
         style={cardStyle}
         className="flex-row items-center gap-4 rounded-2xl border border-border bg-surface p-5"
       >
-        {profile?.avatarUrl ? (
-          <Image
-            source={{ uri: profile.avatarUrl }}
-            className="h-16 w-16 rounded-full"
-            accessibilityIgnoresInvertColors
-          />
-        ) : (
-          <View className="h-16 w-16 items-center justify-center rounded-full bg-accent/15">
-            <Feather name="user" size={26} color={ACCENT} />
-          </View>
-        )}
+        <View className="h-16 w-16 items-center justify-center rounded-full bg-accent/15">
+          <Feather name="user" size={26} color={ACCENT} />
+        </View>
 
         <View className="flex-1">
           {!loaded ? (

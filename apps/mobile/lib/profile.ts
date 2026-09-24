@@ -13,7 +13,9 @@ import { supabase } from './supabase';
 export async function fetchMyProfile(): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select(
+      'id, username, display_name, onboarded_at, username_changed_at, created_at, updated_at',
+    )
     .maybeSingle();
 
   if (error) throw error;
@@ -23,7 +25,8 @@ export async function fetchMyProfile(): Promise<Profile | null> {
     id: data.id,
     username: data.username,
     displayName: data.display_name,
-    avatarUrl: data.avatar_url,
+    onboardedAt: data.onboarded_at,
+    usernameChangedAt: data.username_changed_at,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
