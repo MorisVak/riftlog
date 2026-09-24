@@ -35,12 +35,16 @@ never mirrored locally** — it's read from Postgres on demand. Local footprint
 stays bounded and self-clearing.
 
 Build status: schema + RLS + generated types (`supabase/`), the write/read path,
-the offline outbox, and account auth + `profiles` are all built.
+the offline outbox, account auth + `profiles`, and first-login onboarding
+(handle claim) are all built.
 
 - **Domain → tables:** `matches` = the Bo1/Bo3 series, `games` = the games
   within it, `profiles` = one row per account. The DB **never** re-derives
   Bo3 / draw logic — `@riftlog/core` / the mobile `matchContext` settle every
   match, and the DB persists only the settled outcome.
+- **Identity:** `profiles.id` (= auth user id) is the only identity reference
+  other records may hold. Never store handle text elsewhere — handles are
+  renameable; join for the current one. No profile pictures of any kind.
 - **Auth: a real account, or nothing is saved.** Sign-in is Discord / Google /
   Apple / email OTP; rows are owned via `auth.uid()` and enforced by RLS.
   **Discord and Google share one browser-redirect handler** parameterised by
@@ -132,13 +136,15 @@ Don't invent terminology that doesn't exist in Riftbound.
 
 ## What's intentionally not built yet
 
-- Profile editing — renaming the `@handle`, avatar upload, profile stats, owned
-  decks. The `profiles` table, its seeding trigger, and a **read-only** profile
-  screen are built; nothing writes to that table from the client yet.
+- Profile editing — the `@handle` rename UI, profile stats, owned decks. The
+  `profiles` table, seeding trigger, onboarding (claim handle + display name),
+  and a **read-only** profile screen are built; the rename RPC exists but no
+  client UI calls it yet. Profile pictures are ruled out, not deferred.
 - Manual account-linking UI. Supabase's automatic email linking is on and left
   alone; Apple "Hide My Email" relay addresses can't match and may produce a
   second account (accepted, see `SPEC.md`).
-- Onboarding flow — deliberately deferred until the app is more polished.
+- Onboarding beyond the required handle step — the optional deck-import step
+  waits for deck imports.
 - Deck selection and track-turns in pre-match setup — the setup sheet itself
   is built (Bo1/Bo3, player names, timed toggle + round length)
 - Deck imports (Piltover Archive parser first, then Riftmana)

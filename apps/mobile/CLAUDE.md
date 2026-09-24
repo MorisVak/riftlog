@@ -8,14 +8,17 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
 ## Project structure
 
 - `app/` — Expo Router routes. Each file is a screen.
-  - `_layout.tsx` — root layout: `AuthProvider` > `MatchProvider` > `Stack`
+  - `_layout.tsx` — root layout: `AuthProvider` > `ProfileProvider` >
+    `MatchProvider` > `Stack` (with the onboarding guard, see below)
   - `(tabs)/_layout.tsx` — tab navigator (History, Home, Profile)
   - `(tabs)/index.tsx` — Home; also hosts the whole match flow by `phase`
   - `(tabs)/history.tsx` — match history (account-gated)
-  - `(tabs)/profile.tsx` — read-only profile + sign out (account-gated)
+  - `(tabs)/profile.tsx` — read-only profile header + sign out (account-gated)
   - `login.tsx` / `verify-otp.tsx` — modal auth routes
+  - `onboarding.tsx` — first-login handle + display-name step (guarded)
 - `components/` — reusable UI components
-- `contexts/` — React context providers (`authContext`, `matchContext`)
+- `contexts/` — React context providers (`authContext`, `profileContext`,
+  `matchContext`)
 - `hooks/` — shared hooks that aren't components (`useScreenIntro`)
 - `assets/` — icons, splash images
 
@@ -91,9 +94,26 @@ stack (expo-router + NativeWind) that has been implicated in spurious
 "Couldn't find a navigation context" errors — the board clock's capsule and the
 paused-clock control both threw it until their shadows moved to style objects
 (`CLOCK_SHADOW` / `ACCENT_GLOW` in `playField.tsx`, values mirroring the
-tokens). The `shadow-accent-*` classes elsewhere are fine as they are; if a new
-one starts throwing, this is the first thing to try. See
+tokens). The onboarding Continue button hit it too — its `shadow-accent-btn`
+was toggled on as the form became valid — and now uses `CTA_GLOW`. The
+`shadow-accent-*` classes elsewhere are fine as they are; if a new one starts
+throwing, this is the first thing to try. Note the stack trace can point at an
+unrelated hook (it blamed `useSafeAreaInsets`); the Metro log's code frame
+names the real element. See
 https://github.com/expo/expo/issues/38423.
+
+**Icons take token classes, not hex.** `components/icon.tsx` is Feather wrapped
+with NativeWind's `cssInterop`, so `<Icon name="user" className="text-ink-tertiary" />`
+routes the class's color into Feather's `color` prop. Use it for new icons
+instead of mirroring a token as a hex constant. Likewise `TextInput` takes
+`placeholderClassName="text-ink-tertiary"` instead of `placeholderTextColor`.
+(Older screens still use the hex-constant pattern; migrate them opportunistically.)
+
+**One avatar.** `components/avatar.tsx` is the only avatar in the app — profile,
+onboarding, and later match mode and friend lists: a `user` silhouette in a
+`bg-surface` circle, sized by a `size` prop. There are **no profile pictures**
+anywhere (none stored, none read from the identity provider), so it has no
+image prop on purpose. Don't add one.
 
 **Colorblind-safe rule (non-negotiable):** result color is NEVER the only
 signal. Every win/loss/draw indicator pairs the color with (a) a `W`/`L`/`D`
@@ -489,6 +509,41 @@ Two traps live here, both already handled — don't undo them:
    and flushed while account B is signed in is written to **B**. The queue is
    only ever valid for the session that filled it.
 
+### Profile & onboarding
+
+`contexts/profileContext.tsx` holds the signed-in user's `profiles` row, read
+from Postgres per user (keyed on user id, so token refreshes don't refetch) and
+**never cached on-device**. It exposes `profile`, `profileStatus`
+(`idle | loading | ready | error`), derived `needsOnboarding`, and `refresh()`.
+
+**The onboarding gate is a `Stack.Protected` guard in `app/_layout.tsx`, not a
+redirect effect.** While `needsOnboarding` holds (`ready` and `onboarded_at`
+null, or no row at all), the tabs/login routes don't exist and `onboarding` is
+the only screen. Rules that keep it correct:
+
+- **Resumable by construction.** Nothing on the device records "mid-onboarding";
+  the gate is re-derived from `onboarded_at` on every launch. Don't add a local
+  flag for it.
+- **An `error` read does not gate.** The live tracker must work offline, so an
+  offline launch opens the app normally and retries on reconnect / foreground.
+- **While the first read is `loading`,** a blank `bg-background` overlay covers
+  the app (overlay, not swapping out `<Stack>`, so the navigator stays mounted)
+  — otherwise the tabs flash and are then yanked away.
+- **Continue is one RPC.** `completeOnboarding()` (`lib/profile.ts`) calls
+  `complete_onboarding`, which claims the handle, sets the name, and stamps
+  `onboarded_at` atomically; then `refresh()` flips the guard. It's idempotent,
+  so a failed refresh is fixed by pressing Continue again.
+- **Handles can't be written with a plain update** (column grants), only via
+  the RPCs — see `../../supabase/CLAUDE.md`. `display_name` can.
+- The handle field checks format locally (`HANDLE_PATTERN` in `@riftlog/core`
+  mirrors the DB CHECK — keep them in lockstep), then asks
+  `is_username_available` after a 300ms debounce, guarding against stale
+  responses. Suggestions come from `handleSuggestionSource` — provider names
+  only, **never the email**.
+- There is **no deck step**: deck import doesn't exist yet. When it does, an
+  optional, skippable step goes *after* `onboarded_at` is set, so it can never
+  hold the gate.
+
 ### Gating
 
 `components/authGate.tsx` wraps History and Profile. Signed out it renders the
@@ -567,9 +622,12 @@ is explicitly started:
   player names, and timed mode are built; the rest is deferred)
 - Deck import/parsing
 - The designed history UI / detail view (only a minimal read-only list exists)
-- Profile **editing** — renaming the handle, avatar upload, stats. The profile
-  screen is read-only by design; the data model and seeding are done.
-- An onboarding flow, and any manual account-linking UI
+- Profile **editing** — the handle rename UI and stats. `claim_username`
+  already enforces the rules (30-day limit); nothing calls it from the client
+  yet. The profile screen is read-only by design.
+- **Profile pictures of any kind** — not deferred, ruled out. One default
+  avatar for everyone.
+- Any manual account-linking UI
 
 Match **history is never mirrored locally** — read from Postgres on demand — so
 don't build a growing on-device history store. Local persistence is bounded to:

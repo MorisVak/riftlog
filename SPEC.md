@@ -290,31 +290,42 @@ standard Riftbound sections: chosen Champion, Legend, 40-card main deck,
 
 ## Feature 7 — Profile
 
-**Status:** data model + seeding built (Feature 11); the profile screen is
-read-only. Editing, decks, and stats are the next slice.
+**Status:** data model, first-login onboarding (handle claim), and a read-only
+profile screen are built. Handle rename UI, profile stats, and owned decks are
+the next slices.
 
-**What it is.** A profile screen with a handle (and later a profile picture).
+**What it is.** A profile screen with the player's display name and `@handle`.
 From here the player imports decks and reviews their decklists. The profile is
 where a player's owned decks live, distinct from the per-match snapshots.
 
+**Identity.** `profiles.id` (= the auth user id) is immutable and is the
+**only** thing other records may reference for identity — future match
+opponents, friends, teams. Handle text is never copied onto another record; the
+current handle is rendered via a join, so a rename can't leave stale copies.
+
 **Two names, not one — they do different jobs:**
 
-- **`username`** — the unique `@handle` in *Riftlog's* namespace. Lowercase,
-  case-insensitively unique, and **auto-assigned at signup**: slugified from
-  whatever name the identity provider gave us, with a numeric or short random
-  suffix on collision (`maurice` → `maurice1` → `player_a4f2c1`). This is what
-  another player would eventually use to find you.
-- **`display_name`** — cosmetic and **not** unique, copied from the provider.
-  Two players called "Maurice" is fine; two `@maurice` is not.
+- **`username`** — the unique `@handle` in *Riftlog's* namespace. Lowercase
+  `[a-z0-9_]{3,20}`, unique, **claimed by the user at onboarding**. Signup
+  seeds a neutral `player_<hex>` placeholder that is never derived from a name
+  or email (an email local-part is often a real name the user didn't choose to
+  publish); provider names are only offered as *suggestions* at onboarding.
+  Some words are reserved (`admin`, `riftlog`, `riot`, …). Renameable **once
+  per 30 days**; the onboarding claim doesn't count toward that limit. The
+  handle can only change through a server-side check (format, reserved,
+  availability, rate limit) — never a plain write.
+- **`display_name`** — cosmetic and **not** unique, 1–32 characters. Seeded
+  from the provider name; the user confirms or edits it at onboarding. Two
+  players called "Maurice" is fine; two `@maurice` is not.
 
-**No username-claim step at signup.** Mandatory login already costs a step;
-making people negotiate with a uniqueness check before they can use the app
-costs another, at the worst possible moment. Handles are assigned now and
-renameable later.
+**No profile pictures.** Every account renders the same generic default avatar
+(a silhouette in a circle). No avatar is stored, uploaded, or read from the
+identity provider.
 
-**Built:** the `profiles` table (owner-only RLS), the seeding trigger, and a
-read-only profile screen showing avatar / display name / `@handle` / sign out.
-**Not built:** renaming the handle, avatar upload, profile stats, owned decks.
+**Built:** the `profiles` table (owner-only access; handle changes via RPC
+only), the seeding trigger, onboarding (Feature 11), and a read-only profile
+screen (avatar, display name, `@handle`, sign out). **Not built:** the handle
+rename UI (the server side already supports it), profile stats, owned decks.
 
 ---
 
@@ -430,10 +441,27 @@ Apple also returns the user's name *only* on the first authorization and never
 inside the identity token, so we back it up to user metadata on that one pass.
 The profile row is already seeded by then, so Apple users typically get a
 `display_name` from the fallback chain (email local part → `'Player'`). That is
-accepted, not a bug — the handle is renameable.
+accepted, not a bug — they confirm or change it at onboarding.
 
-**No profile step after login.** The handle is auto-assigned (Feature 7); the
-user lands back where they were with the gate lifted.
+**Onboarding (first login).** A signed-in account whose onboarding isn't
+complete sees one required screen before anything else: a preview of the
+default avatar, a **display name** (prefilled from the seeded value), and an
+**@handle** field. The handle is prefilled from the provider name (Discord
+username, Google/Apple name) when that slug is free; if it's taken, it shows as
+unavailable with two or three free variants to tap. Email users, and Apple
+users who didn't share a name, start with an empty field and a hint.
+Availability is checked live as they type (checking / available / taken /
+reserved / invalid, with the rule). "Continue" claims the handle, saves the
+name, and marks onboarding complete in one step.
+
+This replaces the earlier "no profile step after login" decision: a handle
+other players will use to find you is worth choosing once, on purpose. It is
+**resumable** — nothing about it is stored on the device, so a user who kills
+the app mid-flow lands back on it — and onboarded users never see it again.
+Sign out is available from it, so nobody is trapped. It does **not** gate the
+offline tracker: if the profile can't be read (offline launch), the app opens
+normally and onboarding applies once the connection returns. An optional deck
+import step will follow the required one once deck import (Feature 4) exists.
 
 ---
 
@@ -454,10 +482,10 @@ matching the incremental philosophy in `CLAUDE.md`.
 4. **Match history** — list + detail reading from the cloud. (Feature 2.)
 5. **Accounts + guest mode** — real sign-in (Discord / Google / Apple / email
    OTP) replacing anonymous auth, guest-mode Home, gated tabs, and the
-   `profiles` table with auto-assigned handles. (Feature 11 + Feature 7's data
-   model.) _(Done.)_
-6. **Profile screen** — rename the handle, avatar, stats; owned decks live
-   here. (Feature 7.)
+   `profiles` table. (Feature 11 + Feature 7's data model.) _(Done.)_
+6. **Profile identity + onboarding** — claimed handles, reserved names, rename
+   rate limit, first-login onboarding, default avatar. (Features 7 + 11.)
+   _(Done.)_ Next: handle rename UI, stats; owned decks live here.
 7. **Deck import** — Piltover Archive parser first, attach decks to matches.
    (Feature 4.)
 8. **Deck versioning & diffs** — version on edit, show change snapshots.
