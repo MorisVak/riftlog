@@ -21,6 +21,7 @@ export {
   type ParsedDeck,
 } from './decks/parseText';
 export { formatDeckText } from './decks/formatText';
+export { isDeckList } from './decks/validate';
 export { looksLikeDeckCode } from './decks/deckCode';
 export {
   DECK_TARGETS,

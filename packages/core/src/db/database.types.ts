@@ -42,6 +42,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      deck_versions: {
+        Row: {
+          created_at: string
+          deck_id: string
+          id: string
+          list: Json
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          deck_id: string
+          id?: string
+          list: Json
+          owner_id: string
+        }
+        Update: {
+          created_at?: string
+          deck_id?: string
+          id?: string
+          list?: Json
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deck_versions_deck_id_owner_id_fkey"
+            columns: ["deck_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id", "owner_id"]
+          },
+        ]
+      }
+      decks: {
+        Row: {
+          created_at: string
+          current_version_id: string | null
+          id: string
+          import_source: string
+          name: string
+          owner_id: string
+          source_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_version_id?: string | null
+          id?: string
+          import_source: string
+          name: string
+          owner_id?: string
+          source_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_version_id?: string | null
+          id?: string
+          import_source?: string
+          name?: string
+          owner_id?: string
+          source_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decks_current_version_fkey"
+            columns: ["id", "current_version_id"]
+            isOneToOne: false
+            referencedRelation: "deck_versions"
+            referencedColumns: ["deck_id", "id"]
+          },
+        ]
+      }
       games: {
         Row: {
           created_at: string
@@ -180,10 +253,20 @@ export type Database = {
         Args: { p_display_name: string; p_username: string }
         Returns: string
       }
+      create_deck: {
+        Args: {
+          p_import_source: string
+          p_list: Json
+          p_name: string
+          p_source_code: string
+        }
+        Returns: string
+      }
       insert_seed_profile: {
         Args: { p_display_name: string; p_uid: string }
         Returns: undefined
       }
+      is_deck_list: { Args: { p_list: Json }; Returns: boolean }
       is_name_reserved: { Args: { p_name: string }; Returns: boolean }
       is_username_available: { Args: { p_username: string }; Returns: string }
       require_account: { Args: never; Returns: string }
