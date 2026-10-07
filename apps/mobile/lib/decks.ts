@@ -3,6 +3,7 @@ import {
   type Database,
   type DeckImportSource,
   type DeckList,
+  type DeckSnapshot,
 } from '@riftlog/core';
 import { supabase } from './supabase';
 
@@ -181,3 +182,17 @@ export async function deleteDecks(ids: string[]): Promise<void> {
   const { error } = await supabase.rpc('delete_decks', { p_deck_ids: ids });
   if (error) throw error;
 }
+
+/**
+ * A saved deck as the snapshot a match carries (`Player.deck`). It pins the
+ * deck's CURRENT version; that version id is what the match persists.
+ */
+export const toDeckSnapshot = (deck: Deck): DeckSnapshot => ({
+  deckId: deck.id,
+  versionId: deck.versionId,
+  name: deck.name,
+  source: deck.importSource,
+  sourceCode: deck.sourceCode,
+  list: deck.list,
+  importedAt: deck.createdAt,
+});

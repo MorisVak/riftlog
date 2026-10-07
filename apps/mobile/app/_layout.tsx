@@ -56,6 +56,7 @@ const RootStack = () => {
             options={{ headerShown: false, presentation: 'modal' }}
           />
           <Stack.Screen name="decks/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="matches/[id]" options={{ headerShown: false }} />
         </Stack.Protected>
         <Stack.Protected guard={needsOnboarding}>
           <Stack.Screen

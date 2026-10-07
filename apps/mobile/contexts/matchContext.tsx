@@ -1,6 +1,6 @@
 import React, { createContext, ReactNode, useContext, useState } from 'react';
 import { randomUUID } from 'expo-crypto';
-import type { Game, Match, Player, PlayerId } from '@riftlog/core';
+import type { DeckSnapshot, Game, Match, Player, PlayerId } from '@riftlog/core';
 
 /**
  * Defaults a match still falls back on. The pre-match setup sheet now supplies
@@ -24,6 +24,13 @@ export type MatchConfig = {
   bestOf: 1 | 3;
   playerNames: [string, string];
   timeLimitSeconds: number | null;
+  /**
+   * The deck you (p1) are playing, or null for "no deck". Optional in the
+   * setup sheet and only offered when signed in. Persisted as the match's
+   * `deck_version_id` — the exact immutable version, so later edits, renames,
+   * or deleting the deck never change what history says you played.
+   */
+  deck: DeckSnapshot | null;
 };
 
 /**
@@ -120,7 +127,12 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
     const newMatch: Match = {
       id: randomUUID(),
       bestOf: config.bestOf,
-      players: [makePlayer('p1', nameFor(0)), makePlayer('p2', nameFor(1))],
+      players: [
+        config.deck
+          ? { ...makePlayer('p1', nameFor(0)), deck: config.deck }
+          : makePlayer('p1', nameFor(0)),
+        makePlayer('p2', nameFor(1)),
+      ],
       games: [makeGame()],
       currentGameIndex: 0,
       winnerId: null,

@@ -240,8 +240,15 @@ Pre-match setup collects **format (Bo1/Bo3)**, **player names**, and the
 (`components/matchSetup.tsx`), passed to `startMatch` as a `MatchConfig`; blank
 names fall back to "You"/"Opponent". The two slots are **not interchangeable**:
 `p1` is always the device owner and `p2` the opponent (see the p1-perspective
-rule below). Still deferred (specced in `SPEC.md`, not built): deck selection
-and the track-turns control. See the match flow before extending it.
+rule below). Signed in, the sheet also offers **Your deck**
+(`components/deck/deckPicker.tsx`, optional, "No deck" first) → `MatchConfig.deck`
+→ `players[0].deck` (a `DeckSnapshot`). On save only its `versionId` is
+written (`matches.deck_version_id`); the deck is stripped from the `players`
+jsonb, since the immutable version already holds the list. History reads it
+back through `matches → deck_versions → decks` (current name, archived flag):
+the name on the row's meta line, a link in the expanded row, and a "View
+details" button to the placeholder `app/matches/[id].tsx`. Still deferred:
+the track-turns control. See the match flow before extending it.
 
 ### Timed mode
 
@@ -687,8 +694,9 @@ that file's "exactly two match keys" contract stays true.
 The user is building incrementally. Don't add the following until its slice
 is explicitly started:
 
-- Deck selection and the track-turns control in pre-match setup (format,
-  player names, and timed mode are built; the rest is deferred)
+- The track-turns control in pre-match setup (format, names, timed mode,
+  and deck are built)
+- The match detail screen (`app/matches/[id].tsx` is a placeholder)
 - Deck **code** decoding (detected only), Riftmana import, deck editing /
   versions, restoring deleted decks, and attaching decks to matches. Text
   import, the deck view, renaming, (soft) delete, and "My decks" are built.

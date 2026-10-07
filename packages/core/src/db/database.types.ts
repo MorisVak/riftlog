@@ -166,6 +166,7 @@ export type Database = {
         Row: {
           best_of: number
           created_at: string
+          deck_version_id: string | null
           ended_at: string
           guest_user_ids: string[]
           host_user_id: string | null
@@ -179,6 +180,7 @@ export type Database = {
         Insert: {
           best_of: number
           created_at?: string
+          deck_version_id?: string | null
           ended_at: string
           guest_user_ids?: string[]
           host_user_id?: string | null
@@ -192,6 +194,7 @@ export type Database = {
         Update: {
           best_of?: number
           created_at?: string
+          deck_version_id?: string | null
           ended_at?: string
           guest_user_ids?: string[]
           host_user_id?: string | null
@@ -202,7 +205,15 @@ export type Database = {
           user_id?: string
           winner_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "matches_deck_version_fkey"
+            columns: ["user_id", "deck_version_id"]
+            isOneToOne: false
+            referencedRelation: "deck_versions"
+            referencedColumns: ["owner_id", "id"]
+          },
+        ]
       }
       profiles: {
         Row: {

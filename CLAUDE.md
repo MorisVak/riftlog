@@ -147,8 +147,9 @@ Don't invent terminology that doesn't exist in Riftbound.
 - Onboarding beyond the required handle step — the optional deck-import step
   isn't built, even though text import now exists; it goes *after*
   `onboarded_at` is set so it can never block the gate.
-- Deck selection and track-turns in pre-match setup — the setup sheet itself
-  is built (Bo1/Bo3, player names, timed toggle + round length)
+- Track-turns in pre-match setup — the setup sheet itself is built (Bo1/Bo3,
+  player names, timed toggle + round length, optional deck)
+- The match detail screen — History links to a placeholder (`/matches/[id]`)
 - Deck imports beyond plain text — Piltover Archive deck-code decoding, then
   Riftmana. Plain-text import, the sectioned deck view, and a bare "My decks"
   list on Profile are built; decks aren't attached to matches yet.

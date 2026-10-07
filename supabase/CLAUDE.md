@@ -40,7 +40,8 @@ supabase/
 │   ├── 20260924151509_drop_profile_avatar.sql
 │   ├── 20260924155255_decks.sql
 │   ├── 20261007131426_deck_soft_delete.sql
-│   └── 20261007132243_delete_decks_bulk.sql
+│   ├── 20261007132243_delete_decks_bulk.sql
+│   └── 20261007153123_match_deck.sql
 └── config.toml       Supabase CLI config (linked, anon auth OFF)
 
 ## Schema
@@ -55,8 +56,18 @@ mirror the `@riftlog/core` domain terms (a **match** is the Bo1/Bo3 series, a
   `winner_id` (text `'p1'`/`'p2'`, null = draw), `players` (jsonb, mirrors the
   `Player[]` shape), `started_at`, `ended_at` (not null — a row only exists for a
   settled match), `time_limit_seconds` (integer, **null = untimed** — the
-  configured clock for the whole match; see below), `host_user_id` /
-  `guest_user_ids` (forward-compat, unused in v1), `created_at`.
+  configured clock for the whole match; see below), `deck_version_id`
+  (nullable — the exact deck version the owner/p1 played, see below),
+  `host_user_id` / `guest_user_ids` (forward-compat, unused in v1),
+  `created_at`.
+
+  **`deck_version_id` is ownership-checked by its key**: a composite FK
+  `(user_id, deck_version_id) → deck_versions (owner_id, id)`, so a match can
+  only reference a version its own user owns (null = no deck, MATCH SIMPLE).
+  It pins the *version*, never the deck, so renames, edits, and soft deletes
+  don't rewrite history. History embeds it as
+  `deck_versions!matches_deck_version_fkey(deck:decks!deck_versions_deck_id_owner_id_fkey(...))`.
+  A match-mode opponent's deck will get its own column.
 - **`games`** — `id` (uuid PK = client `Game.id`), `match_id`
   (FK → `matches.id` `on delete cascade`), `user_id` (**denormalized**,
   `default auth.uid()` — so RLS is a direct column check, no join), `game_index`,

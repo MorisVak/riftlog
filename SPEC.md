@@ -111,11 +111,14 @@ games and the match themselves.
 **Match lifecycle (the core behavior to implement):**
 
 1. **Pre-match setup.** Before a match starts, the player picks format
-   (Bo1 / Bo3) and player names. Later this also includes deck selection
-   (Feature 4). The player can also toggle **timed game** and choose a round
+   (Bo1 / Bo3) and player names, and — signed in — optionally the deck they're
+   playing (Feature 4), from a dropdown of their saved decks with "No deck"
+   first. The player can also toggle **timed game** and choose a round
    length; one clock then counts down for the whole match — it keeps running
    between games in a Bo3 (sideboarding is on the clock) and past zero into
-   overtime. Built: format, names, and the timed toggle + presets.
+   overtime. Built: format, names, deck, and the timed toggle + presets.
+   The match saves the exact deck *version* played, so renaming, editing, or
+   deleting the deck later never changes what history says you played.
 2. **During a game.** `incrementScore` / `decrementScore` / `setScore` adjust
    `Player.gameScore`. Scores can't go below 0; there is no upper bound and no
    auto-end at any value — reaching 8 (or any number) does nothing on its own.
@@ -163,7 +166,8 @@ symmetric players, so v1 renders **two name inputs** (Player 1 / Player 2),
 styled like the design's input. The remaining elements are designed and
 recorded here so they slot onto this same sheet when their features land:
 
-- **Your deck** carousel → deck selection entry point (Feature 4).
+- **Your deck** carousel → deck selection (Feature 4). Built as a dropdown
+  under the player's name rather than a carousel.
 - **Scan QR ("SOON")** → match-mode teaser (Feature 8). The disabled "SOON"
   affordance could ship earlier than the feature itself (see open questions).
 - **Track turns** toggle → turn tracking (Feature 10); not in the data model.
@@ -180,7 +184,10 @@ still unbuilt — the two are separate toggles, not alternatives.
 filter chips (All / Wins / Losses / BO3), rows that expand into per-game
 scores, and deleting — swipe a row left, or tap **Select** (or long-press a
 row) to pick several and delete them together. Deleting a match is permanent
-and removes its games. The designed list / detail view is still planned.
+and removes its games. A match played with a deck shows the deck's name on
+its row, and the expanded row links to the deck (a deck deleted since is
+named but not linked). "View details" opens a **placeholder** match detail
+screen; the designed list / detail view is still planned.
 
 **What it is.** A browsable list of completed matches, newest first. Tapping a
 match opens a detail view.

@@ -6,8 +6,22 @@ type GameInsert = Database['public']['Tables']['games']['Insert'];
 export type MatchRow = Database['public']['Tables']['matches']['Row'];
 export type GameRow = Database['public']['Tables']['games']['Row'];
 
+/** The deck a match was played with, as read back for History. */
+export type MatchDeckRef = {
+  /** The deck itself — the History link opens this. */
+  id: string;
+  /** Its CURRENT name (renames show up in old matches too). */
+  name: string;
+  /** Soft-deleted since: still named, no longer linkable. */
+  archivedAt: string | null;
+};
+
 /** A match row with its games embedded (newest match first; games by index). */
-export type MatchWithGames = MatchRow & { games: GameRow[] };
+export type MatchWithGames = MatchRow & {
+  games: GameRow[];
+  /** null when no deck was chosen (or the match predates deck selection). */
+  deck: MatchDeckRef | null;
+};
 
 /**
  * Persist a SETTLED match (and its games) directly to Postgres. The device has
@@ -30,8 +44,13 @@ export async function saveCompletedMatch(match: Match): Promise<void> {
     id: match.id,
     best_of: match.bestOf,
     winner_id: match.winnerId,
-    // jsonb columns: the Player/score shapes are plain JSON at runtime.
-    players: match.players as unknown as MatchInsert['players'],
+    // jsonb columns: the Player/score shapes are plain JSON at runtime. The
+    // chosen deck is NOT copied in here — it's referenced by version id below,
+    // and the version already holds the immutable list.
+    players: match.players.map(({ deck: _deck, ...player }) => player) as unknown as MatchInsert['players'],
+    // The exact deck version p1 played, or null for "no deck". The DB's
+    // composite FK only accepts the caller's own versions.
+    deck_version_id: match.players.find((p) => p.id === 'p1')?.deck?.versionId ?? null,
     started_at: match.startedAt,
     ended_at: match.endedAt,
     // Timed mode: only the configured limit is persisted — how long the match
@@ -66,15 +85,39 @@ export async function saveCompletedMatch(match: Match): Promise<void> {
  * breakdown. RLS scopes both tables to the caller's own rows, so no explicit
  * user filter is needed. Read on demand — history is never mirrored locally.
  */
+// matches → deck_versions → decks. Both hops name their FK: decks and
+// deck_versions are related both ways (a version's deck, a deck's current
+// version), so PostgREST needs the hint to pick one.
+const HISTORY_COLUMNS =
+  '*, games(*), ' +
+  'deck_version:deck_versions!matches_deck_version_fkey(' +
+  'deck:decks!deck_versions_deck_id_owner_id_fkey(id, name, archived_at))';
+
+type HistoryRow = MatchRow & {
+  games: GameRow[];
+  deck_version: {
+    deck: { id: string; name: string; archived_at: string | null } | null;
+  } | null;
+};
+
 export async function fetchMatchHistory(): Promise<MatchWithGames[]> {
   const { data, error } = await supabase
     .from('matches')
-    .select('*, games(*)')
+    .select(HISTORY_COLUMNS)
     .order('ended_at', { ascending: false })
-    .order('game_index', { referencedTable: 'games', ascending: true });
+    .order('game_index', { referencedTable: 'games', ascending: true })
+    .returns<HistoryRow[]>();
 
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map(({ deck_version, ...row }) => {
+    const deck = deck_version?.deck ?? null;
+    return {
+      ...row,
+      deck: deck
+        ? { id: deck.id, name: deck.name, archivedAt: deck.archived_at }
+        : null,
+    };
+  });
 }
 
 /**

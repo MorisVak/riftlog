@@ -37,6 +37,17 @@ export type HistoryRowVM = {
   games: HistoryGameVM[];
   /** Clock summary for a timed match; null when the match was untimed. */
   timer: HistoryTimerVM | null;
+  /** The deck you played; null when none was chosen. */
+  deck: HistoryDeckVM | null;
+};
+
+export type HistoryDeckVM = {
+  /** Opens the deck screen. */
+  id: string;
+  /** The deck's current name. */
+  name: string;
+  /** Deleted since (soft): keep showing the name, but don't link to it. */
+  deleted: boolean;
 };
 
 export type HistoryTimerVM = {
@@ -132,5 +143,8 @@ export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
     }),
     games,
     timer,
+    deck: m.deck
+      ? { id: m.deck.id, name: m.deck.name, deleted: m.deck.archivedAt !== null }
+      : null,
   };
 }
