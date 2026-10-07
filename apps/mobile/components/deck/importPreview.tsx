@@ -41,7 +41,7 @@ const ImportPreview = ({
     <View>
       {orphanIssues.length > 0 && (
         <View className="mt-4 rounded-2xl border border-loss/60 bg-surface px-4 py-3">
-          <Text className="mb-1 font-display text-base text-ink-primary">
+          <Text className="mb-1 font-display text-base text-ink-secondary">
             Not in a section
           </Text>
           <Issues issues={orphanIssues} sourceLines={sourceLines} />

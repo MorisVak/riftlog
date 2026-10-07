@@ -246,7 +246,7 @@ const Profile = () => {
               exiting={FadeOut.duration(150)}
               className="absolute inset-0 flex-row items-center justify-between"
             >
-              <Text className="font-display text-base text-ink-primary">
+              <Text className="font-display text-base text-ink-secondary">
                 My decks
               </Text>
               <View className="flex-row items-center gap-1">

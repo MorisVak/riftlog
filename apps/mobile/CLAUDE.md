@@ -126,7 +126,7 @@ placeholder color comes from the **`placeholder:` variant** in its `className`
 (Older screens still use the hex-constant pattern; migrate them opportunistically.)
 
 **Section headings are sentence case, never all caps.** Use
-`font-display text-base text-ink-primary` (16px) for sub-headings and field
+`font-display text-base text-ink-secondary` (16px) for sub-headings and field
 labels ("My decks", "Main deck", "Deck name") — at least as large as the
 15px header actions beside them ("Select", "Import deck"). The old
 `text-xs uppercase tracking-wider` label style was retired as hard to read.
