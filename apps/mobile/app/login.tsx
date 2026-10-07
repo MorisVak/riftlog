@@ -199,7 +199,7 @@ const Login = () => {
           </View>
 
           <View className="mb-2 flex-row items-center gap-2">
-            <Text className="font-display text-xs uppercase tracking-wider text-ink-secondary">
+            <Text className="font-display text-base text-ink-secondary">
               Email
             </Text>
             {lastUsed === 'email' && (

@@ -5,9 +5,12 @@ import {
   FlatList,
   Pressable,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import Animated, {
+  FadeIn,
+  FadeOut,
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated';
@@ -17,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   deleteMatch,
+  deleteMatches,
   fetchMatchHistory,
   type MatchWithGames,
 } from '@/lib/matchPersistence';
@@ -25,6 +29,8 @@ import HistoryRow from '@/components/historyRow';
 import AuthGate from '@/components/authGate';
 import { useAuth } from '@/contexts/authContext';
 import { playIntro, useFade, useRise } from '@/hooks/useScreenIntro';
+import { useSelection, type Selection } from '@/hooks/useSelection';
+import SelectionBar from '@/components/selectionBar';
 
 /**
  * History tab. Reads the signed-in user's matches (with their games) from
@@ -87,6 +93,8 @@ const Header = ({
   count,
   filter,
   onFilter,
+  selection,
+  onDeleteSelected,
   titleIntro,
   filterIntro,
   dividerIntro,
@@ -94,6 +102,8 @@ const Header = ({
   count: number | null;
   filter: Filter;
   onFilter: (f: Filter) => void;
+  selection: Selection;
+  onDeleteSelected: () => void;
   titleIntro: SharedValue<number>;
   filterIntro: SharedValue<number>;
   dividerIntro: SharedValue<number>;
@@ -111,18 +121,59 @@ const Header = ({
           past the dynamic island unblurred. */}
       <BlurView tint="dark" intensity={48} style={{ paddingTop: insets.top }}>
         <View style={{ height: HEADER_H }} className="justify-end px-4 pb-3">
-          <Animated.View
-            style={titleStyle}
-            className="flex-row items-baseline justify-between px-0.5"
-          >
-            <Text className="font-display-bold text-2xl text-ink-primary">
-              History
-            </Text>
-            {count !== null ? (
-              <Text className="text-[13px] text-ink-secondary">
-                {count} {count === 1 ? 'match' : 'matches'}
-              </Text>
-            ) : null}
+          {/* Both header states share one fixed slot and cross-fade, so the
+              swap doesn't pop in a single frame while the rows slide. */}
+          <Animated.View style={titleStyle} className="h-11 px-0.5">
+            {selection.active ? (
+              <Animated.View
+                key="selecting"
+                entering={FadeIn.duration(200)}
+                exiting={FadeOut.duration(150)}
+                className="absolute inset-x-0.5 top-0"
+              >
+                <SelectionBar
+                  count={selection.count}
+                  onCancel={selection.exit}
+                  actions={[
+                    {
+                      key: 'delete',
+                      icon: 'trash-2',
+                      label: 'Delete selected matches',
+                      onPress: onDeleteSelected,
+                      destructive: true,
+                    },
+                  ]}
+                />
+              </Animated.View>
+            ) : (
+              <Animated.View
+                key="title"
+                entering={FadeIn.duration(200)}
+                exiting={FadeOut.duration(150)}
+                className="absolute inset-x-0.5 top-0 h-11 flex-row items-center justify-between"
+              >
+                <Text className="font-display-bold text-2xl text-ink-primary">
+                  History
+                </Text>
+                {count !== null && count > 0 ? (
+                  <View className="flex-row items-center gap-1">
+                    <Text className="text-[13px] text-ink-secondary">
+                      {count} {count === 1 ? 'match' : 'matches'}
+                    </Text>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel="Select matches"
+                      onPress={() => selection.start()}
+                      className="h-11 justify-center pl-3"
+                    >
+                      <Text className="font-display text-[15px] text-accent">
+                        Select
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+              </Animated.View>
+            )}
           </Animated.View>
           <Animated.View style={filterStyle} className="mt-3 flex-row gap-2">
             {FILTERS.map((f) => (
@@ -185,6 +236,18 @@ const History = () => {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('All');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const selection = useSelection();
+  const { exit: exitSelection, clearSelected } = selection;
+
+  // Entering selection mode collapses any expanded row.
+  useEffect(() => {
+    if (selection.active) setExpandedId(null);
+  }, [selection.active]);
+
+  // A filter change can hide selected rows; never act on rows you can't see.
+  useEffect(() => {
+    clearSelected();
+  }, [filter, clearSelected]);
 
   // Arriving from a Home "Recent matches" row: open that match straight away.
   // The filter is reset too, otherwise an active chip (e.g. Wins) could hide
@@ -225,8 +288,10 @@ const History = () => {
         .catch((e) => active && setError(e?.message ?? 'Failed to load history'));
       return () => {
         active = false;
+        // Leaving the tab ends selection mode.
+        exitSelection();
       };
-    }, [authed, titleIntro, filterIntro, dividerIntro, listIntro]),
+    }, [authed, titleIntro, filterIntro, dividerIntro, listIntro, exitSelection]),
   );
 
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
@@ -260,6 +325,45 @@ const History = () => {
     });
   }, []);
 
+  // Multi-select delete: confirm, drop the rows at once, delete them in one
+  // statement; on failure put them all back.
+  const deleteSelected = () => {
+    const ids = [...selection.selected];
+    if (ids.length === 0) return;
+    const n = ids.length;
+    Alert.alert(
+      n === 1 ? 'Delete 1 match?' : `Delete ${n} matches?`,
+      `This permanently deletes ${n === 1 ? 'the match' : 'these matches'} and ${n === 1 ? 'its' : 'their'} games. This can't be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            const idSet = new Set(ids);
+            let removed: MatchWithGames[] = [];
+            setRows((cur) => {
+              if (!cur) return cur;
+              removed = cur.filter((m) => idSet.has(m.id));
+              return cur.filter((m) => !idSet.has(m.id));
+            });
+            exitSelection();
+            deleteMatches(ids).catch((e) => {
+              setRows((cur) =>
+                cur
+                  ? [...cur, ...removed].sort((a, b) =>
+                      b.ended_at.localeCompare(a.ended_at),
+                    )
+                  : cur,
+              );
+              Alert.alert('Could not delete', e?.message ?? 'Please try again.');
+            });
+          },
+        },
+      ],
+    );
+  };
+
   const topPad = insets.top + HEADER_H + 12;
 
   const loading = rows === null && error === null;
@@ -287,6 +391,8 @@ const History = () => {
     body = (
       <FlatList
         data={visible}
+        // Rows read expansion + selection state that isn't in `data`.
+        extraData={[expandedId, selection]}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
           paddingTop: topPad,
@@ -302,6 +408,10 @@ const History = () => {
             expanded={expandedId === item.id}
             onToggle={toggle}
             onDelete={handleDelete}
+            selecting={selection.active}
+            selected={selection.isSelected(item.id)}
+            onSelect={selection.toggle}
+            onLongPress={selection.start}
           />
         )}
         ListEmptyComponent={
@@ -326,6 +436,8 @@ const History = () => {
         count={count}
         filter={filter}
         onFilter={setFilter}
+        selection={selection}
+        onDeleteSelected={deleteSelected}
         titleIntro={titleIntro}
         filterIntro={filterIntro}
         dividerIntro={dividerIntro}

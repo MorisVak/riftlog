@@ -13,6 +13,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { HistoryRowVM, Result } from '@/lib/historyView';
 import MatchMeta from './matchMeta';
+import { SelectionGutter } from './selectCheck';
 
 // Result tokens, paired with a letter + left bar so color is never the only
 // signal (colorblind-safe rule).
@@ -57,9 +58,25 @@ type Props = {
   expanded: boolean;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  /** Selection mode (see hooks/useSelection): taps toggle, swipe is off. */
+  selecting?: boolean;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
+  /** Long-press enters selection mode with this row selected. */
+  onLongPress?: (id: string) => void;
 };
 
-const HistoryRow = ({ vm, index, expanded, onToggle, onDelete }: Props) => {
+const HistoryRow = ({
+  vm,
+  index,
+  expanded,
+  onToggle,
+  onDelete,
+  selecting = false,
+  selected = false,
+  onSelect,
+  onLongPress,
+}: Props) => {
   const r = RESULT[vm.result];
 
   // Natural height of the detail block, measured once from the always-mounted
@@ -97,7 +114,16 @@ const HistoryRow = ({ vm, index, expanded, onToggle, onDelete }: Props) => {
     setOpen(false);
   };
 
+  // Entering selection mode shuts a swiped-open row.
+  useEffect(() => {
+    if (selecting) {
+      tx.value = withTiming(0, { duration: SWIPE_MS });
+      setOpen(false);
+    }
+  }, [selecting, tx]);
+
   const pan = Gesture.Pan()
+    .enabled(!selecting)
     .activeOffsetX([-12, 12]) // horizontal drag activates; taps/scroll pass through
     .failOffsetY([-12, 12])
     .onStart(() => {
@@ -112,8 +138,14 @@ const HistoryRow = ({ vm, index, expanded, onToggle, onDelete }: Props) => {
       runOnJS(setOpen)(shouldOpen);
     });
 
-  // Tapping an open row closes it; otherwise toggles the detail.
+  // Selecting: a tap toggles the row. Otherwise tapping an open row closes
+  // it, and tapping a closed one toggles the detail.
   const onCardPress = () => {
+    if (selecting) {
+      Haptics.selectionAsync();
+      onSelect?.(vm.id);
+      return;
+    }
     if (open) {
       close();
       return;
@@ -136,113 +168,143 @@ const HistoryRow = ({ vm, index, expanded, onToggle, onDelete }: Props) => {
   };
 
   return (
-    <Animated.View
-      // Subtle fade + slight rise on mount, matching the design's `rowIn`.
-      entering={FadeInDown.duration(380)
-        .delay(Math.min(index, 8) * 35)
-        .withInitialValues({ transform: [{ translateY: 6 }] })}
-      className="overflow-hidden rounded-xl border border-border bg-surface"
-    >
-      {/* Delete action sits BEHIND the card; the card slides left to reveal it. */}
-      <View className="absolute inset-0 flex-row justify-end">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Delete match vs ${vm.opponent}`}
-          onPress={confirmDelete}
-          className="w-20 items-center justify-center bg-loss active:bg-loss-text"
-        >
-          <Feather name="trash-2" size={20} color={INK_PRIMARY} />
-          <Text className="mt-1 font-display text-[11px] font-semibold text-ink-primary">
-            Delete
-          </Text>
-        </Pressable>
-      </View>
+    // In selection mode the check sits OUTSIDE the card, to its left (as in a
+    // WhatsApp chat); the gutter slides open and pushes the card right.
+    <View className="flex-row items-center">
+      <SelectionGutter selecting={selecting} selected={selected} />
+      <Animated.View
+        // Subtle fade + slight rise on mount, matching the design's `rowIn`.
+        entering={FadeInDown.duration(380)
+          .delay(Math.min(index, 8) * 35)
+          .withInitialValues({ transform: [{ translateY: 6 }] })}
+        className={`flex-1 overflow-hidden rounded-xl border bg-surface ${
+          selected ? 'border-accent' : 'border-border'
+        }`}
+      >
+        {/* Delete action sits BEHIND the card; the card slides left to reveal it. */}
+        <View className="absolute inset-0 flex-row justify-end">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Delete match vs ${vm.opponent}`}
+            onPress={confirmDelete}
+            className="w-20 items-center justify-center bg-loss active:bg-loss-text"
+          >
+            <Feather name="trash-2" size={20} color={INK_PRIMARY} />
+            <Text className="mt-1 font-display text-[11px] font-semibold text-ink-primary">
+              Delete
+            </Text>
+          </Pressable>
+        </View>
 
-      <GestureDetector gesture={pan}>
-        <Animated.View style={cardStyle} className="flex-row bg-surface">
-          {/* Result bar spans the full card height, including the expanded area. */}
-          <View className={`w-1 self-stretch ${r.bar}`} />
+        <GestureDetector gesture={pan}>
+          <Animated.View
+            style={cardStyle}
+            className={`flex-row ${selected ? 'bg-elevated' : 'bg-surface'}`}
+          >
+            {/* Result bar spans the full card height, including the expanded area. */}
+            <View className={`w-1 self-stretch ${r.bar}`} />
 
-          <View className="flex-1">
-            <Pressable
-              onPress={onCardPress}
-              className="min-h-[64px] flex-row items-center active:bg-elevated"
-            >
-              <View
-                className={`m-3 h-8 w-8 items-center justify-center rounded-lg ${r.badge}`}
+            <View className="flex-1">
+              <Pressable
+                onPress={onCardPress}
+                // Always set, even while selecting: if this prop disappears
+                // mid-press (the long-press itself enters selection mode), the
+                // release is treated as a tap and instantly deselects the row.
+                onLongPress={() => {
+                  if (selecting) {
+                    Haptics.selectionAsync();
+                    onSelect?.(vm.id);
+                    return;
+                  }
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  onLongPress?.(vm.id);
+                }}
+                delayLongPress={350}
+                accessibilityState={selecting ? { selected } : undefined}
+                className="min-h-[64px] flex-row items-center active:bg-elevated"
               >
-                <Text className={`font-display-bold text-sm ${r.text}`}>
-                  {vm.letter}
-                </Text>
-              </View>
 
-              <View className="flex-1 py-3">
-                {/* "vs" prefix so the single name reads as the opponent, never
-                    as your own. */}
-                <Text
-                  className="font-display text-[15px] font-semibold text-ink-primary"
-                  numberOfLines={1}
+                <View
+                  className={`m-3 h-8 w-8 items-center justify-center rounded-lg ${r.badge}`}
                 >
-                  <Text className="font-normal text-ink-secondary">vs </Text>
-                  {vm.opponent}
-                </Text>
-                <MatchMeta vm={vm} />
-              </View>
-
-              <View className="items-end py-3">
-                <Text className={`font-mono text-[15px] ${r.text}`}>{vm.score}</Text>
-                <Text className="mt-0.5 text-[11px] text-ink-secondary">
-                  {vm.date}
-                </Text>
-              </View>
-
-              <Animated.View
-                style={chevronStyle}
-                className="h-[26px] w-9 items-center justify-center"
-              >
-                <Feather name="chevron-down" size={16} color={INK_SECONDARY} />
-              </Animated.View>
-            </Pressable>
-
-            {/* Always mounted; height + opacity animate from a single `progress`. */}
-            <Animated.View style={detailStyle} className="overflow-hidden">
-              <View
-                onLayout={(e) => setDetailH(e.nativeEvent.layout.height)}
-                className="pb-3 pl-[52px] pr-3"
-              >
-                {/* Names in the same order as every score line (you–them), so
-                    the chips below read without guessing. */}
-                <Text
-                  className="mb-2 font-display text-[11px] text-ink-secondary"
-                  numberOfLines={1}
-                >
-                  {vm.you} {EN_DASH} {vm.opponent}
-                </Text>
-
-                {/* Timed matches: the clock they were played to and what it
-                    actually took. "overtime" is spelled out, not just colored. */}
-                {vm.timer && (
-                  <Text
-                    className={`mb-2 font-display text-[11px] ${
-                      vm.timer.overtime ? 'text-loss-text' : 'text-ink-secondary'
-                    }`}
-                  >
-                    {vm.timer.limit} round · played {vm.timer.played}
-                    {vm.timer.overtime ? ' (overtime)' : ''}
+                  <Text className={`font-display-bold text-sm ${r.text}`}>
+                    {vm.letter}
                   </Text>
-                )}
-
-                <View className="flex-row flex-wrap gap-2">
-                  {vm.games.map((g) => (
-                    <GameChip key={g.n} {...g} />
-                  ))}
                 </View>
-              </View>
-            </Animated.View>
-          </View>
-        </Animated.View>
-      </GestureDetector>
-    </Animated.View>
+
+                <View className="flex-1 py-3">
+                  {/* "vs" prefix so the single name reads as the opponent, never
+                      as your own. */}
+                  <Text
+                    className="font-display text-[15px] font-semibold text-ink-primary"
+                    numberOfLines={1}
+                  >
+                    <Text className="font-normal text-ink-secondary">vs </Text>
+                    {vm.opponent}
+                  </Text>
+                  <MatchMeta vm={vm} />
+                </View>
+
+                <View className="items-end py-3">
+                  <Text className={`font-mono text-[15px] ${r.text}`}>{vm.score}</Text>
+                  <Text className="mt-0.5 text-[11px] text-ink-secondary">
+                    {vm.date}
+                  </Text>
+                </View>
+
+                {/* No expanding while selecting, so no chevron either. */}
+                {selecting ? (
+                  <View className="w-3" />
+                ) : (
+                  <Animated.View
+                    style={chevronStyle}
+                    className="h-[26px] w-9 items-center justify-center"
+                  >
+                    <Feather name="chevron-down" size={16} color={INK_SECONDARY} />
+                  </Animated.View>
+                )}
+              </Pressable>
+
+              {/* Always mounted; height + opacity animate from a single `progress`. */}
+              <Animated.View style={detailStyle} className="overflow-hidden">
+                <View
+                  onLayout={(e) => setDetailH(e.nativeEvent.layout.height)}
+                  className="pb-3 pl-[52px] pr-3"
+                >
+                  {/* Names in the same order as every score line (you–them), so
+                      the chips below read without guessing. */}
+                  <Text
+                    className="mb-2 font-display text-[11px] text-ink-secondary"
+                    numberOfLines={1}
+                  >
+                    {vm.you} {EN_DASH} {vm.opponent}
+                  </Text>
+
+                  {/* Timed matches: the clock they were played to and what it
+                      actually took. "overtime" is spelled out, not just colored. */}
+                  {vm.timer && (
+                    <Text
+                      className={`mb-2 font-display text-[11px] ${
+                        vm.timer.overtime ? 'text-loss-text' : 'text-ink-secondary'
+                      }`}
+                    >
+                      {vm.timer.limit} round · played {vm.timer.played}
+                      {vm.timer.overtime ? ' (overtime)' : ''}
+                    </Text>
+                  )}
+
+                  <View className="flex-row flex-wrap gap-2">
+                    {vm.games.map((g) => (
+                      <GameChip key={g.n} {...g} />
+                    ))}
+                  </View>
+                </View>
+              </Animated.View>
+            </View>
+          </Animated.View>
+        </GestureDetector>
+      </Animated.View>
+    </View>
   );
 };
 

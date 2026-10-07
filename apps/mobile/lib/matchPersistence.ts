@@ -88,3 +88,14 @@ export async function deleteMatch(matchId: string): Promise<void> {
   const { error } = await supabase.from('matches').delete().eq('id', matchId);
   if (error) throw error;
 }
+
+/**
+ * Permanently delete several matches (and, by cascade, their games) in one
+ * statement — multi-select in History. RLS limits it to the caller's own rows;
+ * ids that aren't theirs are simply not deleted.
+ */
+export async function deleteMatches(matchIds: string[]): Promise<void> {
+  if (matchIds.length === 0) return;
+  const { error } = await supabase.from('matches').delete().in('id', matchIds);
+  if (error) throw error;
+}

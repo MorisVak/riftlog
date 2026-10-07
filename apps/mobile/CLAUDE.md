@@ -13,10 +13,12 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
   - `(tabs)/_layout.tsx` — tab navigator (History, Home, Profile)
   - `(tabs)/index.tsx` — Home; also hosts the whole match flow by `phase`
   - `(tabs)/history.tsx` — match history (account-gated)
-  - `(tabs)/profile.tsx` — read-only profile header + sign out (account-gated)
+  - `(tabs)/profile.tsx` — profile header, sign out, "My decks" (account-gated)
   - `login.tsx` / `verify-otp.tsx` — modal auth routes
   - `onboarding.tsx` — first-login handle + display-name step (guarded)
-- `components/` — reusable UI components
+  - `decks/import.tsx` — paste-a-decklist import (modal)
+  - `decks/[id].tsx` — one saved deck, read-only
+- `components/` — reusable UI components; deck UI lives in `components/deck/`
 - `contexts/` — React context providers (`authContext`, `profileContext`,
   `matchContext`)
 - `hooks/` — shared hooks that aren't components (`useScreenIntro`)
@@ -82,6 +84,18 @@ How a point was taken, on the play board. A separate family from win/loss/draw
 on purpose — those describe a *result*, these describe an *action*, and mixing
 them would make either impossible to restyle alone.
 
+**Domains** — `domain-{fury,calm,mind,body,chaos,order}` (base) and
+`domain-*-tint` (dark chip fill), for deck views: domain chips and the rune
+proportion bar. An identity family, separate from results and scoring actions.
+
+- fury `#E5484D` / `#3A1A1D` · calm `#3FB27F` / `#15332A` · mind `#4C8DEB` / `#172A45`
+- body `#E8883A` / `#3A2716` · chaos `#9D6CE6` / `#2A1D42` · order `#E6C35C` / `#3A3219`
+
+NativeWind only compiles class names that appear literally in source, so
+per-domain classes come from the `DOMAIN_CLASSES` map in
+`components/deck/domain.tsx` — never build `bg-domain-${d}` at runtime. Chips
+always show the domain's name, so color is never the only signal.
+
 **"Active" is always the accent, never a result color.** The game in progress
 (the board divider's pip) and a paused clock's control both use `accent` plus
 its glow — the same periwinkle the Start-match CTA and the board's END pill
@@ -105,15 +119,30 @@ https://github.com/expo/expo/issues/38423.
 **Icons take token classes, not hex.** `components/icon.tsx` is Feather wrapped
 with NativeWind's `cssInterop`, so `<Icon name="user" className="text-ink-tertiary" />`
 routes the class's color into Feather's `color` prop. Use it for new icons
-instead of mirroring a token as a hex constant. Likewise `TextInput` takes
-`placeholderClassName="text-ink-tertiary"` instead of `placeholderTextColor`.
+instead of mirroring a token as a hex constant. Likewise a `TextInput`'s
+placeholder color comes from the **`placeholder:` variant** in its `className`
+(`placeholder:text-ink-tertiary`), not `placeholderTextColor`. Note:
+`placeholderClassName` type-checks but does nothing at runtime in NativeWind v4.
 (Older screens still use the hex-constant pattern; migrate them opportunistically.)
+
+**Section headings are sentence case, never all caps.** Use
+`font-display text-base text-ink-secondary` (16px) for sub-headings and field
+labels ("My decks", "Main deck", "Deck name") — at least as large as the
+15px header actions beside them ("Select", "Import deck"). The old
+`text-xs uppercase tracking-wider` label style was retired as hard to read.
 
 **One avatar.** `components/avatar.tsx` is the only avatar in the app — profile,
 onboarding, and later match mode and friend lists: a `user` silhouette in a
 `bg-surface` circle, sized by a `size` prop. There are **no profile pictures**
 anywhere (none stored, none read from the identity provider), so it has no
 image prop on purpose. Don't add one.
+
+**One place for card art.** Every card on every deck surface renders through
+`components/deck/cardRow.tsx` → `components/deck/cardArt.tsx`, and
+`cardArt.tsx`'s `resolveArt(card)` is the single spot art is looked up (by
+`card.code` when present, else by name — text imports have no code). Today it
+resolves nothing: rows stay text-only and identity cards show a card-shaped
+placeholder. Don't render card images anywhere else.
 
 **Colorblind-safe rule (non-negotiable):** result color is NEVER the only
 signal. Every win/loss/draw indicator pairs the color with (a) a `W`/`L`/`D`
@@ -344,6 +373,15 @@ To verify alignment with the SDK after installs:
 
 pnpm --filter @riftlog/mobile exec expo install --check
 
+**A native module means a new dev client.** After adding one (most recently
+`expo-clipboard`), rebuild: `cd ios && RCT_USE_PREBUILT_RNCORE=0 pod install`
+(see the iOS build section), then build for the simulator — XcodeBuildMCP's
+`build_run_sim`, or Xcode. `expo run:ios --device "<simulator name>"`
+misidentified the simulator as a physical device and failed on code signing.
+**Restart Metro with `--clear` too**: a Metro started before the install
+can't resolve the new package ("Unable to resolve module") even though it's
+in `node_modules`. Physical devices need a new EAS build.
+
 ## Development
 
 - Run on simulator: `pnpm mobile start` then press `i`
@@ -449,6 +487,37 @@ locally** — keep the footprint to these two items.
 
 **Read path.** History reads come straight from Postgres on demand
 (`fetchMatchHistory()`), scoped to the caller by RLS — never mirrored locally.
+
+**Decks** (`lib/decks.ts`) follow the same rule: `fetchMyDecks()` /
+`fetchDeck(id)` read on demand (the deck plus its current version's list,
+narrowed with core's `isDeckList`, archived decks filtered out), never cached
+on-device. The writes are `createDeck()` → the `create_deck` RPC,
+`renameDeck()` → a plain update of `decks.name` (the one column clients may
+write; the deck screen's pencil button), and `deleteDeck()` → the
+`delete_deck` RPC, a **soft** delete (see `../../supabase/CLAUDE.md`).
+"My decks" deletes like match history: swipe a row left
+(`components/swipeToDelete.tsx`), confirm, the row drops optimistically and
+comes back with an alert if the server call fails. A swipe row's card must be
+opaque (`Pressable` + `bg-surface`, not `TouchableOpacity`) or the red action
+shows through on tap.
+
+**Multi-select (History and "My decks").** WhatsApp-style: a "Select" button
+in the list header, or long-press a row (which selects it). While selecting,
+a tap toggles a row (a check circle *outside* the card, to its left, plus an
+accent outline), swipe-to-delete and
+expanding are off, and the header becomes `components/selectionBar.tsx`
+(Cancel · "N selected" · actions). State is `hooks/useSelection.ts`; actions
+are a data array, so a future "Move to folder" is one more entry. Today the
+only action is the trash can → `deleteMatches(ids)` (hard, cascade) or
+`deleteDecks(ids)` (soft), both optimistic with restore-on-failure. Selection
+exits on blur, after an action, or on Cancel; a History filter change clears
+the selection so hidden rows are never deleted. Keep each row's `onLongPress`
+set even while selecting: if it disappears mid-press (the long-press is what
+enters selection mode), the release counts as a tap and deselects the row. Name rules live in `DECK_NAME_MAX` / `isValidDeckName`. Parsing is local and pure
+(`parseDeckText` in `@riftlog/core`); the import screen shows each diagnostic
+inside its section and blocks saving only on errors, never on count warnings.
+Pasted deck codes are detected (`looksLikeDeckCode`) and get a pointer to the
+text export — decoding isn't built.
 
 **History rows** (`lib/historyView.ts` → `components/historyRow.tsx`). The
 view-model is the single place row display is decided; keep the components dumb.
@@ -620,7 +689,9 @@ is explicitly started:
 
 - Deck selection and the track-turns control in pre-match setup (format,
   player names, and timed mode are built; the rest is deferred)
-- Deck import/parsing
+- Deck **code** decoding (detected only), Riftmana import, deck editing /
+  versions, restoring deleted decks, and attaching decks to matches. Text
+  import, the deck view, renaming, (soft) delete, and "My decks" are built.
 - The designed history UI / detail view (only a minimal read-only list exists)
 - Profile **editing** — the handle rename UI and stats. `claim_username`
   already enforces the rules (30-day limit); nothing calls it from the client
