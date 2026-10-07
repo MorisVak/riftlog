@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 import Animated, {
   runOnJS,
@@ -22,6 +22,8 @@ type Props = {
   confirmTitle: string;
   confirmMessage: string;
   onDelete: () => void;
+  /** Off while the list is in selection mode; closes an open row. */
+  enabled?: boolean;
   /** Card classes for the outer clip (radius/border must live here). */
   className?: string;
   /**
@@ -41,6 +43,7 @@ const SwipeToDelete = ({
   confirmTitle,
   confirmMessage,
   onDelete,
+  enabled = true,
   className = '',
   children,
 }: Props) => {
@@ -56,7 +59,15 @@ const SwipeToDelete = ({
     setIsOpen(false);
   };
 
+  useEffect(() => {
+    if (!enabled) {
+      tx.value = withTiming(0, { duration: SWIPE_MS });
+      setIsOpen(false);
+    }
+  }, [enabled, tx]);
+
   const pan = Gesture.Pan()
+    .enabled(enabled)
     .activeOffsetX([-12, 12])
     .failOffsetY([-12, 12])
     .onStart(() => {

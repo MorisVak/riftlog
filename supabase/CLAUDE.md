@@ -39,7 +39,8 @@ supabase/
 │   ├── 20260924151001_profile_identity.sql
 │   ├── 20260924151509_drop_profile_avatar.sql
 │   ├── 20260924155255_decks.sql
-│   └── 20261007131426_deck_soft_delete.sql
+│   ├── 20261007131426_deck_soft_delete.sql
+│   └── 20261007132243_delete_decks_bulk.sql
 └── config.toml       Supabase CLI config (linked, anon auth OFF)
 
 ## Schema
@@ -203,6 +204,11 @@ version writes.
 `authenticated` only. Archives one of the caller's decks; idempotent; raises
 `not_found` (`P0002`) for an id that doesn't exist or isn't theirs. The
 "My decks" index is partial (`where archived_at is null`).
+
+**`delete_decks(p_deck_ids uuid[])`** → number archived. The same soft delete
+for multi-select, in one round trip; ids that aren't the caller's are skipped
+silently; idempotent; max 200 ids (`too_many`). Matches have no RPC for this —
+a bulk match delete is a plain `delete … in (ids)` under RLS, cascading games.
 
 **`create_deck(p_name, p_import_source, p_source_code, p_list)`** → deck id.
 `security definer`, `require_account()`, `authenticated` only. Inserts the

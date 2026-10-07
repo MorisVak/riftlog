@@ -176,8 +176,11 @@ still unbuilt — the two are separate toggles, not alternatives.
 
 ## Feature 2 — Match history
 
-**Status:** planned. Data model exists; no UI. Reads from cloud persistence
-(Feature 3).
+**Status:** a minimal list is built (reads from cloud persistence, Feature 3):
+filter chips (All / Wins / Losses / BO3), rows that expand into per-game
+scores, and deleting — swipe a row left, or tap **Select** (or long-press a
+row) to pick several and delete them together. Deleting a match is permanent
+and removes its games. The designed list / detail view is still planned.
 
 **What it is.** A browsable list of completed matches, newest first. Tapping a
 match opens a detail view.
@@ -275,7 +278,8 @@ the main deck (x/40, chosen champion first and tagged), and the sideboard
 together. The name can be changed any time from the deck screen (renaming
 never touches the list); a list edit will add a version (Feature 5).
 **Deleting** works like match history — swipe a deck left in "My decks" and
-confirm — but it's a *soft* delete: the deck disappears for the player while
+confirm, or tap **Select** (or long-press a deck) to pick several and delete
+them together — but it's a *soft* delete: the deck disappears for the player while
 its versions stay, because match history will pin them. There's no restore in
 the app yet.
 

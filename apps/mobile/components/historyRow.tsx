@@ -13,6 +13,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { HistoryRowVM, Result } from '@/lib/historyView';
 import MatchMeta from './matchMeta';
+import SelectCheck from './selectCheck';
 
 // Result tokens, paired with a letter + left bar so color is never the only
 // signal (colorblind-safe rule).
@@ -57,9 +58,25 @@ type Props = {
   expanded: boolean;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  /** Selection mode (see hooks/useSelection): taps toggle, swipe is off. */
+  selecting?: boolean;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
+  /** Long-press enters selection mode with this row selected. */
+  onLongPress?: (id: string) => void;
 };
 
-const HistoryRow = ({ vm, index, expanded, onToggle, onDelete }: Props) => {
+const HistoryRow = ({
+  vm,
+  index,
+  expanded,
+  onToggle,
+  onDelete,
+  selecting = false,
+  selected = false,
+  onSelect,
+  onLongPress,
+}: Props) => {
   const r = RESULT[vm.result];
 
   // Natural height of the detail block, measured once from the always-mounted
@@ -97,7 +114,16 @@ const HistoryRow = ({ vm, index, expanded, onToggle, onDelete }: Props) => {
     setOpen(false);
   };
 
+  // Entering selection mode shuts a swiped-open row.
+  useEffect(() => {
+    if (selecting) {
+      tx.value = withTiming(0, { duration: SWIPE_MS });
+      setOpen(false);
+    }
+  }, [selecting, tx]);
+
   const pan = Gesture.Pan()
+    .enabled(!selecting)
     .activeOffsetX([-12, 12]) // horizontal drag activates; taps/scroll pass through
     .failOffsetY([-12, 12])
     .onStart(() => {
@@ -112,8 +138,14 @@ const HistoryRow = ({ vm, index, expanded, onToggle, onDelete }: Props) => {
       runOnJS(setOpen)(shouldOpen);
     });
 
-  // Tapping an open row closes it; otherwise toggles the detail.
+  // Selecting: a tap toggles the row. Otherwise tapping an open row closes
+  // it, and tapping a closed one toggles the detail.
   const onCardPress = () => {
+    if (selecting) {
+      Haptics.selectionAsync();
+      onSelect?.(vm.id);
+      return;
+    }
     if (open) {
       close();
       return;
@@ -141,7 +173,9 @@ const HistoryRow = ({ vm, index, expanded, onToggle, onDelete }: Props) => {
       entering={FadeInDown.duration(380)
         .delay(Math.min(index, 8) * 35)
         .withInitialValues({ transform: [{ translateY: 6 }] })}
-      className="overflow-hidden rounded-xl border border-border bg-surface"
+      className={`overflow-hidden rounded-xl border bg-surface ${
+        selected ? 'border-accent' : 'border-border'
+      }`}
     >
       {/* Delete action sits BEHIND the card; the card slides left to reveal it. */}
       <View className="absolute inset-0 flex-row justify-end">
@@ -159,15 +193,37 @@ const HistoryRow = ({ vm, index, expanded, onToggle, onDelete }: Props) => {
       </View>
 
       <GestureDetector gesture={pan}>
-        <Animated.View style={cardStyle} className="flex-row bg-surface">
+        <Animated.View
+          style={cardStyle}
+          className={`flex-row ${selected ? 'bg-elevated' : 'bg-surface'}`}
+        >
           {/* Result bar spans the full card height, including the expanded area. */}
           <View className={`w-1 self-stretch ${r.bar}`} />
 
           <View className="flex-1">
             <Pressable
               onPress={onCardPress}
+              // Always set, even while selecting: if this prop disappears
+              // mid-press (the long-press itself enters selection mode), the
+              // release is treated as a tap and instantly deselects the row.
+              onLongPress={() => {
+                if (selecting) {
+                  Haptics.selectionAsync();
+                  onSelect?.(vm.id);
+                  return;
+                }
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                onLongPress?.(vm.id);
+              }}
+              delayLongPress={350}
+              accessibilityState={selecting ? { selected } : undefined}
               className="min-h-[64px] flex-row items-center active:bg-elevated"
             >
+              {selecting && (
+                <View className="ml-3">
+                  <SelectCheck selected={selected} />
+                </View>
+              )}
               <View
                 className={`m-3 h-8 w-8 items-center justify-center rounded-lg ${r.badge}`}
               >
@@ -196,12 +252,17 @@ const HistoryRow = ({ vm, index, expanded, onToggle, onDelete }: Props) => {
                 </Text>
               </View>
 
-              <Animated.View
-                style={chevronStyle}
-                className="h-[26px] w-9 items-center justify-center"
-              >
-                <Feather name="chevron-down" size={16} color={INK_SECONDARY} />
-              </Animated.View>
+              {/* No expanding while selecting, so no chevron either. */}
+              {selecting ? (
+                <View className="w-3" />
+              ) : (
+                <Animated.View
+                  style={chevronStyle}
+                  className="h-[26px] w-9 items-center justify-center"
+                >
+                  <Feather name="chevron-down" size={16} color={INK_SECONDARY} />
+                </Animated.View>
+              )}
             </Pressable>
 
             {/* Always mounted; height + opacity animate from a single `progress`. */}

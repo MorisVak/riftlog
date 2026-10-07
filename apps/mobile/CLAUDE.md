@@ -493,7 +493,20 @@ write; the deck screen's pencil button), and `deleteDeck()` → the
 (`components/swipeToDelete.tsx`), confirm, the row drops optimistically and
 comes back with an alert if the server call fails. A swipe row's card must be
 opaque (`Pressable` + `bg-surface`, not `TouchableOpacity`) or the red action
-shows through on tap. Name rules live in `DECK_NAME_MAX` / `isValidDeckName`. Parsing is local and pure
+shows through on tap.
+
+**Multi-select (History and "My decks").** WhatsApp-style: a "Select" button
+in the list header, or long-press a row (which selects it). While selecting,
+a tap toggles a row (check circle + accent outline), swipe-to-delete and
+expanding are off, and the header becomes `components/selectionBar.tsx`
+(Cancel · "N selected" · actions). State is `hooks/useSelection.ts`; actions
+are a data array, so a future "Move to folder" is one more entry. Today the
+only action is the trash can → `deleteMatches(ids)` (hard, cascade) or
+`deleteDecks(ids)` (soft), both optimistic with restore-on-failure. Selection
+exits on blur, after an action, or on Cancel; a History filter change clears
+the selection so hidden rows are never deleted. Keep each row's `onLongPress`
+set even while selecting: if it disappears mid-press (the long-press is what
+enters selection mode), the release counts as a tap and deselects the row. Name rules live in `DECK_NAME_MAX` / `isValidDeckName`. Parsing is local and pure
 (`parseDeckText` in `@riftlog/core`); the import screen shows each diagnostic
 inside its section and blocks saving only on errors, never on count warnings.
 Pasted deck codes are detected (`looksLikeDeckCode`) and get a pointer to the

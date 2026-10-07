@@ -9,7 +9,9 @@ import AuthGate from '@/components/authGate';
 import Avatar from '@/components/avatar';
 import Icon from '@/components/icon';
 import DeckRow from '@/components/deck/deckRow';
-import { deleteDeck, fetchMyDecks, type Deck } from '@/lib/decks';
+import { deleteDeck, deleteDecks, fetchMyDecks, type Deck } from '@/lib/decks';
+import { useSelection } from '@/hooks/useSelection';
+import SelectionBar from '@/components/selectionBar';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 type DecksState = { kind: 'loading' } | { kind: 'ready'; decks: Deck[] } | { kind: 'error' };
@@ -27,6 +29,11 @@ const Profile = () => {
   const router = useRouter();
   const { signOut, status } = useAuth();
   const [decksState, setDecksState] = useState<DecksState>({ kind: 'loading' });
+  const selection = useSelection();
+  const { exit: exitSelection } = selection;
+
+  // Leaving the tab ends selection mode.
+  useFocusEffect(useCallback(() => () => exitSelection(), [exitSelection]));
   // Read from profileContext (the same row that drives the onboarding gate),
   // re-fetched on focus so a change made elsewhere shows up here.
   const { profile, profileStatus, refresh } = useProfile();
@@ -77,6 +84,50 @@ const Profile = () => {
   };
 
   const openImport = () => router.push('/decks/import');
+
+  // Multi-select delete: confirm, drop the rows at once, archive them in one
+  // call; on failure put them all back.
+  const deleteSelectedDecks = () => {
+    if (decksState.kind !== 'ready') return;
+    const ids = [...selection.selected];
+    if (ids.length === 0) return;
+    const n = ids.length;
+    Alert.alert(
+      n === 1 ? 'Delete 1 deck?' : `Delete ${n} decks?`,
+      `${n === 1 ? 'It' : 'They'}'ll be removed from your decks. This can't be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            const idSet = new Set(ids);
+            const removed = decksState.decks.filter((d) => idSet.has(d.id));
+            setDecksState((cur) =>
+              cur.kind === 'ready'
+                ? { kind: 'ready', decks: cur.decks.filter((d) => !idSet.has(d.id)) }
+                : cur,
+            );
+            exitSelection();
+            deleteDecks(ids).catch((e) => {
+              if (__DEV__) console.warn('[decks] bulk delete failed:', e);
+              setDecksState((cur) =>
+                cur.kind === 'ready'
+                  ? {
+                      kind: 'ready',
+                      decks: [...cur.decks, ...removed].sort((a, b) =>
+                        b.updatedAt.localeCompare(a.updatedAt),
+                      ),
+                    }
+                  : cur,
+              );
+              Alert.alert('Could not delete', 'Please check your connection and try again.');
+            });
+          },
+        },
+      ],
+    );
+  };
 
   // Same as match history: drop the row at once, then delete on the server;
   // on failure put it back (in updated order) so the list stays truthful.
@@ -160,23 +211,55 @@ const Profile = () => {
       )}
 
       <Animated.View style={decksStyle} className="mt-8">
-        <View className="mb-3 flex-row items-center justify-between">
-          <Text className="font-display text-xs uppercase tracking-wider text-ink-secondary">
-            My decks
-          </Text>
-          {/* A real touch target (44pt tall), not a text link. */}
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Import deck"
-            onPress={openImport}
-            className="h-11 flex-row items-center gap-2 rounded-full border border-accent/40 bg-accent/15 px-4 active:bg-accent/25"
-          >
-            <Icon name="plus" size={17} className="text-accent" />
-            <Text className="font-display text-[15px] text-accent">
-              Import deck
+        {selection.active ? (
+          <View className="mb-3">
+            <SelectionBar
+              count={selection.count}
+              onCancel={selection.exit}
+              actions={[
+                {
+                  key: 'delete',
+                  icon: 'trash-2',
+                  label: 'Delete selected decks',
+                  onPress: deleteSelectedDecks,
+                  destructive: true,
+                },
+              ]}
+            />
+          </View>
+        ) : (
+          <View className="mb-3 flex-row items-center justify-between">
+            <Text className="font-display text-xs uppercase tracking-wider text-ink-secondary">
+              My decks
             </Text>
-          </TouchableOpacity>
-        </View>
+            <View className="flex-row items-center gap-1">
+              {decksState.kind === 'ready' && decksState.decks.length > 0 && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Select decks"
+                  onPress={() => selection.start()}
+                  className="h-11 justify-center px-3"
+                >
+                  <Text className="font-display text-[15px] text-accent">
+                    Select
+                  </Text>
+                </TouchableOpacity>
+              )}
+              {/* A real touch target (44pt tall), not a text link. */}
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Import deck"
+                onPress={openImport}
+                className="h-11 flex-row items-center gap-2 rounded-full border border-accent/40 bg-accent/15 px-4 active:bg-accent/25"
+              >
+                <Icon name="plus" size={17} className="text-accent" />
+                <Text className="font-display text-[15px] text-accent">
+                  Import deck
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {decksState.kind === 'loading' ? (
           <Text className="py-6 text-center text-sm text-ink-tertiary">
@@ -208,6 +291,10 @@ const Profile = () => {
                 deck={deck}
                 onPress={() => router.push(`/decks/${deck.id}`)}
                 onDelete={() => handleDeleteDeck(deck)}
+                selecting={selection.active}
+                selected={selection.isSelected(deck.id)}
+                onSelect={() => selection.toggle(deck.id)}
+                onLongPress={() => selection.start(deck.id)}
               />
             ))}
           </View>

@@ -170,3 +170,14 @@ export async function deleteDeck(id: string): Promise<void> {
   const { error } = await supabase.rpc('delete_deck', { p_deck_id: id });
   if (error) throw error;
 }
+
+/**
+ * Delete several decks at once (multi-select in "My decks"). Same soft delete
+ * as `deleteDeck`, in one round trip; ids that aren't the caller's are skipped
+ * server-side.
+ */
+export async function deleteDecks(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await supabase.rpc('delete_decks', { p_deck_ids: ids });
+  if (error) throw error;
+}

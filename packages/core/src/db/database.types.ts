@@ -266,6 +266,7 @@ export type Database = {
         Returns: string
       }
       delete_deck: { Args: { p_deck_id: string }; Returns: undefined }
+      delete_decks: { Args: { p_deck_ids: string[] }; Returns: number }
       insert_seed_profile: {
         Args: { p_display_name: string; p_uid: string }
         Returns: undefined
