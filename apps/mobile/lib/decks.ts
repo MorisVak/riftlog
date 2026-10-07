@@ -10,9 +10,13 @@ import { supabase } from './supabase';
  * Decks, read from Postgres on demand and never cached on-device — same rule
  * as match history. RLS scopes every read to the caller's own rows.
  *
- * Writes go through the `create_deck` RPC only: clients can't insert into
+ * Creating goes through the `create_deck` RPC: clients can't insert into
  * `decks` / `deck_versions` directly, so a deck never exists without a
  * version. Versions are immutable; an edit (not built yet) will add one.
+ *
+ * Deleting is a SOFT delete (`delete_deck` stamps `archived_at`), because
+ * match history will pin deck versions. Every read here filters archived
+ * decks out, so to the player a deleted deck is simply gone.
  */
 
 /** Mirrors the `decks.name` CHECK (trimmed, 1–60). */
@@ -93,18 +97,20 @@ export async function fetchMyDecks(): Promise<Deck[]> {
   const { data, error } = await supabase
     .from('decks')
     .select(DECK_COLUMNS)
+    .is('archived_at', null)
     .order('updated_at', { ascending: false })
     .returns<DeckRow[]>();
   if (error) throw error;
   return data.map(toDeck).filter((d): d is Deck => d !== null);
 }
 
-/** One deck, or null if it doesn't exist or isn't the caller's. */
+/** One deck, or null if it doesn't exist, was deleted, or isn't the caller's. */
 export async function fetchDeck(id: string): Promise<Deck | null> {
   const { data, error } = await supabase
     .from('decks')
     .select(DECK_COLUMNS)
     .eq('id', id)
+    .is('archived_at', null)
     .returns<DeckRow[]>()
     .maybeSingle();
   if (error) throw error;
@@ -153,4 +159,14 @@ export async function renameDeck(
     .single();
   if (error) throw error;
   return { name: data.name, updatedAt: data.updated_at };
+}
+
+/**
+ * Delete a deck. Soft: the server stamps `archived_at` and keeps its versions
+ * (match history will reference them), and every read above hides it. There
+ * is no restore yet, so the UI treats this as final.
+ */
+export async function deleteDeck(id: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_deck', { p_deck_id: id });
+  if (error) throw error;
 }

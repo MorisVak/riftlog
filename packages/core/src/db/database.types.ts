@@ -76,6 +76,7 @@ export type Database = {
       }
       decks: {
         Row: {
+          archived_at: string | null
           created_at: string
           current_version_id: string | null
           id: string
@@ -86,6 +87,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
           current_version_id?: string | null
           id?: string
@@ -96,6 +98,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
           current_version_id?: string | null
           id?: string
@@ -262,6 +265,7 @@ export type Database = {
         }
         Returns: string
       }
+      delete_deck: { Args: { p_deck_id: string }; Returns: undefined }
       insert_seed_profile: {
         Args: { p_display_name: string; p_uid: string }
         Returns: undefined

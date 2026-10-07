@@ -38,7 +38,8 @@ supabase/
 │   ├── 20260808123409_profiles.sql
 │   ├── 20260924151001_profile_identity.sql
 │   ├── 20260924151509_drop_profile_avatar.sql
-│   └── 20260924155255_decks.sql
+│   ├── 20260924155255_decks.sql
+│   └── 20261007131426_deck_soft_delete.sql
 └── config.toml       Supabase CLI config (linked, anon auth OFF)
 
 ## Schema
@@ -91,8 +92,8 @@ mirror the `@riftlog/core` domain terms (a **match** is the Bo1/Bo3 series, a
 - **`decks`** — `id` (uuid PK), `owner_id` (`default auth.uid()`, FK →
   `auth.users` `on delete cascade`), `name` (trimmed, 1–60), `import_source`
   (`'text' | 'piltover_code' | 'manual'`), `source_code` (nullable; only
-  allowed on `piltover_code` imports), `current_version_id`, `created_at`,
-  `updated_at` (trigger).
+  allowed on `piltover_code` imports), `current_version_id`, `archived_at`
+  (null = live; set = deleted), `created_at`, `updated_at` (trigger).
 - **`deck_versions`** — `id` (uuid PK), `deck_id`, `owner_id` (denormalized,
   like `games.user_id`), `list` (jsonb = the core `DeckList`; shape-checked by
   `is_deck_list()`, ≤ 64 KB), `created_at`. **Immutable** — no update or delete
@@ -105,9 +106,12 @@ mirror the `@riftlog/core` domain terms (a **match** is the Bo1/Bo3 series, a
   **Versions are what everything pins.** Match history, per-deck stats, and a
   match-mode opponent's view will reference `deck_versions.id`, so an edit is
   a *new* version plus moving `current_version_id` (Feature 5), never an
-  update in place. For the same reason there is no deck delete yet, and when
-  there is it must be a **soft delete** (`archived_at`) — a hard delete would
-  cascade away versions that history points at.
+  update in place. For the same reason **deleting a deck is a soft delete**:
+  `delete_deck` stamps `archived_at` and the versions stay — a hard delete
+  would cascade away versions that history points at. Every client read
+  filters `archived_at is null`; there's no restore UI yet (one SQL update
+  undoes it). Deleting the account still removes everything via the
+  `auth.users` cascade.
 
   Designed for, not built: attaching versions to matches (`Player.deck` in the
   `players` jsonb, or a `match_decks` table), `profiles.favorite_deck_id`, and
@@ -192,7 +196,13 @@ to be callable.
 
 Owner-only `select` on both deck tables. Clients hold `SELECT` on both and
 `UPDATE (name)` on `decks` — nothing else: no direct inserts (so a deck can
-never exist without a version), no deletes, no version writes.
+never exist without a version), no direct deletes or `archived_at` writes, no
+version writes.
+
+**`delete_deck(p_deck_id)`** — `security definer`, `require_account()`,
+`authenticated` only. Archives one of the caller's decks; idempotent; raises
+`not_found` (`P0002`) for an id that doesn't exist or isn't theirs. The
+"My decks" index is partial (`where archived_at is null`).
 
 **`create_deck(p_name, p_import_source, p_source_code, p_list)`** → deck id.
 `security definer`, `require_account()`, `authenticated` only. Inserts the
@@ -348,8 +358,8 @@ offline outbox. Still ahead (later slices / features):
 - Remote provider configuration (manual dashboard steps, see Auth above)
 - The handle rename UI — `claim_username` supports it (30-day limit), no
   client calls it yet
-- Deck editing (`add_deck_version`), soft delete, and attaching deck versions
-  to matches
+- Deck editing (`add_deck_version`), restoring a deleted deck, and attaching
+  deck versions to matches
 - The card catalog (`cards`), once the Riot API key exists
 - First Edge Function (none needed so far — text import parses on-device)
 

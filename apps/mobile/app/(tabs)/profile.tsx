@@ -9,7 +9,7 @@ import AuthGate from '@/components/authGate';
 import Avatar from '@/components/avatar';
 import Icon from '@/components/icon';
 import DeckRow from '@/components/deck/deckRow';
-import { fetchMyDecks, type Deck } from '@/lib/decks';
+import { deleteDeck, fetchMyDecks, type Deck } from '@/lib/decks';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 type DecksState = { kind: 'loading' } | { kind: 'ready'; decks: Deck[] } | { kind: 'error' };
@@ -77,6 +77,30 @@ const Profile = () => {
   };
 
   const openImport = () => router.push('/decks/import');
+
+  // Same as match history: drop the row at once, then delete on the server;
+  // on failure put it back (in updated order) so the list stays truthful.
+  const handleDeleteDeck = (deck: Deck) => {
+    setDecksState((cur) =>
+      cur.kind === 'ready'
+        ? { kind: 'ready', decks: cur.decks.filter((d) => d.id !== deck.id) }
+        : cur,
+    );
+    deleteDeck(deck.id).catch((e) => {
+      if (__DEV__) console.warn('[decks] delete failed:', e);
+      setDecksState((cur) =>
+        cur.kind === 'ready'
+          ? {
+              kind: 'ready',
+              decks: [...cur.decks, deck].sort((a, b) =>
+                b.updatedAt.localeCompare(a.updatedAt),
+              ),
+            }
+          : cur,
+      );
+      Alert.alert('Could not delete', 'Please check your connection and try again.');
+    });
+  };
 
   return (
     <ScrollView
@@ -183,6 +207,7 @@ const Profile = () => {
                 key={deck.id}
                 deck={deck}
                 onPress={() => router.push(`/decks/${deck.id}`)}
+                onDelete={() => handleDeleteDeck(deck)}
               />
             ))}
           </View>

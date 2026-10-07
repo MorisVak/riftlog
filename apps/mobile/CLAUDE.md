@@ -484,10 +484,16 @@ locally** — keep the footprint to these two items.
 
 **Decks** (`lib/decks.ts`) follow the same rule: `fetchMyDecks()` /
 `fetchDeck(id)` read on demand (the deck plus its current version's list,
-narrowed with core's `isDeckList`), never cached on-device. The writes are
-`createDeck()` → the `create_deck` RPC, and `renameDeck()` → a plain update
-of `decks.name` (the one column clients may write; the deck screen's pencil
-button). Name rules live in `DECK_NAME_MAX` / `isValidDeckName`. Parsing is local and pure
+narrowed with core's `isDeckList`, archived decks filtered out), never cached
+on-device. The writes are `createDeck()` → the `create_deck` RPC,
+`renameDeck()` → a plain update of `decks.name` (the one column clients may
+write; the deck screen's pencil button), and `deleteDeck()` → the
+`delete_deck` RPC, a **soft** delete (see `../../supabase/CLAUDE.md`).
+"My decks" deletes like match history: swipe a row left
+(`components/swipeToDelete.tsx`), confirm, the row drops optimistically and
+comes back with an alert if the server call fails. A swipe row's card must be
+opaque (`Pressable` + `bg-surface`, not `TouchableOpacity`) or the red action
+shows through on tap. Name rules live in `DECK_NAME_MAX` / `isValidDeckName`. Parsing is local and pure
 (`parseDeckText` in `@riftlog/core`); the import screen shows each diagnostic
 inside its section and blocks saving only on errors, never on count warnings.
 Pasted deck codes are detected (`looksLikeDeckCode`) and get a pointer to the
@@ -664,8 +670,8 @@ is explicitly started:
 - Deck selection and the track-turns control in pre-match setup (format,
   player names, and timed mode are built; the rest is deferred)
 - Deck **code** decoding (detected only), Riftmana import, deck editing /
-  versions, deck delete (must be a soft delete), and attaching decks to
-  matches. Text import, the deck view, and "My decks" are built.
+  versions, restoring deleted decks, and attaching decks to matches. Text
+  import, the deck view, renaming, (soft) delete, and "My decks" are built.
 - The designed history UI / detail view (only a minimal read-only list exists)
 - Profile **editing** — the handle rename UI and stats. `claim_username`
   already enforces the rules (30-day limit); nothing calls it from the client

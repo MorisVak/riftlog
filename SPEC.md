@@ -273,8 +273,11 @@ the main deck (x/40, chosen champion first and tagged), and the sideboard
 **Storage.** A deck is a named thing the player owns; its list lives in
 **immutable versions**. Saving creates the deck and its first version
 together. The name can be changed any time from the deck screen (renaming
-never touches the list); a list edit will add a version (Feature 5). There is no delete yet — when there is, it must be a
-*soft* delete, because match history will pin versions.
+never touches the list); a list edit will add a version (Feature 5).
+**Deleting** works like match history — swipe a deck left in "My decks" and
+confirm — but it's a *soft* delete: the deck disappears for the player while
+its versions stay, because match history will pin them. There's no restore in
+the app yet.
 
 **Entry points:** "My decks" on Profile today. Later, the **Your deck**
 carousel on the pre-match setup sheet (Feature 1), where the player picks the
