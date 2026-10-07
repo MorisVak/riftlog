@@ -9,6 +9,8 @@ import {
   View,
 } from 'react-native';
 import Animated, {
+  FadeIn,
+  FadeOut,
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated';
@@ -119,23 +121,37 @@ const Header = ({
           past the dynamic island unblurred. */}
       <BlurView tint="dark" intensity={48} style={{ paddingTop: insets.top }}>
         <View style={{ height: HEADER_H }} className="justify-end px-4 pb-3">
-          <Animated.View style={titleStyle} className="px-0.5">
+          {/* Both header states share one fixed slot and cross-fade, so the
+              swap doesn't pop in a single frame while the rows slide. */}
+          <Animated.View style={titleStyle} className="h-11 px-0.5">
             {selection.active ? (
-              <SelectionBar
-                count={selection.count}
-                onCancel={selection.exit}
-                actions={[
-                  {
-                    key: 'delete',
-                    icon: 'trash-2',
-                    label: 'Delete selected matches',
-                    onPress: onDeleteSelected,
-                    destructive: true,
-                  },
-                ]}
-              />
+              <Animated.View
+                key="selecting"
+                entering={FadeIn.duration(200)}
+                exiting={FadeOut.duration(150)}
+                className="absolute inset-x-0.5 top-0"
+              >
+                <SelectionBar
+                  count={selection.count}
+                  onCancel={selection.exit}
+                  actions={[
+                    {
+                      key: 'delete',
+                      icon: 'trash-2',
+                      label: 'Delete selected matches',
+                      onPress: onDeleteSelected,
+                      destructive: true,
+                    },
+                  ]}
+                />
+              </Animated.View>
             ) : (
-              <View className="h-11 flex-row items-center justify-between">
+              <Animated.View
+                key="title"
+                entering={FadeIn.duration(200)}
+                exiting={FadeOut.duration(150)}
+                className="absolute inset-x-0.5 top-0 h-11 flex-row items-center justify-between"
+              >
                 <Text className="font-display-bold text-2xl text-ink-primary">
                   History
                 </Text>
@@ -156,7 +172,7 @@ const Header = ({
                     </TouchableOpacity>
                   </View>
                 ) : null}
-              </View>
+              </Animated.View>
             )}
           </Animated.View>
           <Animated.View style={filterStyle} className="mt-3 flex-row gap-2">

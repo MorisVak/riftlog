@@ -125,6 +125,12 @@ placeholder color comes from the **`placeholder:` variant** in its `className`
 `placeholderClassName` type-checks but does nothing at runtime in NativeWind v4.
 (Older screens still use the hex-constant pattern; migrate them opportunistically.)
 
+**Section headings are sentence case, never all caps.** Use
+`font-display text-base text-ink-primary` (16px) for sub-headings and field
+labels ("My decks", "Main deck", "Deck name") — at least as large as the
+15px header actions beside them ("Select", "Import deck"). The old
+`text-xs uppercase tracking-wider` label style was retired as hard to read.
+
 **One avatar.** `components/avatar.tsx` is the only avatar in the app — profile,
 onboarding, and later match mode and friend lists: a `user` silhouette in a
 `bg-surface` circle, sized by a `size` prop. There are **no profile pictures**

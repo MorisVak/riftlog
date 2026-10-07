@@ -1,6 +1,10 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import Animated, { useSharedValue } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/authContext';
@@ -211,55 +215,69 @@ const Profile = () => {
       )}
 
       <Animated.View style={decksStyle} className="mt-8">
-        {selection.active ? (
-          <View className="mb-3">
-            <SelectionBar
-              count={selection.count}
-              onCancel={selection.exit}
-              actions={[
-                {
-                  key: 'delete',
-                  icon: 'trash-2',
-                  label: 'Delete selected decks',
-                  onPress: deleteSelectedDecks,
-                  destructive: true,
-                },
-              ]}
-            />
-          </View>
-        ) : (
-          <View className="mb-3 flex-row items-center justify-between">
-            <Text className="font-display text-sm uppercase tracking-wide text-ink-secondary">
-              My decks
-            </Text>
-            <View className="flex-row items-center gap-1">
-              {decksState.kind === 'ready' && decksState.decks.length > 0 && (
+        {/* Both header states share one fixed slot and cross-fade, so the
+            swap doesn't pop in a single frame while the rows slide. */}
+        <View className="mb-3 h-11">
+          {selection.active ? (
+            <Animated.View
+              key="selecting"
+              entering={FadeIn.duration(200)}
+              exiting={FadeOut.duration(150)}
+              className="absolute inset-0"
+            >
+              <SelectionBar
+                count={selection.count}
+                onCancel={selection.exit}
+                actions={[
+                  {
+                    key: 'delete',
+                    icon: 'trash-2',
+                    label: 'Delete selected decks',
+                    onPress: deleteSelectedDecks,
+                    destructive: true,
+                  },
+                ]}
+              />
+            </Animated.View>
+          ) : (
+            <Animated.View
+              key="title"
+              entering={FadeIn.duration(200)}
+              exiting={FadeOut.duration(150)}
+              className="absolute inset-0 flex-row items-center justify-between"
+            >
+              <Text className="font-display text-base text-ink-primary">
+                My decks
+              </Text>
+              <View className="flex-row items-center gap-1">
+                {decksState.kind === 'ready' && decksState.decks.length > 0 && (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Select decks"
+                    onPress={() => selection.start()}
+                    className="h-11 justify-center px-3"
+                  >
+                    <Text className="font-display text-[15px] text-accent">
+                      Select
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                {/* A real touch target (44pt tall), not a text link. */}
                 <TouchableOpacity
                   accessibilityRole="button"
-                  accessibilityLabel="Select decks"
-                  onPress={() => selection.start()}
-                  className="h-11 justify-center px-3"
+                  accessibilityLabel="Import deck"
+                  onPress={openImport}
+                  className="h-11 flex-row items-center gap-2 rounded-full border border-accent/40 bg-accent/15 px-4 active:bg-accent/25"
                 >
+                  <Icon name="plus" size={17} className="text-accent" />
                   <Text className="font-display text-[15px] text-accent">
-                    Select
+                    Import deck
                   </Text>
                 </TouchableOpacity>
-              )}
-              {/* A real touch target (44pt tall), not a text link. */}
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Import deck"
-                onPress={openImport}
-                className="h-11 flex-row items-center gap-2 rounded-full border border-accent/40 bg-accent/15 px-4 active:bg-accent/25"
-              >
-                <Icon name="plus" size={17} className="text-accent" />
-                <Text className="font-display text-[15px] text-accent">
-                  Import deck
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+              </View>
+            </Animated.View>
+          )}
+        </View>
 
         {decksState.kind === 'loading' ? (
           <Text className="py-6 text-center text-sm text-ink-tertiary">

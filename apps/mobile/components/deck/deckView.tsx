@@ -124,7 +124,7 @@ const IdentityCard = ({
         <View className="aspect-[63/88] w-[72px] rounded-lg border border-dashed border-border" />
       )}
       <View className="flex-1">
-        <Text className="font-display text-[11px] uppercase tracking-wider text-ink-secondary">
+        <Text className="font-display text-[13px] text-ink-secondary">
           {label}
         </Text>
         {card ? (

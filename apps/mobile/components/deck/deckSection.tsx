@@ -22,7 +22,7 @@ const DeckSection = ({ title, count, target, children }: DeckSectionProps) => {
   return (
     <View className="mt-4 rounded-2xl border border-border bg-surface px-4 pb-1.5 pt-3.5">
       <View className="mb-1 flex-row items-center justify-between">
-        <Text className="font-display text-sm uppercase tracking-wide text-ink-secondary">
+        <Text className="font-display text-base text-ink-primary">
           {title}
         </Text>
         <View

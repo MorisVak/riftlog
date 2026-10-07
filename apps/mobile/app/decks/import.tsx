@@ -181,7 +181,7 @@ const ImportDeck = () => {
             </View>
           </View>
 
-          <Text className="mb-2 font-display text-sm uppercase tracking-wide text-ink-secondary">
+          <Text className="mb-2 font-display text-base text-ink-primary">
             Deck name
           </Text>
           <TextInput
@@ -201,7 +201,7 @@ const ImportDeck = () => {
           </Text>
 
           <View className="mb-2 flex-row items-center justify-between">
-            <Text className="font-display text-sm uppercase tracking-wide text-ink-secondary">
+            <Text className="font-display text-base text-ink-primary">
               Decklist
             </Text>
             <View className="flex-row gap-3">
@@ -252,7 +252,7 @@ const ImportDeck = () => {
 
           {text.trim() === '' && (
             <View className="mt-4 rounded-2xl border border-border bg-surface px-4 py-3.5">
-              <Text className="mb-2.5 font-display text-sm uppercase tracking-wide text-ink-secondary">
+              <Text className="mb-2.5 font-display text-base text-ink-primary">
                 Expected format
               </Text>
               <View className="gap-3">

@@ -259,7 +259,7 @@ const Onboarding = () => {
           </Animated.View>
 
           <Animated.View style={nameStyle}>
-            <Text className="mb-2 font-display text-sm uppercase tracking-wide text-ink-secondary">
+            <Text className="mb-2 font-display text-base text-ink-primary">
               Display name
             </Text>
             <TextInput
@@ -280,7 +280,7 @@ const Onboarding = () => {
           </Animated.View>
 
           <Animated.View style={handleStyle}>
-            <Text className="mb-2 font-display text-sm uppercase tracking-wide text-ink-secondary">
+            <Text className="mb-2 font-display text-base text-ink-primary">
               Handle
             </Text>
             <View
