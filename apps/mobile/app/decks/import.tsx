@@ -249,10 +249,6 @@ const ImportDeck = () => {
             accessibilityLabel="Decklist text"
             className="max-h-64 min-h-[160px] rounded-xl border border-border bg-elevated px-4 py-3 font-mono-medium text-[13px] leading-5 text-ink-primary placeholder:text-ink-tertiary"
           />
-          <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
-            Export your deck as text, e.g. Piltover Archive → Export → Text,
-            then paste it here.
-          </Text>
 
           {text.trim() === '' && (
             <View className="mt-4 rounded-2xl border border-border bg-surface px-4 py-3.5">
