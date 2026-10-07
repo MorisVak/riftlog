@@ -245,7 +245,7 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
             </View>
           </GestureDetector>
 
-          <Text className="mb-2 font-display text-xs uppercase tracking-wider text-ink-secondary">
+          <Text className="mb-2 font-display text-sm uppercase tracking-wide text-ink-secondary">
             Format
           </Text>
           <View className="mb-5 flex-row gap-2">
@@ -307,7 +307,7 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
               history derives win/loss and the "vs" label from that. Symmetric
               "Player 1 / Player 2" fields made it easy to enter yourself second
               and invert every result. */}
-          <Text className="mb-2 font-display text-xs uppercase tracking-wider text-ink-secondary">
+          <Text className="mb-2 font-display text-sm uppercase tracking-wide text-ink-secondary">
             You
           </Text>
           <TextInput
@@ -318,7 +318,7 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
             returnKeyType="next"
             className="mb-4 rounded-xl border border-border bg-elevated px-4 py-3 text-base text-ink-primary"
           />
-          <Text className="mb-2 font-display text-xs uppercase tracking-wider text-ink-secondary">
+          <Text className="mb-2 font-display text-sm uppercase tracking-wide text-ink-secondary">
             Opponent
           </Text>
           <TextInput

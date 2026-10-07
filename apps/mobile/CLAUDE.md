@@ -497,7 +497,8 @@ shows through on tap.
 
 **Multi-select (History and "My decks").** WhatsApp-style: a "Select" button
 in the list header, or long-press a row (which selects it). While selecting,
-a tap toggles a row (check circle + accent outline), swipe-to-delete and
+a tap toggles a row (a check circle *outside* the card, to its left, plus an
+accent outline), swipe-to-delete and
 expanding are off, and the header becomes `components/selectionBar.tsx`
 (Cancel · "N selected" · actions). State is `hooks/useSelection.ts`; actions
 are a data array, so a future "Move to folder" is one more entry. Today the

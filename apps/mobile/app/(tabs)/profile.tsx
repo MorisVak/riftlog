@@ -229,7 +229,7 @@ const Profile = () => {
           </View>
         ) : (
           <View className="mb-3 flex-row items-center justify-between">
-            <Text className="font-display text-xs uppercase tracking-wider text-ink-secondary">
+            <Text className="font-display text-sm uppercase tracking-wide text-ink-secondary">
               My decks
             </Text>
             <View className="flex-row items-center gap-1">
