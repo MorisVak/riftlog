@@ -1,13 +1,12 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { deckDomains } from '@riftlog/core';
 import type { Deck } from '@/lib/decks';
 import { DomainChips } from '@/components/deck/domain';
 import Icon from '@/components/icon';
 import SwipeToDelete from '@/components/swipeToDelete';
-import SelectCheck from '@/components/selectCheck';
+import { SelectionGutter } from '@/components/selectCheck';
 
 /** "Sep 24"; the year is added only when it isn't this year. */
 const formatUpdated = (iso: string): string => {
@@ -47,17 +46,9 @@ const DeckRow = ({
 
   return (
     // In selection mode the check sits OUTSIDE the card, to its left (as in a
-    // WhatsApp chat), and the card shifts over to make room.
+    // WhatsApp chat); the gutter slides open and pushes the card right.
     <View className="flex-row items-center">
-      {selecting && (
-        <Animated.View
-          entering={FadeIn.duration(150)}
-          exiting={FadeOut.duration(120)}
-          className="mr-3"
-        >
-          <SelectCheck selected={selected} />
-        </Animated.View>
-      )}
+      <SelectionGutter selecting={selecting} selected={selected} />
       <View className="flex-1">
         <SwipeToDelete
           accessibilityLabel={`Delete deck ${deck.name}`}

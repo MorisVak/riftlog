@@ -2,9 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 import Animated, {
   Easing,
-  FadeIn,
   FadeInDown,
-  FadeOut,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -15,7 +13,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { HistoryRowVM, Result } from '@/lib/historyView';
 import MatchMeta from './matchMeta';
-import SelectCheck from './selectCheck';
+import { SelectionGutter } from './selectCheck';
 
 // Result tokens, paired with a letter + left bar so color is never the only
 // signal (colorblind-safe rule).
@@ -171,17 +169,9 @@ const HistoryRow = ({
 
   return (
     // In selection mode the check sits OUTSIDE the card, to its left (as in a
-    // WhatsApp chat), and the card shifts over to make room.
+    // WhatsApp chat); the gutter slides open and pushes the card right.
     <View className="flex-row items-center">
-      {selecting && (
-        <Animated.View
-          entering={FadeIn.duration(150)}
-          exiting={FadeOut.duration(120)}
-          className="mr-3"
-        >
-          <SelectCheck selected={selected} />
-        </Animated.View>
-      )}
+      <SelectionGutter selecting={selecting} selected={selected} />
       <Animated.View
         // Subtle fade + slight rise on mount, matching the design's `rowIn`.
         entering={FadeInDown.duration(380)
