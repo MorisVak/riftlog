@@ -138,12 +138,14 @@ mirror the `@riftlog/core` domain terms (a **match** is the Bo1/Bo3 series, a
 `concludeMatch()` settles the series without freezing the in-progress game — a
 settled match can carry a game with no winner / end time.
 
-**Timed mode stores the limit only.** `matches.time_limit_seconds` is the
-configured clock; how long the match actually took comes from
-`ended_at - started_at`, and "went into overtime" is that duration compared
-against the limit. Don't add elapsed / expired / paused columns — the clock is
-derived from wall-clock on the client (`apps/mobile/lib/clock.ts`) and never
-pauses, not even between games in a Bo3.
+**Timed mode stores the limit plus total paused time.**
+`matches.time_limit_seconds` is the configured clock; `clock_paused_ms` is how
+long the board's pause control held the clock, in total (written once with the
+settled match; a pause still open at the end counts up to `ended_at`). Played
+time is `ended_at - started_at - clock_paused_ms`, and "went into overtime" is
+that compared against the limit. Don't add elapsed / expired / live-clock
+columns — the countdown itself is derived on the client
+(`apps/mobile/lib/clock.ts`) and keeps running between games in a Bo3.
 
 **The DB never re-derives Bo3 / draw logic.** The device settles every match in
 `@riftlog/mobile`'s `matchContext` (`settleMatch` / `endGame` / `concludeMatch`);

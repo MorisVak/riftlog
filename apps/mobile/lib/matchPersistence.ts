@@ -1,5 +1,6 @@
 import type { Database, Match } from '@riftlog/core';
 import { supabase } from './supabase';
+import { totalPausedMs } from './clock';
 
 type MatchInsert = Database['public']['Tables']['matches']['Insert'];
 type GameInsert = Database['public']['Tables']['games']['Insert'];
@@ -58,6 +59,10 @@ export async function saveCompletedMatch(match: Match): Promise<void> {
     // started_at / ended_at. null for an untimed match.
     // `?? null` covers a match queued in the outbox before timed mode existed.
     time_limit_seconds: match.timeLimitSeconds ?? null,
+    // Total time the clock was paused (a pause still open at the end counts up
+    // to endedAt), so History's "played" excludes it. 0 for untimed matches
+    // and for outbox entries queued before pausing existed.
+    clock_paused_ms: Math.round(totalPausedMs(match, Date.parse(match.endedAt))),
     host_user_id: match.hostUserId,
     guest_user_ids: match.guestUserIds,
   };

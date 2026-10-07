@@ -80,14 +80,16 @@ writing the logic that drives them. Things to know:
 
 3. **Timed mode is in the data model** — one field, `Match.timeLimitSeconds`
    (`null` = untimed), mirrored by `matches.time_limit_seconds`. One clock
-   covers the whole match (the Bo1's game or the entire Bo3) and **never
-   pauses**: the between-games break is sideboarding time and is played on the
-   same clock. There is no live clock state anywhere — remaining time is derived
-   from wall-clock (`limit - (now - game 1 startedAt)`, see
-   `apps/mobile/lib/clock.ts`), so it survives backgrounding, a JS reload, and
-   an outbox restore. History stores only the configured limit; how long the
-   match ran, and so whether it went to overtime, is derived from
-   `started_at`/`ended_at`.
+   covers the whole match (the Bo1's game or the entire Bo3) and keeps running
+   through the between-games break (sideboarding time is on the clock). It only
+   stops when a player **pauses** it on the board — e.g. for a judge call — and
+   a paused clock stays frozen, including while the app is in the background.
+   There is no live clock state anywhere — remaining time is derived from
+   wall-clock minus banked pauses (see `apps/mobile/lib/clock.ts`), so it
+   survives backgrounding, a JS reload, and an outbox restore. History stores
+   the configured limit and the total paused time; how long the match was
+   played (excluding pauses), and so whether it went to overtime, is derived
+   from those and `started_at`/`ended_at`.
 
 Forward-compatible fields already in the model (`Player.userId`,
 `Player.deck`, `Match.hostUserId`, `Match.guestUserIds`, `Match.notes`,

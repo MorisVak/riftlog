@@ -103,13 +103,19 @@ export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
     : `${p1?.gameWins ?? 0}${EN_DASH}${p2?.gameWins ?? 0}`;
 
   // Timed matches carry their configured clock; how long they actually ran —
-  // and so whether they went to overtime — is measured from the timestamps
-  // rather than stored.
+  // and so whether they went to overtime — is measured from the timestamps,
+  // minus the time the clock spent paused (persisted as clock_paused_ms).
+  // Without that subtraction a paused match read as longer than it was and
+  // could show overtime that never happened.
   // Loose check: a row read back before the time_limit_seconds column existed
   // (or any row where it's absent) must count as untimed, not as a timed match
   // with an undefined limit — that rendered a NaN clock on every row.
   const limitSeconds = m.time_limit_seconds;
-  const playedSeconds = elapsedSeconds(m.started_at, m.ended_at);
+  const playedSeconds = Math.max(
+    0,
+    elapsedSeconds(m.started_at, m.ended_at) -
+      Math.round((m.clock_paused_ms ?? 0) / 1000),
+  );
   const timer: HistoryTimerVM | null =
     limitSeconds == null
       ? null

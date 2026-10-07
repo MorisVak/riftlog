@@ -165,6 +165,7 @@ export type Database = {
       matches: {
         Row: {
           best_of: number
+          clock_paused_ms: number
           created_at: string
           deck_version_id: string | null
           ended_at: string
@@ -179,6 +180,7 @@ export type Database = {
         }
         Insert: {
           best_of: number
+          clock_paused_ms?: number
           created_at?: string
           deck_version_id?: string | null
           ended_at: string
@@ -193,6 +195,7 @@ export type Database = {
         }
         Update: {
           best_of?: number
+          clock_paused_ms?: number
           created_at?: string
           deck_version_id?: string | null
           ended_at?: string

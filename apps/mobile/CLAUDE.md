@@ -255,8 +255,9 @@ the track-turns control. See the match flow before extending it.
 `Match.timeLimitSeconds` (null = untimed) is the **only** timed-mode state.
 There is no ticking value in context, no paused flag, nothing on `Game`:
 
-- One clock covers the whole match and **never pauses** — the between-games
-  break in a Bo3 is sideboarding time and runs on the same clock.
+- One clock covers the whole match and keeps running through the between-games
+  break in a Bo3 (sideboarding is on the clock); only the board's pause control
+  stops it.
 - Remaining time is **derived from wall-clock** in `lib/clock.ts`
   (`limit - (now - game 1 startedAt)`), so it can't drift and needs no
   restoring after a background/reload/outbox resume. Don't add a stored
@@ -272,8 +273,16 @@ There is no ticking value in context, no paused flag, nothing on `Game`:
   more: `Match.clockPausedAt` + `clockPausedMs` bank the pauses and
   `runningMs()` subtracts them. Still nothing ticks — a paused clock is a
   steady derived value, and `MatchClock` stops its own timer while paused.
-  Pause state is not persisted to Postgres, so a completed match's "played"
-  time in history includes any paused time.
+  The finished match persists the total (`totalPausedMs` →
+  `matches.clock_paused_ms`), and History's "played" subtracts it.
+- **`MatchClock` reads `Date.now()` at render time and opts out of the React
+  Compiler (`'use no memo'`).** Two bugs taught this: (1) rendering with the
+  last tick's stored timestamp made the countdown jump UP by the pause length
+  on resume (the pause is banked immediately, the stale timestamp predates it);
+  (2) with `experiments.reactCompiler` on, reading `Date.now()` in render got
+  memoized on `match` alone and froze the clock. The tick (`useTick`) only
+  triggers re-renders. Any other component that reads the clock during render
+  needs the same opt-out.
 - **Rotating text needs an explicitly sized wrapper.** A transform is paint
   only — it doesn't change layout — so a rotated clock dropped into a narrow
   slot lays out at that slot's width and truncates (`50:00` → `2…`). The board
@@ -306,8 +315,8 @@ game counter, nothing taking board space from either player:
   + glow and greys the clock; there's deliberately no "PAUSED" label, which
   would grow the rotated capsule. Nothing else belongs here — the pass-turn
   control is still deferred.
-- History stores only the configured limit; elapsed time and the
-  overtime flag are derived from `started_at`/`ended_at` in `lib/historyView.ts`.
+- History stores the configured limit and the total paused time; played time
+  (excluding pauses) and the overtime flag are derived in `lib/historyView.ts`.
 - The setup sheet offers two presets (30 / 60 min) plus **Custom**, which opens
   `components/durationPicker.tsx` — minute/second wheels built from a snapping
   `ScrollView`, not a picker dependency. A timed match at 00:00 can't start; the
