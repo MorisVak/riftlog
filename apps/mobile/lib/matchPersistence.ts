@@ -78,6 +78,9 @@ export async function saveCompletedMatch(match: Match): Promise<void> {
     winner_id: game.winnerId,
     started_at: game.startedAt,
     ended_at: game.endedAt,
+    // The point-by-point record for the match detail's timeline. `?? []`
+    // covers games (and outbox entries) from before recording existed.
+    events: (game.events ?? []) as unknown as GameInsert['events'],
   }));
 
   const { error: gamesError } = await supabase.from('games').upsert(gameRows);
@@ -105,6 +108,16 @@ type HistoryRow = MatchRow & {
   } | null;
 };
 
+const withDeck = ({ deck_version, ...row }: HistoryRow): MatchWithGames => {
+  const deck = deck_version?.deck ?? null;
+  return {
+    ...row,
+    deck: deck
+      ? { id: deck.id, name: deck.name, archivedAt: deck.archived_at }
+      : null,
+  };
+};
+
 export async function fetchMatchHistory(): Promise<MatchWithGames[]> {
   const { data, error } = await supabase
     .from('matches')
@@ -114,15 +127,24 @@ export async function fetchMatchHistory(): Promise<MatchWithGames[]> {
     .returns<HistoryRow[]>();
 
   if (error) throw error;
-  return (data ?? []).map(({ deck_version, ...row }) => {
-    const deck = deck_version?.deck ?? null;
-    return {
-      ...row,
-      deck: deck
-        ? { id: deck.id, name: deck.name, archivedAt: deck.archived_at }
-        : null,
-    };
-  });
+  return (data ?? []).map(withDeck);
+}
+
+/**
+ * One match (games in order, with their point events, plus the deck played)
+ * for the match detail screen. null if it doesn't exist or isn't the caller's.
+ */
+export async function fetchMatch(id: string): Promise<MatchWithGames | null> {
+  const { data, error } = await supabase
+    .from('matches')
+    .select(HISTORY_COLUMNS)
+    .eq('id', id)
+    .order('game_index', { referencedTable: 'games', ascending: true })
+    .returns<HistoryRow[]>()
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? withDeck(data) : null;
 }
 
 /**

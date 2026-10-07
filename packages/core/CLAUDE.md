@@ -44,8 +44,10 @@ So nothing here can assume a specific runtime. Pure TS only.
     │   ├── validate.ts       isDeckList (runtime guard for stored lists)
     │   ├── *.test.ts         Vitest
     │   └── __fixtures__/     kennen.txt (text export), kennen.code.txt (Piltover code)
+    ├── matches/
+    │   └── timeline.ts       buildTimeline, pointShare, toPointEvents / isPointEvent
     ├── types/
-    │   ├── match.ts          Player, PlayerId, Game, Match
+    │   ├── match.ts          Player, PlayerId, Game, Match, PointEvent, ScoringAction
     │   ├── deck.ts           CardRef, DeckList, DeckImportSource, DeckSnapshot
     │   └── profile.ts        Profile
     └── db/database.types.ts  generated Supabase types (never hand-edit)

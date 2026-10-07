@@ -1,6 +1,13 @@
 import React, { createContext, ReactNode, useContext, useState } from 'react';
 import { randomUUID } from 'expo-crypto';
-import type { DeckSnapshot, Game, Match, Player, PlayerId } from '@riftlog/core';
+import type {
+  DeckSnapshot,
+  Game,
+  Match,
+  Player,
+  PlayerId,
+  ScoringAction,
+} from '@riftlog/core';
 
 /**
  * Defaults a match still falls back on. The pre-match setup sheet now supplies
@@ -67,7 +74,9 @@ export type MatchContextType = {
   resumeClock: () => void;
 
   // Score actions (intent-named, player-oriented)
-  incrementScore: (playerId: PlayerId) => void;
+  /** Score a point, recording HOW it was taken (the button pressed). */
+  incrementScore: (playerId: PlayerId, action: ScoringAction) => void;
+  /** Take a point back (tap on the numeral); recorded as a correction. */
   decrementScore: (playerId: PlayerId) => void;
   setScore: (playerId: PlayerId, value: number) => void;
 };
@@ -105,6 +114,7 @@ const makeGame = (): Game => ({
   winnerId: null,
   startedAt: nowIso(),
   endedAt: null,
+  events: [],
 });
 
 const makePlayer = (id: PlayerId, name: string): Player => ({
@@ -301,17 +311,51 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const incrementScore = (playerId: PlayerId) => {
-    updatePlayer(playerId, (p) => ({ ...p, gameScore: p.gameScore + 1 }));
+  /**
+   * Change a player's live score by ±1 AND append the matching point event to
+   * the current game, in one update so the score and the timeline can't drift.
+   * A take-back at 0 changes nothing, so nothing is recorded. Ignored once the
+   * current game is frozen (between games / match over).
+   */
+  const changeScore = (
+    playerId: PlayerId,
+    delta: 1 | -1,
+    action: ScoringAction | null,
+  ) => {
+    setMatch((prev) => {
+      if (!prev || prev.endedAt !== null) return prev;
+      const game = prev.games[prev.currentGameIndex];
+      const player = prev.players.find((p) => p.id === playerId);
+      if (!game || game.endedAt !== null || !player) return prev;
+      if (delta === -1 && player.gameScore === 0) return prev;
+
+      const event = {
+        atMs: Math.max(0, Date.now() - Date.parse(game.startedAt)),
+        playerId,
+        delta,
+        action,
+      };
+      return {
+        ...prev,
+        players: prev.players.map((p) =>
+          p.id === playerId ? { ...p, gameScore: p.gameScore + delta } : p,
+        ),
+        games: prev.games.map((g, i) =>
+          i === prev.currentGameIndex
+            ? { ...g, events: [...(g.events ?? []), event] }
+            : g,
+        ),
+      };
+    });
   };
 
-  const decrementScore = (playerId: PlayerId) => {
-    updatePlayer(playerId, (p) => ({
-      ...p,
-      gameScore: Math.max(p.gameScore - 1, 0),
-    }));
-  };
+  const incrementScore = (playerId: PlayerId, action: ScoringAction) =>
+    changeScore(playerId, 1, action);
 
+  const decrementScore = (playerId: PlayerId) => changeScore(playerId, -1, null);
+
+  // Not used by the board; it jumps a score without recording point events, so
+  // a game set this way has a timeline that doesn't add up to its final score.
   const setScore = (playerId: PlayerId, value: number) => {
     updatePlayer(playerId, (p) => ({ ...p, gameScore: Math.max(value, 0) }));
   };

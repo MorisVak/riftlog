@@ -80,7 +80,13 @@ type Action = (typeof ACTIONS)[number];
  * which action scored — and on the rotated half it lifts toward that player,
  * since the whole field is turned to face them.
  */
-const ActionButton = ({ action, onScore }: { action: Action; onScore: () => void }) => {
+const ActionButton = ({
+  action,
+  onScore,
+}: {
+  action: Action;
+  onScore: (action: Action['key']) => void;
+}) => {
   const fly = useSharedValue(0);
 
   const flyStyle = useAnimatedStyle(() => ({
@@ -90,7 +96,7 @@ const ActionButton = ({ action, onScore }: { action: Action; onScore: () => void
   }));
 
   const press = () => {
-    onScore();
+    onScore(action.key);
     // Restart from zero so rapid taps each get their own lift rather than
     // continuing a run that's already fading.
     fly.value = 0;
@@ -135,9 +141,11 @@ const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
   const player = match?.players.find((p) => p.id === playerId);
   if (!player) return null;
 
-  const onScore = () => {
+  // Which button was pressed is recorded with the point (the match detail's
+  // timeline shows it).
+  const onScore = (action: Action['key']) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    incrementScore(playerId);
+    incrementScore(playerId, action);
   };
 
   const onUndo = () => {

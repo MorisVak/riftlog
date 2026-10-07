@@ -247,8 +247,9 @@ written (`matches.deck_version_id`); the deck is stripped from the `players`
 jsonb, since the immutable version already holds the list. History reads it
 back through `matches → deck_versions → decks` (current name, archived flag):
 the name on the row's meta line, a link in the expanded row, and a "View
-details" button to the placeholder `app/matches/[id].tsx`. Still deferred:
-the track-turns control. See the match flow before extending it.
+details" button to the match detail (`app/matches/[id].tsx`, see below).
+Still deferred: the track-turns control. See the match flow before extending
+it.
 
 ### Timed mode
 
@@ -329,9 +330,19 @@ Conventions:
 
 - **A point is scored by saying HOW.** Under the numeral sit three buttons —
   conquer / hold / special — and **tapping the numeral takes a point back**;
-  there is no separate decrement control. All three actions currently just
-  `incrementScore` by 1; which one was pressed is **not** recorded yet (that
-  needs a field on `Game`), so don't assume history can break points down.
+  there is no separate decrement control. Every change is **recorded** on the
+  current game as a `PointEvent` (`Game.events`: ms since the game started,
+  player, ±1, and `conquer`/`hold`/`special`, or null for a take-back), in the
+  same update as the score so they can't drift (`changeScore` in
+  `matchContext`). A take-back at 0 records nothing. `setScore` jumps a score
+  without events and isn't used by the board — don't wire it to UI.
+- **Match detail** (`app/matches/[id].tsx`, `fetchMatch` →
+  `lib/matchDetailView.ts` → `components/match/gameCard.tsx`): result card,
+  per-game bars (fill = your share of points, `pointShare` in core) that
+  expand into the point timeline (`buildTimeline` in core), and your deck.
+  The VM builds on `toHistoryRowVM` so History and the detail can't disagree.
+  v1 is **your side only** — the opponent block (their deck, profile,
+  head-to-head) waits for match mode.
 - **Scoring is a manual tally — no auto-end.** Score can't drop below 0;
   there's no upper bound and no win-at-target logic. Games and the match end
   only via explicit user action (with a confirm prompt), so stray or accidental
@@ -705,7 +716,8 @@ is explicitly started:
 
 - The track-turns control in pre-match setup (format, names, timed mode,
   and deck are built)
-- The match detail screen (`app/matches/[id].tsx` is a placeholder)
+- The match detail's opponent block (their deck, linked profile,
+  head-to-head, win rate) — needs match mode
 - Deck **code** decoding (detected only), Riftmana import, deck editing /
   versions, restoring deleted decks, and attaching decks to matches. Text
   import, the deck view, renaming, (soft) delete, and "My decks" are built.

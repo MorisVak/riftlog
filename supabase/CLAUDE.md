@@ -41,7 +41,9 @@ supabase/
 │   ├── 20260924155255_decks.sql
 │   ├── 20261007131426_deck_soft_delete.sql
 │   ├── 20261007132243_delete_decks_bulk.sql
-│   └── 20261007153123_match_deck.sql
+│   ├── 20261007153123_match_deck.sql
+│   ├── 20261007155324_matches_clock_paused.sql
+│   └── 20261007161708_games_point_events.sql
 └── config.toml       Supabase CLI config (linked, anon auth OFF)
 
 ## Schema
@@ -72,7 +74,10 @@ mirror the `@riftlog/core` domain terms (a **match** is the Bo1/Bo3 series, a
   (FK → `matches.id` `on delete cascade`), `user_id` (**denormalized**,
   `default auth.uid()` — so RLS is a direct column check, no join), `game_index`,
   `scores_at_end` (jsonb), `winner_id` (text, **nullable**), `started_at`,
-  `ended_at` (**nullable**), `created_at`.
+  `ended_at` (**nullable**), `events` (jsonb array of core `PointEvent`s —
+  the point timeline; `'[]'` for games recorded before it, ≤ 64 KB),
+  `created_at`. `scores_at_end` stays the authority; the database never
+  replays `events`.
 
 - **`profiles`** — `id` (uuid PK **and** FK → `auth.users` `on delete cascade`
   — a profile can't exist without its user and dies with it), `username`

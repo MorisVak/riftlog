@@ -122,6 +122,7 @@ export type Database = {
         Row: {
           created_at: string
           ended_at: string | null
+          events: Json
           game_index: number
           id: string
           match_id: string
@@ -133,6 +134,7 @@ export type Database = {
         Insert: {
           created_at?: string
           ended_at?: string | null
+          events?: Json
           game_index: number
           id: string
           match_id: string
@@ -144,6 +146,7 @@ export type Database = {
         Update: {
           created_at?: string
           ended_at?: string | null
+          events?: Json
           game_index?: number
           id?: string
           match_id?: string

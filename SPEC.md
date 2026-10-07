@@ -188,8 +188,9 @@ scores, and deleting — swipe a row left, or tap **Select** (or long-press a
 row) to pick several and delete them together. Deleting a match is permanent
 and removes its games. A match played with a deck shows the deck's name on
 its row, and the expanded row links to the deck (a deck deleted since is
-named but not linked). "View details" opens a **placeholder** match detail
-screen; the designed list / detail view is still planned.
+named but not linked). "View details" opens the **match detail**: the
+result, a per-game breakdown, each game's point timeline, and the deck you
+played.
 
 **What it is.** A browsable list of completed matches, newest first. Tapping a
 match opens a detail view.
@@ -198,10 +199,25 @@ match opens a detail view.
 letter badge + colored bar), format (Bo1/Bo3), final game score, and the deck
 played (once decks ship).
 
-**Detail view shows:** per-game breakdown (score at end, winner), format,
-the deck snapshot, and any notes/tags. Because the
-deck is stored as an immutable snapshot, the detail always reflects the exact
-list played. The match-end flow in Feature 1 routes here as the overview.
+**Detail view (built, v1 — your side only).** A result card (Victory /
+Defeat / Draw with the W/L/D badge, "vs {opponent} · Best of n", the series or
+game score, the date, and for timed matches the time played excluding pauses).
+Then **Games**: one card per game with your score, a bar filled to your share
+of the points in the result color, their score, and the W/L/D badge (an
+unfinished game, from ending the match early, is marked as such). Tapping a
+game expands its **point timeline**: every point in order with its game time,
+who scored, how (Conquer / Hold / Special — colored like the board's buttons —
+or a point taken back), and the running score. Then **Deck**: the deck you
+played, linking to its decklist, or a note that none was chosen.
+
+Point timelines exist for games played since point recording shipped: the
+board records each score change (`Game.events`). Older games show the bars
+only, with a note. Notes/tags aren't shown yet, and there's no location.
+
+**With match mode (Feature 8)** the detail gains the opponent: their deck (a
+"Decklist" card like yours), their linked Riftlog profile, your head-to-head
+record, and their win rate. Nothing for it is shown in v1 — the data doesn't
+exist until two accounts share a match.
 
 **Result perspective.** History is owner-centric: results render as win / loss
 / draw relative to the owning player, always pairing color with the W/L/D
@@ -393,7 +409,9 @@ still to be decided.
 ## Feature 8 — Match mode (QR co-recording)
 
 **Status:** deferred to v2. Forward-compatible fields exist
-(`Match.hostUserId`, `Match.guestUserIds`).
+(`Match.hostUserId`, `Match.guestUserIds`). When it lands, the match detail
+(Feature 2) adds an opponent section: their deck, linked profile,
+head-to-head, and their win rate.
 
 **What it is.** When both players have the app and want a shared record, one
 player surfaces a QR code and the other scans it to join or receive the match,
