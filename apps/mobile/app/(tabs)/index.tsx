@@ -88,6 +88,18 @@ const GuestRecentState = () => (
   </View>
 );
 
+/** Guest stand-in for "Recently played deck": decks need an account. */
+const GuestDeckState = () => (
+  <View className="rounded-2xl border border-border bg-surface px-6 py-8">
+    <Text className="text-center font-display text-base text-ink-primary">
+      No decks in guest mode
+    </Text>
+    <Text className="mt-2 text-center text-sm text-ink-secondary">
+      Sign in to import your decks and pick one when you start a match.
+    </Text>
+  </View>
+);
+
 const Home = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -241,31 +253,40 @@ const Home = () => {
         </Pressable>
         </Animated.View>
 
-        {/* Season stats */}
-        <Animated.View
-          style={statsStyle}
-          className="mt-3.5 flex-row overflow-hidden rounded-2xl border border-border bg-surface"
-        >
-          <StatCell value={stats.wins} label="Wins" color="text-win-text" />
-          <StatCell value={stats.losses} label="Losses" color="text-loss-text" />
-          <StatCell value={stats.winRate} label="Win rate" color="text-accent" last />
-        </Animated.View>
+        {/* Season stats — your own saved matches, so none for a guest (they
+            have nothing saved; a row of zeroes would just look broken).
+            Shown while the session restores so a signed-in cold start
+            doesn't jump. */}
+        {status !== 'guest' && (
+          <Animated.View
+            style={statsStyle}
+            className="mt-3.5 flex-row overflow-hidden rounded-2xl border border-border bg-surface"
+          >
+            <StatCell value={stats.wins} label="Wins" color="text-win-text" />
+            <StatCell value={stats.losses} label="Losses" color="text-loss-text" />
+            <StatCell value={stats.winRate} label="Win rate" color="text-accent" last />
+          </Animated.View>
+        )}
 
-        {/* Recently played deck — signed in, and only once a match has been
-            played with a deck. */}
-        {authed && lastPlayed && (
+        {/* Recently played deck — signed in, once a match has been played
+            with a deck; a guest gets a stand-in, like Recent matches. */}
+        {(status === 'guest' || (authed && lastPlayed)) && (
           <Animated.View style={deckStyle}>
             <View className="mb-3 mt-6 px-0.5">
               <Text className="font-display-bold text-[15px] text-ink-primary">
                 Recently played deck
               </Text>
             </View>
-            <RecentDeckCard
-              name={lastPlayed.name}
-              playedAt={lastPlayed.playedAt}
-              deck={lastDeck}
-              onPress={() => router.push(`/decks/${lastPlayed.id}`)}
-            />
+            {authed && lastPlayed ? (
+              <RecentDeckCard
+                name={lastPlayed.name}
+                playedAt={lastPlayed.playedAt}
+                deck={lastDeck}
+                onPress={() => router.push(`/decks/${lastPlayed.id}`)}
+              />
+            ) : (
+              <GuestDeckState />
+            )}
           </Animated.View>
         )}
 
