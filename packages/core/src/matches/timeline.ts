@@ -46,25 +46,33 @@ export function netPoints(events: readonly PointEvent[]): PointEvent[] {
   return kept.filter((e): e is PointEvent => e !== null);
 }
 
-/** One step of a player's score line: their score from `atMs` on. */
-export type ScoreStep = { atMs: number; score: number };
+/**
+ * One step of a player's score line: their score from `atMs` on, and how the
+ * point that produced it was scored (null for the starting 0).
+ */
+export type ScoreStep = {
+  atMs: number;
+  score: number;
+  action: ScoringAction | null;
+};
 
 /**
  * Each player's score as a step series over game time, from the net points.
- * Every series starts at `{ atMs: 0, score: 0 }`; each kept point adds a step.
+ * Every series starts at `{ atMs: 0, score: 0, action: null }`; each kept
+ * point adds a step carrying its scoring action.
  * This is what the match detail's score graph draws.
  */
 export function scoreSeries(
   events: readonly PointEvent[],
 ): Record<PlayerId, ScoreStep[]> {
   const series: Record<PlayerId, ScoreStep[]> = {
-    p1: [{ atMs: 0, score: 0 }],
-    p2: [{ atMs: 0, score: 0 }],
+    p1: [{ atMs: 0, score: 0, action: null }],
+    p2: [{ atMs: 0, score: 0, action: null }],
   };
   for (const e of netPoints(events)) {
     const line = series[e.playerId];
     const last = line[line.length - 1]?.score ?? 0;
-    line.push({ atMs: e.atMs, score: last + 1 });
+    line.push({ atMs: e.atMs, score: last + 1, action: e.action });
   }
   return series;
 }

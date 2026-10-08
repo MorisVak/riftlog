@@ -57,27 +57,28 @@ describe('netPoints', () => {
 describe('scoreSeries', () => {
   it('builds each player\'s step line from the net points', () => {
     const s = scoreSeries([
-      ev(1000, 'p1', 1),
-      ev(2000, 'p2', 1),
-      ev(3000, 'p1', 1),
+      ev(1000, 'p1', 1, 'conquer'),
+      ev(2000, 'p2', 1, 'hold'),
+      ev(3000, 'p1', 1, 'special'),
       ev(4000, 'p1', -1),
-      ev(5000, 'p1', 1),
+      ev(5000, 'p1', 1, 'hold'),
     ]);
+    // The taken-back Special is gone; each step keeps how its point was scored.
     expect(s.p1).toEqual([
-      { atMs: 0, score: 0 },
-      { atMs: 1000, score: 1 },
-      { atMs: 5000, score: 2 },
+      { atMs: 0, score: 0, action: null },
+      { atMs: 1000, score: 1, action: 'conquer' },
+      { atMs: 5000, score: 2, action: 'hold' },
     ]);
     expect(s.p2).toEqual([
-      { atMs: 0, score: 0 },
-      { atMs: 2000, score: 1 },
+      { atMs: 0, score: 0, action: null },
+      { atMs: 2000, score: 1, action: 'hold' },
     ]);
   });
 
   it('starts both lines at 0 when there are no points', () => {
     expect(scoreSeries([])).toEqual({
-      p1: [{ atMs: 0, score: 0 }],
-      p2: [{ atMs: 0, score: 0 }],
+      p1: [{ atMs: 0, score: 0, action: null }],
+      p2: [{ atMs: 0, score: 0, action: null }],
     });
   });
 });

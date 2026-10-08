@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Text, View, type LayoutChangeEvent } from 'react-native';
-import type { ScoreStep } from '@riftlog/core';
+import type { ScoreStep, ScoringAction } from '@riftlog/core';
 import type { GameGraphVM } from '@/lib/matchDetailView';
 
 const PLOT_H = 72;
@@ -13,15 +13,35 @@ const MARKER = 8;
 /** End labels closer than this get nudged apart. */
 const LABEL_GAP = 13;
 
-// Series colors (validated with the dataviz palette checker against the
-// `surface` card: ΔE 17.3 normal vision / 16.8 under CVD simulation). The
-// opponent line is the deliberately muted context series — its contrast is
-// below 3:1, which is why both lines are always direct-labeled with their
-// final score and named in the legend.
-const SERIES = {
-  you: { line: 'bg-accent', name: 'You' },
-  them: { line: 'bg-ink-tertiary', name: 'Opponent' },
-} as const;
+// Your line is colored by HOW each point was scored: from a point until the
+// next one, the run (and the step up into it) takes that point's action color
+// — the board's own conquer / hold / special tokens. Before your first point
+// it's the standard accent. The opponent stays one muted color, so the two
+// lines can never be confused.
+//
+// Checked with the dataviz palette validator against the `surface` card:
+// action colors + opponent separate (worst ΔE 17.6 normal, 8.8 under CVD).
+// The accent start and Special pink are close for protan vision (ΔE 2.8) —
+// the accent only ever appears as the flat run at 0 before your first point,
+// so position tells them apart. The muted opponent line is below 3:1
+// contrast, so both lines are always direct-labeled and in the legend.
+const BASE = { you: 'bg-accent', them: 'bg-ink-tertiary' } as const;
+
+const ACTION_BG: Record<ScoringAction, string> = {
+  conquer: 'bg-conquer',
+  hold: 'bg-hold',
+  special: 'bg-special',
+};
+
+const youColor = (step: ScoreStep): string =>
+  step.action ? ACTION_BG[step.action] : BASE.you;
+const themColor = (): string => BASE.them;
+
+const LEGEND: { label: string; color: string }[] = [
+  { label: 'Conquer', color: ACTION_BG.conquer },
+  { label: 'Hold', color: ACTION_BG.hold },
+  { label: 'Special', color: ACTION_BG.special },
+];
 
 type Pos = { x: (ms: number) => number; y: (score: number) => number };
 
@@ -34,12 +54,13 @@ const StepLine = ({
   steps,
   endMs,
   pos,
-  color,
+  colorFor,
 }: {
   steps: ScoreStep[];
   endMs: number;
   pos: Pos;
-  color: string;
+  /** A run takes its starting step's color; a step up takes the new step's. */
+  colorFor: (step: ScoreStep) => string;
 }) => (
   <>
     {steps.map((s, i) => {
@@ -50,7 +71,7 @@ const StepLine = ({
       return (
         <React.Fragment key={i}>
           <View
-            className={`absolute rounded-full ${color}`}
+            className={`absolute rounded-full ${colorFor(s)}`}
             style={{
               left: x1,
               top: y - LINE / 2,
@@ -60,7 +81,7 @@ const StepLine = ({
           />
           {next && (
             <View
-              className={`absolute rounded-full ${color}`}
+              className={`absolute rounded-full ${colorFor(next)}`}
               style={{
                 left: x2 - LINE / 2,
                 top: pos.y(next.score) - LINE / 2,
@@ -105,19 +126,23 @@ const ScoreGraph = ({ graph }: { graph: GameGraphVM }) => {
 
   return (
     <View accessible accessibilityLabel={graph.summary}>
-      {/* Legend: always present for two series, text in ink tokens. */}
+      {/* Legend: what your line's colors mean, and the opponent's line.
+          Text in ink tokens; the colored dots carry identity. */}
       <View
-        className="mb-2 flex-row gap-4"
+        className="mb-2 flex-row flex-wrap items-center gap-x-3 gap-y-1"
         importantForAccessibility="no-hide-descendants"
       >
-        {(['you', 'them'] as const).map((k) => (
-          <View key={k} className="flex-row items-center gap-1.5">
-            <View className={`h-2 w-2 rounded-full ${SERIES[k].line}`} />
-            <Text className="text-[12px] text-ink-secondary">
-              {SERIES[k].name}
-            </Text>
+        <Text className="text-[12px] text-ink-secondary">You:</Text>
+        {LEGEND.map((l) => (
+          <View key={l.label} className="flex-row items-center gap-1.5">
+            <View className={`h-2 w-2 rounded-full ${l.color}`} />
+            <Text className="text-[12px] text-ink-secondary">{l.label}</Text>
           </View>
         ))}
+        <View className="ml-1 flex-row items-center gap-1.5">
+          <View className={`h-2 w-2 rounded-full ${BASE.them}`} />
+          <Text className="text-[12px] text-ink-secondary">Opponent</Text>
+        </View>
       </View>
 
       <View
@@ -139,26 +164,26 @@ const ScoreGraph = ({ graph }: { graph: GameGraphVM }) => {
               steps={graph.them}
               endMs={graph.durationMs}
               pos={pos}
-              color={SERIES.them.line}
+              colorFor={themColor}
             />
             <StepLine
               steps={graph.you}
               endMs={graph.durationMs}
               pos={pos}
-              color={SERIES.you.line}
+              colorFor={youColor}
             />
 
             {/* End markers with a surface ring, so overlapping ends stay
-                distinct. */}
+                distinct. Yours matches your line's final color. */}
             {(
               [
-                ['them', themFinal],
-                ['you', youFinal],
+                ['them', themFinal, BASE.them],
+                ['you', youFinal, youColor(graph.you.at(-1) ?? graph.you[0]!)],
               ] as const
-            ).map(([k, score]) => (
+            ).map(([k, score, color]) => (
               <View
                 key={k}
-                className={`absolute rounded-full border-2 border-surface ${SERIES[k].line}`}
+                className={`absolute rounded-full border-2 border-surface ${color}`}
                 style={{
                   left: plotW - (MARKER + 4) / 2,
                   top: pos.y(score) - (MARKER + 4) / 2,

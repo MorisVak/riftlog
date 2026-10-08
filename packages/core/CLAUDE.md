@@ -103,8 +103,9 @@ type-checked by `pnpm typecheck` like everything else.
 Several types include fields with no current consumer:
 
 - `Player.userId` — Supabase user ID once auth lands
-- `Player.deck` — DeckSnapshot; pins an immutable deck version once decks are
-  attached to matches (not built yet)
+- `Player.deck` — DeckSnapshot for the deck p1 chose in setup; only its
+  `versionId` is persisted (`matches.deck_version_id`). Unused for p2 until
+  match mode
 - `Match.hostUserId` / `guestUserIds` — for v2 QR co-recording
 - `Match.notes` / `tags` — for match history features
 

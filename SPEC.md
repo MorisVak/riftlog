@@ -207,7 +207,10 @@ of the points in the result color, their score, and the W/L/D badge (an
 unfinished game, from ending the match early, is marked as such). Tapping a
 game expands its **score graph**: your line and the opponent's as they climbed
 over the game, ending in the final scores — deliberately low-detail, no
-per-point labels. A point taken back on the board cancels the point it undid,
+per-point labels. Your line is colored by how each point was scored: from a
+point until the next, it takes that point's color (Conquer / Hold / Special,
+the board's button colors); before your first point it's the standard color.
+The opponent's line stays one muted color. A point taken back on the board cancels the point it undid,
 and neither appears. Then **Deck**: the deck you played, linking to its
 decklist, or a note that none was chosen.
 

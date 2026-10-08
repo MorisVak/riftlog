@@ -342,10 +342,13 @@ Conventions:
   expand into a score graph (`components/match/scoreGraph.tsx`, step lines
   drawn from plain Views — no SVG dependency), and your deck. The graph uses
   `scoreSeries` in core, which nets take-backs out first (`netPoints`: a -1
-  cancels that player's latest point; neither is shown). Series colors are
-  accent (you) and `ink-tertiary` (opponent), validated for separation; the
-  muted line is under 3:1 contrast, so both lines are always direct-labeled
-  with their final score and named in a legend.
+  cancels that player's latest point; neither is shown). Your line is colored
+  per run by the scoring action that started it (`bg-conquer` / `bg-hold` /
+  `bg-special`; `bg-accent` before your first point); the opponent's stays
+  `ink-tertiary` so the two lines never share a color. Validated for
+  separation; the muted line is under 3:1 contrast, so both lines are always
+  direct-labeled with their final score, and the legend explains the action
+  colors.
   The VM builds on `toHistoryRowVM` so History and the detail can't disagree.
   v1 is **your side only** — the opponent block (their deck, profile,
   head-to-head) waits for match mode.
