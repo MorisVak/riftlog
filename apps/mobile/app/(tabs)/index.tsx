@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/authContext';
 import { useMatch } from '@/contexts/matchContext';
 import GuestBanner from '@/components/guestBanner';
 import PlayField from '@/components/playField';
+import GameStartIntro from '@/components/gameStartIntro';
 import BetweenGamesScreen from '@/components/betweenGamesScreen';
 import MatchOverview from '@/components/matchOverview';
 import MatchSetup from '@/components/matchSetup';
@@ -339,6 +340,9 @@ const Index = () => {
     return (
       <View className="flex-1 bg-background">
         <PlayField />
+        {/* The "VS" intro at the start of each game; renders nothing
+            otherwise. */}
+        <GameStartIntro />
       </View>
     );
   }

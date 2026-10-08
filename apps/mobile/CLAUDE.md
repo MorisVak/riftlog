@@ -316,6 +316,11 @@ game counter, nothing taking board space from either player:
   + glow and greys the clock; there's deliberately no "PAUSED" label, which
   would grow the rotated capsule. Nothing else belongs here — the pass-turn
   control is still deferred.
+- **Game-start intro** (`components/gameStartIntro.tsx`, over `PlayField`):
+  the design's "VS" transition — cards slide in, VS pops, "Match start" /
+  "Game 2" / "Game 3" — ~1.75s, tap to skip. It plays once per game id and
+  only for a game that *just* started (no events, `startedAt` < 3s ago), so a
+  restored match never replays it.
 - History stores the configured limit and the total paused time; played time
   (excluding pauses) and the overtime flag are derived in `lib/historyView.ts`.
 - The setup sheet offers two presets (30 / 60 min) plus **Custom**, which opens
