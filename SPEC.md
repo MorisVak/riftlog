@@ -92,8 +92,9 @@ writing the logic that drives them. Things to know:
    from those and `started_at`/`ended_at`.
 
 Forward-compatible fields already in the model (`Player.userId`,
-`Player.deck`, `Match.hostUserId`, `Match.guestUserIds`, `Match.notes`,
-`Match.tags`) exist on purpose for the features below. Don't remove them.
+`Player.deck`, `Match.hostUserId`, `Match.guestUserIds`, `Match.tags`) exist
+on purpose for the features below. Don't remove them. (`Match.notes` and
+`Player.deck` are now in use: round notes, and the deck you played.)
 
 ---
 
@@ -211,13 +212,23 @@ per-point labels. Your line is colored by how each point was scored: from a
 point until the next, it takes that point's color (Conquer / Hold / Special,
 the board's button colors); before your first point it's the standard color.
 The opponent's line stays one muted color. A point taken back on the board cancels the point it undid,
-and neither appears. Then **Deck**: the deck you played, linking to its
-decklist, or a note that none was chosen.
+and neither appears. Each game card also shows **your note on that game**
+(or "Add note"). Then **Deck**: the deck you played, linking to its decklist,
+or a note that none was chosen. Then **Notes**: your note on the whole round.
+
+**Notes.** One free-text note per game plus one for the round (up to 2000
+characters each), written in a full-screen editor (type, line-break, Save /
+Cancel). They're offered while it's fresh — on the between-games screen
+("Add a note for game n") and on the match-complete screen (every game, so
+the last one too, plus the round) — and stay editable any time from the
+match detail. Signed-in only (a guest's match isn't saved). Notes are part of
+the match in Postgres: added on the match-complete screen they re-sync to the
+already-saved match, offline through the outbox like any write.
 
 Score graphs exist for games played since point recording shipped: the board
 records each score change, including how it was scored (`Game.events`), so a
 richer breakdown is possible later. Older games show the bars only, with a
-note. Notes/tags aren't shown yet, and there's no location.
+note. Tags aren't built yet, and there's no location.
 
 **With match mode (Feature 8)** the detail gains the opponent: their deck (a
 "Decklist" card like yours), their linked Riftlog profile, your head-to-head

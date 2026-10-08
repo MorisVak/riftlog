@@ -1,5 +1,6 @@
 import React, { createContext, ReactNode, useContext, useState } from 'react';
 import { randomUUID } from 'expo-crypto';
+import { normalizeNote } from '@riftlog/core';
 import type {
   DeckSnapshot,
   Game,
@@ -78,6 +79,13 @@ export type MatchContextType = {
   incrementScore: (playerId: PlayerId, action: ScoringAction) => void;
   /** Take a point back (tap on the numeral); recorded as a correction. */
   decrementScore: (playerId: PlayerId) => void;
+
+  // Notes. Work during the match AND on the match-over screen (the match is
+  // already saved then — MatchSync re-syncs when notes change).
+  /** Set (or clear, with blank text) the note on game `gameIndex`. */
+  setGameNote: (gameIndex: number, text: string) => void;
+  /** Set (or clear) the note on the whole match — the round. */
+  setMatchNote: (text: string) => void;
   setScore: (playerId: PlayerId, value: number) => void;
 };
 
@@ -349,6 +357,22 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const setGameNote = (gameIndex: number, text: string) => {
+    const note = normalizeNote(text) ?? undefined;
+    setMatch((prev) => {
+      if (!prev || !prev.games[gameIndex]) return prev;
+      return {
+        ...prev,
+        games: prev.games.map((g, i) => (i === gameIndex ? { ...g, notes: note } : g)),
+      };
+    });
+  };
+
+  const setMatchNote = (text: string) => {
+    const note = normalizeNote(text) ?? undefined;
+    setMatch((prev) => (prev ? { ...prev, notes: note } : prev));
+  };
+
   const incrementScore = (playerId: PlayerId, action: ScoringAction) =>
     changeScore(playerId, 1, action);
 
@@ -387,6 +411,8 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
         concludeMatch,
         pauseClock,
         resumeClock,
+        setGameNote,
+        setMatchNote,
         incrementScore,
         decrementScore,
         setScore,

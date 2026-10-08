@@ -126,6 +126,7 @@ export type Database = {
           game_index: number
           id: string
           match_id: string
+          notes: string | null
           scores_at_end: Json
           started_at: string
           user_id: string
@@ -138,6 +139,7 @@ export type Database = {
           game_index: number
           id: string
           match_id: string
+          notes?: string | null
           scores_at_end: Json
           started_at: string
           user_id?: string
@@ -150,6 +152,7 @@ export type Database = {
           game_index?: number
           id?: string
           match_id?: string
+          notes?: string | null
           scores_at_end?: Json
           started_at?: string
           user_id?: string
@@ -175,6 +178,7 @@ export type Database = {
           guest_user_ids: string[]
           host_user_id: string | null
           id: string
+          notes: string | null
           players: Json
           started_at: string
           time_limit_seconds: number | null
@@ -190,6 +194,7 @@ export type Database = {
           guest_user_ids?: string[]
           host_user_id?: string | null
           id: string
+          notes?: string | null
           players: Json
           started_at: string
           time_limit_seconds?: number | null
@@ -205,6 +210,7 @@ export type Database = {
           guest_user_ids?: string[]
           host_user_id?: string | null
           id?: string
+          notes?: string | null
           players?: Json
           started_at?: string
           time_limit_seconds?: number | null

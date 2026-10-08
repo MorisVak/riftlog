@@ -350,6 +350,17 @@ Conventions:
   direct-labeled with their final score, and the legend explains the action
   colors.
   The VM builds on `toHistoryRowVM` so History and the detail can't disagree.
+- **Notes** (`Game.notes`, `Match.notes`): one shared editor,
+  `components/match/noteEditor.tsx` (a native page-sheet `Modal`, Save /
+  Cancel, 2000-char counter), and `noteRow.tsx` for "note or Add note" rows.
+  Live: the between-games screen and the match-complete screen
+  (`setGameNote` / `setMatchNote` in `matchContext`, signed-in only). Later:
+  the match detail edits Postgres directly (`updateGameNote` /
+  `updateMatchNote`). Text is stored via core's `normalizeNote` (trimmed,
+  blank → null). **The match is already saved when the match-complete screen
+  shows**, so `MatchSync` re-syncs a settled match whenever its notes change
+  (`notesKey`), and every completed-match write goes through one promise
+  chain (`enqueueWrite`) so a late first save can't overwrite newer notes.
   v1 is **your side only** — the opponent block (their deck, profile,
   head-to-head) waits for match mode.
 - **Scoring is a manual tally — no auto-end.** Score can't drop below 0;

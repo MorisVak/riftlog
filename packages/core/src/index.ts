@@ -53,6 +53,7 @@ export {
   toPointEvents,
   type ScoreStep,
 } from './matches/timeline';
+export { NOTE_MAX, normalizeNote } from './matches/notes';
 export type { Profile } from './types/profile';
 
 export {

@@ -49,6 +49,8 @@ export type Game = {
    * and their detail view shows only the final score.
    */
   events?: PointEvent[];
+  /** The player's note on this game (see `normalizeNote`); absent = none. */
+  notes?: string;
 };
 
 export type Match = {

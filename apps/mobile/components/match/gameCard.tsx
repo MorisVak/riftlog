@@ -5,6 +5,7 @@ import * as Haptics from 'expo-haptics';
 import type { DetailGameVM } from '@/lib/matchDetailView';
 import Icon from '@/components/icon';
 import ScoreGraph from '@/components/match/scoreGraph';
+import NoteRow from '@/components/match/noteRow';
 
 // Result tokens — the same win / loss / draw families as History. An
 // unfinished game (the match was ended early) gets neutral ink.
@@ -28,7 +29,14 @@ const TONE: Record<
  * (letter + color, never color alone). Tap to expand the game's score graph
  * when it has one (games recorded before point tracking don't).
  */
-const GameCard = ({ game }: { game: DetailGameVM }) => {
+const GameCard = ({
+  game,
+  onEditNote,
+}: {
+  game: DetailGameVM;
+  /** Open the note editor for this game. */
+  onEditNote: (game: DetailGameVM) => void;
+}) => {
   const [open, setOpen] = useState(false);
   const tone = TONE[game.result];
   const hasTimeline = game.graph !== null;
@@ -104,6 +112,16 @@ const GameCard = ({ game }: { game: DetailGameVM }) => {
           <ScoreGraph graph={game.graph} />
         </Animated.View>
       )}
+
+      {/* Your note on this game — always visible, tap to write or edit. */}
+      <View className="border-t border-border/60 px-4">
+        <NoteRow
+          label={`Game ${game.n}`}
+          note={game.notes}
+          onPress={() => onEditNote(game)}
+          lines={2}
+        />
+      </View>
     </View>
   );
 };

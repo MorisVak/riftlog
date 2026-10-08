@@ -43,7 +43,8 @@ supabase/
 │   ├── 20261007132243_delete_decks_bulk.sql
 │   ├── 20261007153123_match_deck.sql
 │   ├── 20261007155324_matches_clock_paused.sql
-│   └── 20261007161708_games_point_events.sql
+│   ├── 20261007161708_games_point_events.sql
+│   └── 20261008092736_match_game_notes.sql
 └── config.toml       Supabase CLI config (linked, anon auth OFF)
 
 ## Schema
@@ -61,7 +62,7 @@ mirror the `@riftlog/core` domain terms (a **match** is the Bo1/Bo3 series, a
   configured clock for the whole match; see below), `deck_version_id`
   (nullable — the exact deck version the owner/p1 played, see below),
   `host_user_id` / `guest_user_ids` (forward-compat, unused in v1),
-  `created_at`.
+  `notes` (text, nullable, ≤ 2000 chars — the round note), `created_at`.
 
   **`deck_version_id` is ownership-checked by its key**: a composite FK
   `(user_id, deck_version_id) → deck_versions (owner_id, id)`, so a match can
@@ -77,8 +78,10 @@ mirror the `@riftlog/core` domain terms (a **match** is the Bo1/Bo3 series, a
   `ended_at` (**nullable**), `events` (jsonb array of core `PointEvent`s —
   the source of the match detail's score graph; `'[]'` for games recorded
   before it, ≤ 64 KB),
-  `created_at`. `scores_at_end` stays the authority; the database never
-  replays `events`.
+  `notes` (text, nullable, ≤ 2000 chars — the game note), `created_at`.
+  `scores_at_end` stays the authority; the database never replays `events`.
+  Notes are edited later with a plain owner-scoped UPDATE (the existing
+  policies cover it).
 
 - **`profiles`** — `id` (uuid PK **and** FK → `auth.users` `on delete cascade`
   — a profile can't exist without its user and dies with it), `username`

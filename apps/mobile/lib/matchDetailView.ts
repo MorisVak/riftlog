@@ -38,6 +38,8 @@ export type GameGraphVM = {
 };
 
 export type DetailGameVM = {
+  /** The game row's id — what a note edit updates. */
+  id: string;
   n: number;
   you: number;
   them: number;
@@ -48,6 +50,8 @@ export type DetailGameVM = {
   letter: 'W' | 'L' | 'D' | null;
   /** null for games recorded before point recording existed. */
   graph: GameGraphVM | null;
+  /** Your note on this game, if any. */
+  notes: string | null;
 };
 
 export type MatchDetailVM = HistoryRowVM & {
@@ -55,6 +59,8 @@ export type MatchDetailVM = HistoryRowVM & {
   formatLong: 'Best of 1' | 'Best of 3';
   dateLong: string;
   detailGames: DetailGameVM[];
+  /** Your note on the whole match (the round), if any. */
+  notes: string | null;
   /** At least one game has no recorded score graph (older matches). */
   missingTimelines: boolean;
 };
@@ -109,6 +115,7 @@ export function toMatchDetailVM(m: MatchWithGames): MatchDetailVM {
     }
 
     return {
+      id: g.id,
       n: g.game_index + 1,
       you: scores.p1,
       them: scores.p2,
@@ -116,6 +123,7 @@ export function toMatchDetailVM(m: MatchWithGames): MatchDetailVM {
       result,
       letter,
       graph,
+      notes: g.notes ?? null,
     };
   });
 
@@ -129,6 +137,7 @@ export function toMatchDetailVM(m: MatchWithGames): MatchDetailVM {
       year: 'numeric',
     }),
     detailGames,
+    notes: m.notes ?? null,
     missingTimelines: detailGames.some((g) => g.graph === null),
   };
 }

@@ -8,7 +8,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useMatch } from '@/contexts/matchContext';
+import { useAuth } from '@/contexts/authContext';
 import MatchClock from './matchClock';
+import NoteEditor from './match/noteEditor';
+import Icon from './icon';
 import React, { useEffect, useState } from 'react';
 
 // Result tokens, paired with a letter so color is never the only signal. The
@@ -78,8 +81,10 @@ const EndRoundConfirm = ({
  * series score, then starts the next game on confirm.
  */
 const BetweenGamesScreen = () => {
-  const { match, advanceGame, concludeMatch } = useMatch();
+  const { match, advanceGame, concludeMatch, setGameNote } = useMatch();
+  const { status } = useAuth();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
 
   const glow = useSharedValue(0);
   useEffect(() => {
@@ -176,6 +181,35 @@ const BetweenGamesScreen = () => {
         Series {p1?.gameWins ?? 0}–{p2?.gameWins ?? 0}
       </Text>
 
+      {/* Note the game while it's fresh. Signed-in only: a guest's match is
+          never saved, so a note would go nowhere. */}
+      {status === 'authed' && (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setNoteOpen(true);
+          }}
+          className="mt-6 max-w-full flex-row items-center gap-2 rounded-full border border-border bg-surface px-4 py-2.5 active:bg-elevated"
+        >
+          <Icon
+            name={lastGame?.notes ? 'file-text' : 'edit-3'}
+            size={15}
+            className={lastGame?.notes ? 'text-ink-secondary' : 'text-accent'}
+          />
+          <Text
+            className={`flex-shrink font-display text-[14px] ${
+              lastGame?.notes ? 'text-ink-primary' : 'text-accent'
+            }`}
+            numberOfLines={1}
+          >
+            {lastGame?.notes
+              ? lastGame.notes
+              : `Add a note for game ${lastGameNumber}`}
+          </Text>
+        </Pressable>
+      )}
+
       {/* The glow sits on the wrapper, not the Pressable: an iOS shadow is cast
           from the view's own filled, rounded box, so it needs the accent fill
           and the pill radius. The Pressable inside paints only the pressed
@@ -197,6 +231,15 @@ const BetweenGamesScreen = () => {
           End round
         </Text>
       </Pressable>
+
+      <NoteEditor
+        visible={noteOpen}
+        initial={lastGame?.notes ?? null}
+        title={`Game ${lastGameNumber} note`}
+        placeholder="What happened this game? Mulligans, key turns, misplays…"
+        onSave={(text) => setGameNote(match.currentGameIndex, text)}
+        onClose={() => setNoteOpen(false)}
+      />
 
       {confirmOpen && (
         <EndRoundConfirm

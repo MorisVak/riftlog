@@ -1,4 +1,4 @@
-import type { Database, Match } from '@riftlog/core';
+import { normalizeNote, type Database, type Match } from '@riftlog/core';
 import { supabase } from './supabase';
 import { totalPausedMs } from './clock';
 
@@ -65,6 +65,8 @@ export async function saveCompletedMatch(match: Match): Promise<void> {
     clock_paused_ms: Math.round(totalPausedMs(match, Date.parse(match.endedAt))),
     host_user_id: match.hostUserId,
     guest_user_ids: match.guestUserIds,
+    // The round note; blank is stored as null.
+    notes: normalizeNote(match.notes),
   };
 
   const { error: matchError } = await supabase.from('matches').upsert(matchRow);
@@ -81,6 +83,7 @@ export async function saveCompletedMatch(match: Match): Promise<void> {
     // The point-by-point record for the match detail's timeline. `?? []`
     // covers games (and outbox entries) from before recording existed.
     events: (game.events ?? []) as unknown as GameInsert['events'],
+    notes: normalizeNote(game.notes),
   }));
 
   const { error: gamesError } = await supabase.from('games').upsert(gameRows);
@@ -168,4 +171,29 @@ export async function deleteMatches(matchIds: string[]): Promise<void> {
   if (matchIds.length === 0) return;
   const { error } = await supabase.from('matches').delete().in('id', matchIds);
   if (error) throw error;
+}
+
+/**
+ * Edit the round note on a saved match (match detail, any time later). Owner
+ * RLS scopes it; blank text clears it. Returns the stored value.
+ */
+export async function updateMatchNote(
+  matchId: string,
+  text: string,
+): Promise<string | null> {
+  const notes = normalizeNote(text);
+  const { error } = await supabase.from('matches').update({ notes }).eq('id', matchId);
+  if (error) throw error;
+  return notes;
+}
+
+/** Edit one game's note on a saved match. Same rules as `updateMatchNote`. */
+export async function updateGameNote(
+  gameId: string,
+  text: string,
+): Promise<string | null> {
+  const notes = normalizeNote(text);
+  const { error } = await supabase.from('games').update({ notes }).eq('id', gameId);
+  if (error) throw error;
+  return notes;
 }

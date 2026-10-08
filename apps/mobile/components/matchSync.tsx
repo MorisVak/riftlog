@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import type { Match } from '@riftlog/core';
 import { AppState } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { useAuth } from '@/contexts/authContext';
@@ -25,11 +26,27 @@ import {
  * guest match could reach the outbox it would upload under whichever account
  * signed in next, and we'd be back to writing merge logic.
  */
+/**
+ * What of a settled match can still change after it's saved: its notes (the
+ * match-over screen lets you add them). A change here triggers a re-sync.
+ */
+const notesKey = (m: Match): string =>
+  JSON.stringify([m.notes ?? null, m.games.map((g) => g.notes ?? null)]);
+
 const MatchSync = () => {
   const { status } = useAuth();
   const { match, endMatch, resumeMatch } = useMatch();
   // Settled matches we've already handed off to sync — de-dupes across renders.
   const handledIds = useRef<Set<string>>(new Set());
+  // The notes each handled match was last synced with, and one promise chain
+  // for all completed-match writes. Chaining means a re-sync (notes added on
+  // the match-over screen) can never be overtaken by the slower first save
+  // and have its notes overwritten by the note-less upsert.
+  const syncedNotes = useRef<Map<string, string>>(new Map());
+  const writeChain = useRef<Promise<void>>(Promise.resolve());
+  const enqueueWrite = (task: () => Promise<void>) => {
+    writeChain.current = writeChain.current.then(task, task);
+  };
   const prevStatus = useRef(status);
   // Matches this device saw while signed OUT. These are permanently
   // untouchable: they may never be mirrored, uploaded, or queued, no matter
@@ -108,12 +125,23 @@ const MatchSync = () => {
       void saveInProgressMatch(match);
       return;
     }
-    if (handledIds.current.has(match.id)) return;
+    if (handledIds.current.has(match.id)) {
+      // Already saved. Notes added on the match-over screen arrive after that
+      // first write — upsert again so they land (or replace the queued copy
+      // in the outbox when offline; the outbox de-dupes by id).
+      const key = notesKey(match);
+      if (syncedNotes.current.get(match.id) !== key) {
+        syncedNotes.current.set(match.id, key);
+        enqueueWrite(() => syncCompletedMatch(match));
+      }
+      return;
+    }
     handledIds.current.add(match.id);
-    void (async () => {
+    syncedNotes.current.set(match.id, notesKey(match));
+    enqueueWrite(async () => {
       await syncCompletedMatch(match);
       await clearInProgressMatch();
-    })();
+    });
   }, [match, authed]);
 
   // Drain the outbox whenever connectivity returns or the app is foregrounded.

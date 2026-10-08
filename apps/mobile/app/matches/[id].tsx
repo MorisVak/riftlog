@@ -3,12 +3,21 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchMatch } from '@/lib/matchPersistence';
+import {
+  fetchMatch,
+  updateGameNote,
+  updateMatchNote,
+} from '@/lib/matchPersistence';
 import { toMatchDetailVM, type MatchDetailVM } from '@/lib/matchDetailView';
 import type { Result } from '@/lib/historyView';
 import GameCard from '@/components/match/gameCard';
+import NoteEditor from '@/components/match/noteEditor';
+import NoteRow from '@/components/match/noteRow';
 import Icon from '@/components/icon';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
+
+/** Which note the editor is open on. */
+type Editing = { kind: 'match' } | { kind: 'game'; gameId: string; n: number };
 
 type LoadState =
   | { kind: 'loading' }
@@ -36,6 +45,7 @@ const MatchDetail = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
+  const [editing, setEditing] = useState<Editing | null>(null);
 
   const resultIntro = useSharedValue(0);
   const gamesIntro = useSharedValue(0);
@@ -64,6 +74,37 @@ const MatchDetail = () => {
   }, [id, resultIntro, gamesIntro, deckIntro]);
 
   useEffect(load, [load]);
+
+  // Notes save straight to Postgres (the match is long since saved), then the
+  // screen updates from what was stored.
+  const saveNote = async (text: string) => {
+    if (state.kind !== 'ready' || !editing) return;
+    const vm = state.vm;
+    if (editing.kind === 'match') {
+      const notes = await updateMatchNote(vm.id, text);
+      setState({ kind: 'ready', vm: { ...vm, notes } });
+    } else {
+      const gameId = editing.gameId;
+      const notes = await updateGameNote(gameId, text);
+      setState({
+        kind: 'ready',
+        vm: {
+          ...vm,
+          detailGames: vm.detailGames.map((g) =>
+            g.id === gameId ? { ...g, notes } : g,
+          ),
+        },
+      });
+    }
+  };
+
+  const editingNote =
+    state.kind !== 'ready' || !editing
+      ? null
+      : editing.kind === 'match'
+        ? state.vm.notes
+        : (state.vm.detailGames.find((g) => g.id === editing.gameId)?.notes ??
+          null);
 
   const back = () => {
     if (router.canGoBack()) router.back();
@@ -109,7 +150,13 @@ const MatchDetail = () => {
             </Text>
             <View className="gap-2.5">
               {state.vm.detailGames.map((g) => (
-                <GameCard key={g.n} game={g} />
+                <GameCard
+                  key={g.n}
+                  game={g}
+                  onEditNote={(game) =>
+                    setEditing({ kind: 'game', gameId: game.id, n: game.n })
+                  }
+                />
               ))}
             </View>
             {state.vm.missingTimelines && (
@@ -130,6 +177,19 @@ const MatchDetail = () => {
             {/* Match mode (SPEC Feature 8): the opponent's deck card goes here,
                 then an "Opponent" section — linked profile, head-to-head,
                 their win rate. */}
+
+            <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">
+              Notes
+            </Text>
+            <View className="rounded-2xl border border-border bg-surface px-4">
+              <NoteRow
+                label="Round notes"
+                note={state.vm.notes}
+                prompt="Add notes on the round"
+                onPress={() => setEditing({ kind: 'match' })}
+                lines={8}
+              />
+            </View>
           </Animated.View>
         </ScrollView>
       ) : (
@@ -158,6 +218,21 @@ const MatchDetail = () => {
           )}
         </View>
       )}
+
+      <NoteEditor
+        visible={editing !== null}
+        initial={editingNote}
+        title={
+          editing?.kind === 'game' ? `Game ${editing.n} note` : 'Round notes'
+        }
+        placeholder={
+          editing?.kind === 'game'
+            ? 'What happened this game? Mulligans, key turns, misplays…'
+            : 'How did the round go? What would you change next time?'
+        }
+        onSave={saveNote}
+        onClose={() => setEditing(null)}
+      />
     </View>
   );
 };

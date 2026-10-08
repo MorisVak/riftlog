@@ -45,7 +45,8 @@ So nothing here can assume a specific runtime. Pure TS only.
     │   ├── *.test.ts         Vitest
     │   └── __fixtures__/     kennen.txt (text export), kennen.code.txt (Piltover code)
     ├── matches/
-    │   └── timeline.ts       netPoints, scoreSeries, pointShare, toPointEvents / isPointEvent
+    │   ├── timeline.ts       netPoints, scoreSeries, pointShare, toPointEvents / isPointEvent
+    │   └── notes.ts          NOTE_MAX, normalizeNote (trimmed; blank → null)
     ├── types/
     │   ├── match.ts          Player, PlayerId, Game, Match, PointEvent, ScoringAction
     │   ├── deck.ts           CardRef, DeckList, DeckImportSource, DeckSnapshot
@@ -107,7 +108,8 @@ Several types include fields with no current consumer:
   `versionId` is persisted (`matches.deck_version_id`). Unused for p2 until
   match mode
 - `Match.hostUserId` / `guestUserIds` — for v2 QR co-recording
-- `Match.notes` / `tags` — for match history features
+- `Match.tags` — for match history features (`Match.notes` is in use: the
+  round note, with `Game.notes` per game — see `src/matches/notes.ts`)
 
 These are intentional. Don't remove them or treat them as dead code.
 
