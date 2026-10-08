@@ -306,6 +306,10 @@ export type Database = {
         Args: { p_uid: string; p_username: string }
         Returns: string
       }
+      update_deck_list: {
+        Args: { p_deck_id: string; p_list: Json }
+        Returns: string
+      }
       username_status: {
         Args: { p_self: string; p_username: string }
         Returns: string

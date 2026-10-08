@@ -150,8 +150,9 @@ Don't invent terminology that doesn't exist in Riftbound.
 - Track-turns in pre-match setup — the setup sheet itself is built (Bo1/Bo3,
   player names, timed toggle + round length, optional deck)
 - Deck imports beyond plain text — Piltover Archive deck-code decoding, then
-  Riftmana. Plain-text import, the sectioned deck view, a bare "My decks"
-  list on Profile, and choosing your deck for a match are built.
+  Riftmana. Plain-text import, editing a deck's list (each save is a new
+  immutable version), the sectioned deck view, a bare "My decks" list on
+  Profile, and choosing your deck for a match are built.
 - Match mode extras on the match detail — the opponent's deck, linked profile,
   head-to-head, their win rate (v1 shows your side only)
 - v2 QR co-recording feature (data model has placeholder fields)

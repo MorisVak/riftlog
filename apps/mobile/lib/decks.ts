@@ -13,7 +13,7 @@ import { supabase } from './supabase';
  *
  * Creating goes through the `create_deck` RPC: clients can't insert into
  * `decks` / `deck_versions` directly, so a deck never exists without a
- * version. Versions are immutable; an edit (not built yet) will add one.
+ * version. Versions are immutable; editing a list (`updateDeckList`) adds one.
  *
  * Deleting is a SOFT delete (`delete_deck` stamps `archived_at`), because
  * match history will pin deck versions. Every read here filters archived
@@ -48,6 +48,8 @@ const DECK_COLUMNS =
   'current_version:deck_versions!decks_current_version_fkey(id, list)';
 
 type CreateDeckArgs = Database['public']['Functions']['create_deck']['Args'];
+type UpdateDeckListArgs =
+  Database['public']['Functions']['update_deck_list']['Args'];
 
 const IMPORT_SOURCES: readonly DeckImportSource[] = [
   'text',
@@ -160,6 +162,22 @@ export async function renameDeck(
     .single();
   if (error) throw error;
   return { name: data.name, updatedAt: data.updated_at };
+}
+
+/**
+ * Replace a deck's list. Versions are immutable, so the `update_deck_list`
+ * RPC adds a new one and makes it current — matches already played keep the
+ * version they pinned. Saving an unchanged list adds nothing. Returns the
+ * (new) current version id.
+ */
+export async function updateDeckList(id: string, list: DeckList): Promise<string> {
+  const { data, error } = await supabase.rpc('update_deck_list', {
+    p_deck_id: id,
+    // See createDeck: DeckList is plain JSON.
+    p_list: list as unknown as UpdateDeckListArgs['p_list'],
+  });
+  if (error) throw error;
+  return data;
 }
 
 /**

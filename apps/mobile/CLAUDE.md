@@ -545,13 +545,23 @@ locally** — keep the footprint to these two items.
 narrowed with core's `isDeckList`, archived decks filtered out), never cached
 on-device. The writes are `createDeck()` → the `create_deck` RPC,
 `renameDeck()` → a plain update of `decks.name` (the one column clients may
-write; the deck screen's pencil button), and `deleteDeck()` → the
+write; the deck screen's pencil button), `updateDeckList()` → the
+`update_deck_list` RPC (a new immutable version; matches keep the one they
+pinned), and `deleteDeck()` → the
 `delete_deck` RPC, a **soft** delete (see `../../supabase/CLAUDE.md`).
 "My decks" deletes like match history: swipe a row left
 (`components/swipeToDelete.tsx`), confirm, the row drops optimistically and
 comes back with an alert if the server call fails. A swipe row's card must be
 opaque (`Pressable` + `bg-surface`, not `TouchableOpacity`) or the red action
 shows through on tap.
+
+**Editing a list** reuses the import screen: the deck screen's "Edit list"
+pushes `/decks/import?deckId=…`, which pre-fills the box with
+`formatDeckText(list)` — tweak a line to change a few cards, or Clear + paste a
+whole new list. Same parser, preview, and error blocking as an import; Save is
+off until the list actually differs (compared as formatted text). The name
+isn't edited there. The deck screen re-reads on focus, quietly once shown, so
+it reflects the edit on return.
 
 **Multi-select (History and "My decks").** WhatsApp-style: a "Select" button
 in the list header, or long-press a row (which selects it). While selecting,
@@ -747,9 +757,10 @@ is explicitly started:
   and deck are built)
 - The match detail's opponent block (their deck, linked profile,
   head-to-head, win rate) — needs match mode
-- Deck **code** decoding (detected only), Riftmana import, deck editing /
-  versions, restoring deleted decks, and attaching decks to matches. Text
-  import, the deck view, renaming, (soft) delete, and "My decks" are built.
+- Deck **code** decoding (detected only), Riftmana import, a version
+  history UI, and restoring deleted decks. Text import, the deck view,
+  renaming, editing the list (new version), (soft) delete, "My decks", and
+  choosing a deck for a match are built.
 - The designed history UI / detail view (only a minimal read-only list exists)
 - Profile **editing** — the handle rename UI and stats. `claim_username`
   already enforces the rules (30-day limit); nothing calls it from the client

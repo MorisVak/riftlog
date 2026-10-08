@@ -232,6 +232,13 @@ for multi-select, in one round trip; ids that aren't the caller's are skipped
 silently; idempotent; max 200 ids (`too_many`). Matches have no RPC for this —
 a bulk match delete is a plain `delete … in (ids)` under RLS, cascading games.
 
+**`update_deck_list(p_deck_id, p_list)`** → current version id. Editing a
+list: inserts a new immutable version and moves `current_version_id` to it
+(the deck row is locked `for update`, and `updated_at` moves via trigger).
+An identical list adds nothing and returns the existing version, so a retry
+can't stack duplicates. `not_found` (`P0002`) for a deck that isn't the
+caller's or is archived; `invalid_list` (`22023`) for a non-DeckList.
+
 **`create_deck(p_name, p_import_source, p_source_code, p_list)`** → deck id.
 `security definer`, `require_account()`, `authenticated` only. Inserts the
 deck, its first version, and sets `current_version_id` in one transaction.

@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { useSharedValue } from 'react-native-reanimated';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchDeck, renameDeck, type Deck } from '@/lib/decks';
 import DeckView from '@/components/deck/deckView';
@@ -17,8 +17,10 @@ type LoadState =
 
 /**
  * One saved deck, read from Postgres (its current version). The name can be
- * changed in place; the list is read-only — editing it will add a new
- * immutable version, which isn't built yet.
+ * changed in place; "Edit list" opens the import screen in edit mode
+ * (`/decks/import?deckId=…`), which saves a new immutable version. The deck
+ * re-reads on every focus — quietly, once it's on screen — so returning from
+ * an edit shows the new list.
  */
 const DeckDetail = () => {
   const insets = useSafeAreaInsets();
@@ -29,24 +31,33 @@ const DeckDetail = () => {
   const intro = useSharedValue(0);
   const introStyle = useRise(intro);
 
+  // Whether the deck has been shown: later loads refresh in place, without
+  // the loading text or the intro.
+  const shown = useRef(false);
+
   const load = useCallback(() => {
     let active = true;
-    setState({ kind: 'loading' });
+    const quiet = shown.current;
+    if (!quiet) setState({ kind: 'loading' });
     fetchDeck(id)
       .then((deck) => {
         if (!active) return;
         setState(deck ? { kind: 'ready', deck } : { kind: 'missing' });
-        if (deck) playIntro([intro]);
+        if (deck && !quiet) {
+          shown.current = true;
+          playIntro([intro]);
+        }
       })
       .catch(() => {
-        if (active) setState({ kind: 'error' });
+        // A failed quiet refresh keeps the deck already on screen.
+        if (active && !quiet) setState({ kind: 'error' });
       });
     return () => {
       active = false;
     };
   }, [id, intro]);
 
-  useEffect(load, [load]);
+  useFocusEffect(load);
 
   const rename = async (name: string) => {
     if (state.kind !== 'ready') return;
@@ -77,6 +88,25 @@ const DeckDetail = () => {
         >
           <Icon name="chevron-left" size={18} className="text-ink-secondary" />
         </TouchableOpacity>
+        {state.kind === 'ready' && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Edit decklist"
+            onPress={() =>
+              router.push({
+                pathname: '/decks/import',
+                params: { deckId: state.deck.id },
+              })
+            }
+            hitSlop={8}
+            className="ml-auto h-9 flex-row items-center gap-1.5 rounded-full border border-border bg-elevated px-3.5 active:bg-surface"
+          >
+            <Icon name="list" size={14} className="text-accent" />
+            <Text className="font-display text-[15px] text-accent">
+              Edit list
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {state.kind === 'ready' ? (

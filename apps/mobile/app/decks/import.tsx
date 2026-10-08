@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -8,15 +8,25 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
-import { looksLikeDeckCode, parseDeckText } from '@riftlog/core';
-import { createDeck, DECK_NAME_MAX, isValidDeckName } from '@/lib/decks';
+import {
+  formatDeckText,
+  looksLikeDeckCode,
+  parseDeckText,
+  type DeckList,
+} from '@riftlog/core';
+import {
+  createDeck,
+  DECK_NAME_MAX,
+  fetchDeck,
+  isValidDeckName,
+  updateDeckList,
+} from '@/lib/decks';
 import ImportPreview from '@/components/deck/importPreview';
 import Icon from '@/components/icon';
 import { CTA_GLOW } from '@/components/ctaGlow';
-
 
 /**
  * The "Expected format" card under the empty decklist box: the export layout
@@ -51,15 +61,48 @@ const defaultDeckName = (legendName: string | undefined): string =>
  * Deck codes are recognised but not decoded yet: the option is shown
  * disabled, and a pasted code gets a pointer to the text export instead of a
  * wall of parse errors.
+ *
+ * With a `deckId` param the same screen EDITS that deck's list: the box
+ * starts with the current list as text (`formatDeckText`), so changing a
+ * couple of cards is editing a line, and a whole new list is Clear + paste.
+ * Saving goes through `updateDeckList`, which adds a new immutable version —
+ * matches already played keep the list they were played with. The name isn't
+ * edited here; the deck screen renames.
  */
 const ImportDeck = () => {
   const router = useRouter();
+  const { deckId } = useLocalSearchParams<{ deckId?: string }>();
+  const editing = typeof deckId === 'string' && deckId !== '';
+  // Edit mode: the list being edited, once loaded ('error' if it couldn't be).
+  const [original, setOriginal] = useState<DeckList | 'error' | null>(null);
   const [text, setText] = useState('');
   // What the user typed into the name field. Empty means "use the legend's
   // name", which the field shows as its placeholder.
   const [nameInput, setNameInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!editing) return;
+    let active = true;
+    fetchDeck(deckId)
+      .then((deck) => {
+        if (!active) return;
+        if (!deck) {
+          setOriginal('error');
+          return;
+        }
+        setOriginal(deck.list);
+        setText(formatDeckText(deck.list));
+      })
+      .catch(() => active && setOriginal('error'));
+    return () => {
+      active = false;
+    };
+  }, [editing, deckId]);
+  const loadingOriginal = editing && original === null;
+  const originalList =
+    original !== null && original !== 'error' ? original : null;
 
   const isCode = looksLikeDeckCode(text);
   const parsed = useMemo(
@@ -84,11 +127,19 @@ const ImportDeck = () => {
       parsed.list.sideboard.length > 0);
   // Warnings never block a save; errors (dropped lines) do, so nothing the
   // user pasted silently goes missing.
+  // Edit mode: compared as formatted text, so extra spaces / blank lines or
+  // retyping the same list don't count as a change.
+  const changed =
+    !editing ||
+    (parsed !== null &&
+      originalList !== null &&
+      formatDeckText(parsed.list) !== formatDeckText(originalList));
   const canSave =
     !saving &&
     hasCards &&
     errorCount === 0 &&
-    isValidDeckName(name);
+    changed &&
+    (editing ? originalList !== null : isValidDeckName(name));
 
   const close = () => {
     if (router.canGoBack()) router.back();
@@ -112,6 +163,13 @@ const ImportDeck = () => {
     setSaving(true);
     setNotice(null);
     try {
+      if (editing) {
+        await updateDeckList(deckId, parsed.list);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        // Back to the deck screen, which refreshes on focus.
+        close();
+        return;
+      }
       const id = await createDeck({ name: trimmedName, list: parsed.list });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       // Leave the modal, then open the saved deck as a normal screen.
@@ -131,13 +189,17 @@ const ImportDeck = () => {
         className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={{ padding: 20, paddingTop: 20, paddingBottom: 40 }}
+          contentContainerStyle={{
+            padding: 20,
+            paddingTop: 20,
+            paddingBottom: 40,
+          }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <View className="mb-5 flex-row items-center justify-between">
             <Text className="font-display-bold text-[26px] tracking-tight text-ink-primary">
-              Import deck
+              {editing ? 'Edit decklist' : 'Import deck'}
             </Text>
             <TouchableOpacity
               accessibilityRole="button"
@@ -149,56 +211,70 @@ const ImportDeck = () => {
             </TouchableOpacity>
           </View>
 
+          {editing && (
+            <Text className="-mt-2 mb-5 text-[14px] leading-5 text-ink-secondary">
+              Change a count or a line, or clear it and paste a new list.
+              Matches you&apos;ve already played keep the list they were played
+              with.
+            </Text>
+          )}
+
           {/* Source. Only text works today; the code option is shown so the
               feature is discoverable, but it's inert. */}
-          <View className="mb-4 flex-row gap-2">
-            <View
-              accessible
-              accessibilityRole="button"
-              accessibilityState={{ selected: true }}
-              accessibilityLabel="Text"
-              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-accent bg-accent/15 py-3"
-            >
-              <Icon name="file-text" size={15} className="text-accent" />
-              <Text className="font-display text-sm text-accent">Text</Text>
-            </View>
-            <View
-              accessible
-              accessibilityRole="button"
-              accessibilityState={{ disabled: true }}
-              accessibilityLabel="Deck code, coming soon"
-              className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-border bg-surface py-3"
-            >
-              <Icon name="hash" size={15} className="text-ink-tertiary" />
-              <Text className="font-display text-sm text-ink-tertiary">
-                Deck code
-              </Text>
-              <View className="rounded-full bg-elevated px-1.5 py-0.5">
-                <Text className="font-display text-[10px] uppercase tracking-wider text-ink-secondary">
-                  Coming soon
+          {!editing && (
+            <View className="mb-4 flex-row gap-2">
+              <View
+                accessible
+                accessibilityRole="button"
+                accessibilityState={{ selected: true }}
+                accessibilityLabel="Text"
+                className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-accent bg-accent/15 py-3"
+              >
+                <Icon name="file-text" size={15} className="text-accent" />
+                <Text className="font-display text-sm text-accent">Text</Text>
+              </View>
+              <View
+                accessible
+                accessibilityRole="button"
+                accessibilityState={{ disabled: true }}
+                accessibilityLabel="Deck code, coming soon"
+                className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-border bg-surface py-3"
+              >
+                <Icon name="hash" size={15} className="text-ink-tertiary" />
+                <Text className="font-display text-sm text-ink-tertiary">
+                  Deck code
                 </Text>
+                <View className="rounded-full bg-elevated px-1.5 py-0.5">
+                  <Text className="font-display text-[10px] uppercase tracking-wider text-ink-secondary">
+                    Coming soon
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
+          )}
 
-          <Text className="mb-2 font-display text-base text-ink-secondary">
-            Deck name
-          </Text>
-          <TextInput
-            value={nameInput}
-            onChangeText={setNameInput}
-            placeholder={defaultName || 'Name this deck'}
-            maxLength={DECK_NAME_MAX}
-            accessibilityLabel="Deck name"
-            className="rounded-xl border border-border bg-elevated px-4 py-3 text-base text-ink-primary placeholder:text-ink-tertiary"
-          />
-          <Text className="mb-5 mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
-            {nameInput.trim() !== ''
-              ? 'You can rename it later from the deck screen.'
-              : defaultName
-                ? `Leave empty to name it “${defaultName}”, after your legend.`
-                : "Leave empty to use your legend's name."}
-          </Text>
+          {!editing && (
+            <>
+              <Text className="mb-2 font-display text-base text-ink-secondary">
+                Deck name
+              </Text>
+              <TextInput
+                value={nameInput}
+                onChangeText={setNameInput}
+                placeholder={defaultName || 'Name this deck'}
+                maxLength={DECK_NAME_MAX}
+                accessibilityLabel="Deck name"
+                className="rounded-xl border border-border bg-elevated px-4 py-3 text-base text-ink-primary placeholder:text-ink-tertiary"
+              />
+              <Text className="mb-5 mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
+                {nameInput.trim() !== ''
+                  ? 'You can rename it later from the deck screen.'
+                  : defaultName
+                    ? `Leave empty to name it “${defaultName}”, after your legend.`
+                    : "Leave empty to use your legend's name."}
+              </Text>
+            </>
+          )}
 
           <View className="mb-2 flex-row items-center justify-between">
             <Text className="font-display text-base text-ink-secondary">
@@ -240,7 +316,10 @@ const ImportDeck = () => {
               setText(t);
               setNotice(null);
             }}
-            placeholder="Paste your decklist here"
+            placeholder={
+              loadingOriginal ? 'Loading deck…' : 'Paste your decklist here'
+            }
+            editable={!loadingOriginal}
             multiline
             textAlignVertical="top"
             autoCapitalize="none"
@@ -296,6 +375,12 @@ const ImportDeck = () => {
             <ImportPreview parsed={parsed} sourceLines={sourceLines} />
           )}
 
+          {original === 'error' && (
+            <Text className="mt-4 text-center text-sm text-loss-text">
+              Couldn&apos;t load this deck. Close and try again.
+            </Text>
+          )}
+
           {notice !== null && (
             <Text className="mt-4 text-center text-sm text-loss-text">
               {notice}
@@ -304,6 +389,11 @@ const ImportDeck = () => {
 
           {parsed !== null && (
             <View className="mt-6">
+              {editing && !changed && errorCount === 0 && (
+                <Text className="mb-3 text-center text-[13px] leading-[18px] text-ink-secondary">
+                  No changes yet.
+                </Text>
+              )}
               {errorCount > 0 && (
                 <Text className="mb-3 text-center text-[13px] leading-[18px] text-ink-secondary">
                   {errorCount === 1
@@ -326,7 +416,7 @@ const ImportDeck = () => {
                     canSave ? 'text-background' : 'text-ink-tertiary'
                   }`}
                 >
-                  {saving ? 'Saving…' : 'Save deck'}
+                  {saving ? 'Saving…' : editing ? 'Save changes' : 'Save deck'}
                 </Text>
               </TouchableOpacity>
             </View>
