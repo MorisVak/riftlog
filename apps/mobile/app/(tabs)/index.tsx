@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -19,6 +19,8 @@ import BetweenGamesScreen from '@/components/betweenGamesScreen';
 import MatchOverview from '@/components/matchOverview';
 import MatchSetup from '@/components/matchSetup';
 import RecentMatchRow from '@/components/recentMatchRow';
+import RecentDeckCard from '@/components/deck/recentDeckCard';
+import { fetchDeck, type Deck } from '@/lib/decks';
 import {
   fetchMatchHistory,
   type MatchWithGames,
@@ -96,8 +98,10 @@ const Home = () => {
   const headerIntro = useSharedValue(0);
   const ctaIntro = useSharedValue(0);
   const statsIntro = useSharedValue(0);
+  const deckIntro = useSharedValue(0);
   const recentIntro = useSharedValue(0);
   const headerStyle = useRise(headerIntro);
+  const deckStyle = useRise(deckIntro);
   const ctaStyle = useRise(ctaIntro);
   const statsStyle = useRise(statsIntro);
   const recentStyle = useRise(recentIntro);
@@ -109,7 +113,7 @@ const Home = () => {
       // Replay the intro on each focus, staggering the elements top-to-bottom
       // (header → CTA → stats → recent) so the screen assembles dynamically
       // rather than fading in all at once, matching the other tabs.
-      playIntro([headerIntro, ctaIntro, statsIntro, recentIntro]);
+      playIntro([headerIntro, ctaIntro, statsIntro, deckIntro, recentIntro]);
       // Home is the one guest-usable screen, so it must not touch the network
       // while signed out — stats read as zeroes and the recent list explains
       // itself instead.
@@ -124,12 +128,35 @@ const Home = () => {
       return () => {
         active = false;
       };
-    }, [authed, headerIntro, ctaIntro, statsIntro, recentIntro]),
+    }, [authed, headerIntro, ctaIntro, statsIntro, deckIntro, recentIntro]),
   );
 
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
   const recent = useMemo(() => vms.slice(0, 3), [vms]);
   const stats = useMemo(() => deriveStats(vms), [vms]);
+
+  // "Recently played deck": the deck from the most recent match that had one
+  // (history is newest-first). A deck deleted since is skipped — the card
+  // must open something.
+  const lastPlayed = useMemo(() => {
+    const m = (rows ?? []).find((r) => r.deck && r.deck.archivedAt === null);
+    return m?.deck ? { id: m.deck.id, name: m.deck.name, playedAt: m.ended_at } : null;
+  }, [rows]);
+  const [lastDeck, setLastDeck] = useState<Deck | null>(null);
+  const lastDeckId = lastPlayed?.id ?? null;
+  useEffect(() => {
+    setLastDeck(null);
+    if (!lastDeckId) return;
+    let active = true;
+    // Only for the card's legend + domains; the name is already known, so a
+    // failed fetch just leaves the card without them.
+    fetchDeck(lastDeckId)
+      .then((d) => active && setLastDeck(d))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [lastDeckId]);
 
   // A guest never fetches, so `rows === null` isn't "still loading" for them.
   // Session restore counts as loading though — otherwise every cold start
@@ -221,6 +248,24 @@ const Home = () => {
           <StatCell value={stats.losses} label="Losses" color="text-loss-text" />
           <StatCell value={stats.winRate} label="Win rate" color="text-accent" last />
         </Animated.View>
+
+        {/* Recently played deck — signed in, and only once a match has been
+            played with a deck. */}
+        {authed && lastPlayed && (
+          <Animated.View style={deckStyle}>
+            <View className="mb-3 mt-6 px-0.5">
+              <Text className="font-display-bold text-[15px] text-ink-primary">
+                Recently played deck
+              </Text>
+            </View>
+            <RecentDeckCard
+              name={lastPlayed.name}
+              playedAt={lastPlayed.playedAt}
+              deck={lastDeck}
+              onPress={() => router.push(`/decks/${lastPlayed.id}`)}
+            />
+          </Animated.View>
+        )}
 
         {/* Recent matches */}
         <Animated.View style={recentStyle}>

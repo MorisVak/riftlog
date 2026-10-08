@@ -582,6 +582,10 @@ Rules that are easy to get wrong:
 - **Legacy placeholder names are normalized.** Matches started with blank name
   fields stored the literal `"Player 1"` / `"Player 2"`; those render as
   `You` / `Opponent` rather than being shown as if they were real names.
+- **Home's "Recently played deck"** (`components/deck/recentDeckCard.tsx`) is
+  derived from the same `fetchMatchHistory()` rows — the newest match whose
+  `deck` isn't archived — then `fetchDeck` fills in legend + domains. It
+  renders with the name first so Recent matches below doesn't jump.
 - **Home's preview row mirrors the History row.** Both render the same
   `HistoryRowVM` and share `components/matchMeta.tsx` for the format + clock
   line, so they can't drift. Home's copy just drops the swipe-delete and the

@@ -326,7 +326,11 @@ the app yet.
 
 **Entry points:** "My decks" on Profile today. Later, the **Your deck**
 carousel on the pre-match setup sheet (Feature 1), where the player picks the
-deck they're running before a match.
+deck they're running before a match. Home also shows a **Recently played deck** card
+(above Recent matches): the deck from your most recent match that had one —
+name, legend, domains, when it was played — tapping through to the deck. It's
+hidden for guests, until a match has been played with a deck, and it skips a
+deck deleted since.
 
 **Requirements:**
 
