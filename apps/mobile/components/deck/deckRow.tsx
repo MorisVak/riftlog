@@ -48,7 +48,11 @@ const DeckRow = ({
     // In selection mode the check sits OUTSIDE the card, to its left (as in a
     // WhatsApp chat); the gutter slides open and pushes the card right.
     <View className="flex-row items-center">
-      <SelectionGutter selecting={selecting} selected={selected} />
+      <SelectionGutter
+        selecting={selecting}
+        selected={selected}
+        onToggle={onSelect}
+      />
       <View className="flex-1">
         <SwipeToDelete
           accessibilityLabel={`Delete deck ${deck.name}`}

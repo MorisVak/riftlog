@@ -174,7 +174,11 @@ const HistoryRow = ({
     // In selection mode the check sits OUTSIDE the card, to its left (as in a
     // WhatsApp chat); the gutter slides open and pushes the card right.
     <View className="flex-row items-center">
-      <SelectionGutter selecting={selecting} selected={selected} />
+      <SelectionGutter
+        selecting={selecting}
+        selected={selected}
+        onToggle={() => onSelect?.(vm.id)}
+      />
       <Animated.View
         // Subtle fade + slight rise on mount, matching the design's `rowIn`.
         entering={FadeInDown.duration(380)
