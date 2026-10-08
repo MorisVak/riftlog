@@ -7,6 +7,8 @@ import { useMatch } from '@/contexts/matchContext';
 import NoteEditor from './match/noteEditor';
 import NoteRow from './match/noteRow';
 import React, { useState } from 'react';
+import Animated from 'react-native-reanimated';
+import { riseIn } from './transitions';
 
 type Outcome = 'win' | 'loss' | 'draw';
 
@@ -82,12 +84,10 @@ const MatchOverview = () => {
           Best of {match.bestOf}
         </Text>
 
-        {match.players.map((player) => (
-          <PlayerResultRow
-            key={player.id}
-            player={player}
-            outcome={outcomeFor(match, player)}
-          />
+        {match.players.map((player, i) => (
+          <Animated.View key={player.id} entering={riseIn(i)}>
+            <PlayerResultRow player={player} outcome={outcomeFor(match, player)} />
+          </Animated.View>
         ))}
 
         <Text className="mb-3 mt-8 font-display text-sm uppercase tracking-widest text-ink-secondary">

@@ -18,6 +18,7 @@ import PlayField from '@/components/playField';
 import GameStartIntro from '@/components/gameStartIntro';
 import BetweenGamesScreen from '@/components/betweenGamesScreen';
 import MatchOverview from '@/components/matchOverview';
+import { SCREEN_ENTER } from '@/components/transitions';
 import MatchSetup from '@/components/matchSetup';
 import RecentMatchRow from '@/components/recentMatchRow';
 import RecentDeckCard from '@/components/deck/recentDeckCard';
@@ -323,7 +324,9 @@ const Index = () => {
   if (phase === 'over') {
     return (
       <View className="flex-1 bg-background">
-        <MatchOverview />
+        <Animated.View entering={SCREEN_ENTER} className="flex-1">
+          <MatchOverview />
+        </Animated.View>
       </View>
     );
   }
@@ -331,7 +334,9 @@ const Index = () => {
   if (phase === 'between-games') {
     return (
       <View className="flex-1 bg-background">
-        <BetweenGamesScreen />
+        <Animated.View entering={SCREEN_ENTER} className="flex-1">
+          <BetweenGamesScreen />
+        </Animated.View>
       </View>
     );
   }

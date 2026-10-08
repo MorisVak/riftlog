@@ -1,8 +1,15 @@
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import type { GameResult } from '@/contexts/matchContext';
 import { useMatch } from '@/contexts/matchContext';
 import React from 'react';
+import Animated from 'react-native-reanimated';
+import {
+  BACKDROP_ENTER,
+  BACKDROP_EXIT,
+  POPUP_ENTER,
+  POPUP_EXIT,
+} from './transitions';
 
 type EndGamePromptProps = {
   onClose: () => void;
@@ -65,8 +72,16 @@ const EndGamePrompt = ({ onClose }: EndGamePromptProps) => {
   };
 
   return (
-    <View className="absolute inset-0 items-center justify-center bg-background/80 px-8">
-      <View className="w-full max-w-sm rounded-2xl border border-border bg-elevated p-6">
+    <Animated.View
+      entering={BACKDROP_ENTER}
+      exiting={BACKDROP_EXIT}
+      className="absolute inset-0 items-center justify-center bg-background/80 px-8"
+    >
+      <Animated.View
+        entering={POPUP_ENTER}
+        exiting={POPUP_EXIT}
+        className="w-full max-w-sm rounded-2xl border border-border bg-elevated p-6"
+      >
         <Text className="mb-1 text-center text-xl font-bold text-ink-primary">
           End this game?
         </Text>
@@ -104,8 +119,8 @@ const EndGamePrompt = ({ onClose }: EndGamePromptProps) => {
             Cancel
           </Text>
         </TouchableOpacity>
-      </View>
-    </View>
+      </Animated.View>
+    </Animated.View>
   );
 };
 

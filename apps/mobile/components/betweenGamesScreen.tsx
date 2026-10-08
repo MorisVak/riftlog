@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/authContext';
 import MatchClock from './matchClock';
 import NoteEditor from './match/noteEditor';
 import Icon from './icon';
+import { badgePop } from './transitions';
 import React, { useEffect, useState } from 'react';
 
 // Result tokens, paired with a letter so color is never the only signal. The
@@ -161,13 +162,14 @@ const BetweenGamesScreen = () => {
       </Text>
 
       {/* Result badge — colored fill + letter, never color alone. */}
-      <View
+      <Animated.View
+        entering={badgePop()}
         className={`mt-6 h-20 w-20 items-center justify-center rounded-3xl ${r.badge}`}
       >
         <Text className={`font-display-bold text-4xl ${r.text}`}>
           {r.letter}
         </Text>
-      </View>
+      </Animated.View>
 
       <Text className="mt-5 text-center font-display-bold text-xl text-ink-primary">
         {headline}
