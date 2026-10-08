@@ -563,6 +563,14 @@ off until the list actually differs (compared as formatted text). The name
 isn't edited there. The deck screen re-reads on focus, quietly once shown, so
 it reflects the edit on return.
 
+**A match links to the list as played.** History's deck link and the match
+detail's "Decklist" go through `deckHref` (`lib/historyView.ts`) to
+`/decks/[id]?version=<pinned version>`. If the deck was edited since, the deck
+screen shows that version read-only (no rename, no Edit list) under an
+"Outdated version" note with a "See current list" link; if the version
+is still current it's the normal view. The match detail says "You played an
+earlier version" when it differs (`MatchDeckRef.edited`).
+
 **Multi-select (History and "My decks").** WhatsApp-style: a "Select" button
 in the list header, or long-press a row (which selects it). While selecting,
 a tap toggles a row (a check circle *outside* the card, to its left, plus an

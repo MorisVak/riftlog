@@ -15,6 +15,10 @@ export type MatchDeckRef = {
   name: string;
   /** Soft-deleted since: still named, no longer linkable. */
   archivedAt: string | null;
+  /** The immutable version the match was played with. */
+  versionId: string;
+  /** The deck has been edited since: its current list isn't the one played. */
+  edited: boolean;
 };
 
 /** A match row with its games embedded (newest match first; games by index). */
@@ -101,13 +105,20 @@ export async function saveCompletedMatch(match: Match): Promise<void> {
 // version), so PostgREST needs the hint to pick one.
 const HISTORY_COLUMNS =
   '*, games(*), ' +
-  'deck_version:deck_versions!matches_deck_version_fkey(' +
-  'deck:decks!deck_versions_deck_id_owner_id_fkey(id, name, archived_at))';
+  'deck_version:deck_versions!matches_deck_version_fkey(id, ' +
+  'deck:decks!deck_versions_deck_id_owner_id_fkey(' +
+  'id, name, archived_at, current_version_id))';
 
 type HistoryRow = MatchRow & {
   games: GameRow[];
   deck_version: {
-    deck: { id: string; name: string; archived_at: string | null } | null;
+    id: string;
+    deck: {
+      id: string;
+      name: string;
+      archived_at: string | null;
+      current_version_id: string | null;
+    } | null;
   } | null;
 };
 
@@ -115,9 +126,16 @@ const withDeck = ({ deck_version, ...row }: HistoryRow): MatchWithGames => {
   const deck = deck_version?.deck ?? null;
   return {
     ...row,
-    deck: deck
-      ? { id: deck.id, name: deck.name, archivedAt: deck.archived_at }
-      : null,
+    deck:
+      deck_version && deck
+        ? {
+            id: deck.id,
+            name: deck.name,
+            archivedAt: deck.archived_at,
+            versionId: deck_version.id,
+            edited: deck.current_version_id !== deck_version.id,
+          }
+        : null,
   };
 };
 

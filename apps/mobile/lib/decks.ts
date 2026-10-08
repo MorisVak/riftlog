@@ -121,6 +121,27 @@ export async function fetchDeck(id: string): Promise<Deck | null> {
 }
 
 /**
+ * One specific version of a deck — the list a match was played with, which
+ * may no longer be the current one. Versions are immutable and stay readable
+ * (owner-only RLS) after later edits. null if it doesn't exist, isn't the
+ * caller's, or belongs to another deck.
+ */
+export async function fetchDeckVersion(
+  deckId: string,
+  versionId: string,
+): Promise<{ id: string; list: DeckList; createdAt: string } | null> {
+  const { data, error } = await supabase
+    .from('deck_versions')
+    .select('id, list, created_at')
+    .eq('id', versionId)
+    .eq('deck_id', deckId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data || !isDeckList(data.list)) return null;
+  return { id: data.id, list: data.list, createdAt: data.created_at };
+}
+
+/**
  * Save a new deck and its first version in one transaction. Returns the deck
  * id. The server re-checks name / source / list shape; the caller is expected
  * to have validated already, so a rejection here is a bug and is thrown.

@@ -9,7 +9,7 @@ import {
   updateMatchNote,
 } from '@/lib/matchPersistence';
 import { toMatchDetailVM, type MatchDetailVM } from '@/lib/matchDetailView';
-import type { Result } from '@/lib/historyView';
+import { deckHref, type HistoryDeckVM, type Result } from '@/lib/historyView';
 import GameCard from '@/components/match/gameCard';
 import NoteEditor from '@/components/match/noteEditor';
 import NoteRow from '@/components/match/noteRow';
@@ -172,7 +172,7 @@ const MatchDetail = () => {
             </Text>
             <DeckCard
               vm={state.vm}
-              onOpen={(deckId) => router.push(`/decks/${deckId}`)}
+              onOpen={(deck) => router.push(deckHref(deck))}
             />
             {/* Match mode (SPEC Feature 8): the opponent's deck card goes here,
                 then an "Opponent" section — linked profile, head-to-head,
@@ -292,13 +292,16 @@ const ResultCard = ({ vm }: { vm: MatchDetailVM }) => {
   );
 };
 
-/** The deck you played, linking to it — or a note that none was chosen. */
+/**
+ * The deck you played, linking to its list AS PLAYED (the pinned version) —
+ * or a note that none was chosen. Says so when the deck was edited since.
+ */
 const DeckCard = ({
   vm,
   onOpen,
 }: {
   vm: MatchDetailVM;
-  onOpen: (deckId: string) => void;
+  onOpen: (deck: HistoryDeckVM) => void;
 }) => {
   if (!vm.deck) {
     return (
@@ -318,7 +321,9 @@ const DeckCard = ({
         </Text>
       </View>
       <View className="flex-1">
-        <Text className="font-display text-[12px] text-accent">You played</Text>
+        <Text className="font-display text-[12px] text-accent">
+          {deck.edited ? 'You played an earlier version' : 'You played'}
+        </Text>
         <Text
           className="mt-0.5 font-display-bold text-[16px] text-ink-primary"
           numberOfLines={1}
@@ -332,7 +337,7 @@ const DeckCard = ({
         <TouchableOpacity
           accessibilityRole="link"
           accessibilityLabel={`Open decklist ${deck.name}`}
-          onPress={() => onOpen(deck.id)}
+          onPress={() => onOpen(deck)}
           className="h-11 flex-row items-center gap-1 pl-2"
         >
           <Text className="font-display text-[14px] text-accent">Decklist</Text>

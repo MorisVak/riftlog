@@ -48,7 +48,22 @@ export type HistoryDeckVM = {
   name: string;
   /** Deleted since (soft): keep showing the name, but don't link to it. */
   deleted: boolean;
+  /** The version played — links open the list AS PLAYED (`deckHref`). */
+  versionId: string;
+  /** Edited since the match: the list played is an earlier version. */
+  edited: boolean;
 };
+
+/**
+ * Where a match's deck link goes: the deck screen showing the version that
+ * was played. The screen falls back to the normal (editable) view when that
+ * version is still the current one.
+ */
+export const deckHref = (deck: HistoryDeckVM) =>
+  ({
+    pathname: '/decks/[id]',
+    params: { id: deck.id, version: deck.versionId },
+  }) as const;
 
 export type HistoryTimerVM = {
   /** The configured round length, e.g. "50:00". */
@@ -150,7 +165,13 @@ export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
     games,
     timer,
     deck: m.deck
-      ? { id: m.deck.id, name: m.deck.name, deleted: m.deck.archivedAt !== null }
+      ? {
+          id: m.deck.id,
+          name: m.deck.name,
+          deleted: m.deck.archivedAt !== null,
+          versionId: m.deck.versionId,
+          edited: m.deck.edited,
+        }
       : null,
   };
 }

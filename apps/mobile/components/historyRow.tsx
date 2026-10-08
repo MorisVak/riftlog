@@ -12,7 +12,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import type { HistoryRowVM, Result } from '@/lib/historyView';
+import { deckHref, type HistoryRowVM, type Result } from '@/lib/historyView';
 import MatchMeta from './matchMeta';
 import { SelectionGutter } from './selectCheck';
 
@@ -302,8 +302,9 @@ const HistoryRow = ({
                     ))}
                   </View>
 
-                  {/* The deck you played. Tappable through to the deck, unless
-                      it has since been deleted — then it's named, not linked. */}
+                  {/* The deck you played. Tappable through to the list as it
+                      was played, unless the deck has since been deleted — then
+                      it's named, not linked. */}
                   {vm.deck && (
                     <View className="mt-3 flex-row items-center gap-1.5">
                       <Text className="font-display text-[11px] text-ink-secondary">
@@ -322,7 +323,7 @@ const HistoryRow = ({
                           accessibilityLabel={`Open deck ${vm.deck.name}`}
                           disabled={selecting}
                           hitSlop={8}
-                          onPress={() => router.push(`/decks/${vm.deck?.id}`)}
+                          onPress={() => vm.deck && router.push(deckHref(vm.deck))}
                           className="min-h-[32px] flex-shrink flex-row items-center gap-1"
                         >
                           <Text
