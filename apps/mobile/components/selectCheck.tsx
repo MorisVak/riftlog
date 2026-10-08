@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -36,13 +37,19 @@ const SLIDE_EASING = Easing.out(Easing.cubic);
  * it is `flex-1`, the card slides right as the gutter opens (and back as it
  * closes) instead of jumping, while the check itself slides in from the left
  * and fades up. Used by History and "My decks" rows so both move identically.
+ *
+ * The check is tappable too (`onToggle`), not just the card: the gutter
+ * stretches to the row's full height so the whole strip left of the card is
+ * the hit target.
  */
 export const SelectionGutter = ({
   selecting,
   selected,
+  onToggle,
 }: {
   selecting: boolean;
   selected: boolean;
+  onToggle?: () => void;
 }) => {
   const progress = useSharedValue(selecting ? 1 : 0);
 
@@ -62,10 +69,22 @@ export const SelectionGutter = ({
   }));
 
   return (
-    <Animated.View style={gutterStyle} className="overflow-hidden">
-      <Animated.View style={checkStyle} className="w-[22px]">
-        <SelectCheck selected={selected} />
-      </Animated.View>
+    <Animated.View style={gutterStyle} className="self-stretch overflow-hidden">
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: selected }}
+        accessibilityElementsHidden={!selecting}
+        disabled={!selecting || !onToggle}
+        onPress={() => {
+          Haptics.selectionAsync();
+          onToggle?.();
+        }}
+        className="flex-1 justify-center"
+      >
+        <Animated.View style={checkStyle} className="w-[22px]">
+          <SelectCheck selected={selected} />
+        </Animated.View>
+      </Pressable>
     </Animated.View>
   );
 };

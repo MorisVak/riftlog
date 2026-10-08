@@ -28,26 +28,35 @@ const VARIANT: Record<Variant, { time: string; label: string }> = {
 // exactly 1s drifts against the wall clock and can look like it skipped.
 const TICK_MS = 500;
 
-/** `Date.now()` on a tick, plus an immediate re-read when the app foregrounds. */
-const useNow = (active: boolean): number => {
-  const [now, setNow] = useState(() => Date.now());
+/**
+ * Re-renders on a tick while `active`, plus immediately when the app
+ * foregrounds. Only a TRIGGER — callers must read `Date.now()` at render time
+ * rather than use a stored timestamp.
+ *
+ * That distinction is the fix for a real bug: this hook used to return the
+ * timestamp of the last tick, and ticking stops while the clock is paused. On
+ * resume, the pause was banked into `clockPausedMs` at once but the clock was
+ * still drawn with the pre-pause timestamp, so the countdown jumped UP by the
+ * length of the pause until the next tick corrected it.
+ */
+const useTick = (active: boolean): void => {
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     if (!active) return;
-    const id = setInterval(() => setNow(Date.now()), TICK_MS);
+    const bump = () => setTick((t) => t + 1);
+    const id = setInterval(bump, TICK_MS);
     // JS timers are throttled in the background; the elapsed time is still
     // correct on return (it's wall-clock derived), this just repaints at once
     // instead of waiting for the next tick.
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') setNow(Date.now());
+      if (state === 'active') bump();
     });
     return () => {
       clearInterval(id);
       sub.remove();
     };
   }, [active]);
-
-  return now;
 };
 
 type Props = {
@@ -61,12 +70,20 @@ type Props = {
 };
 
 const MatchClock = ({ variant = 'board', className = '' }: Props) => {
+  // Opt out of the React Compiler (app.json `experiments.reactCompiler`). This
+  // component reads the wall clock during render; the compiler assumes renders
+  // are pure and would cache `remainingSeconds(match, Date.now())` on `match`
+  // alone — freezing the countdown, since ticks don't change `match`.
+  'use no memo';
   const { match } = useMatch();
   const paused = match?.clockPausedAt != null;
   // Nothing to repaint while paused — the value is frozen by definition.
-  const now = useNow(match?.timeLimitSeconds != null && !paused);
+  useTick(match?.timeLimitSeconds != null && !paused);
 
-  const remaining = match ? remainingSeconds(match, now) : null;
+  // Always the real current time. While paused, `remainingSeconds` cancels
+  // `now` out (it subtracts the open pause up to `now`), so this stays steady;
+  // the render right after a resume sees the banked pause AND a fresh `now`.
+  const remaining = match ? remainingSeconds(match, Date.now()) : null;
   if (remaining === null) return null;
 
   const overtime = remaining < 0;

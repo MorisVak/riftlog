@@ -80,18 +80,21 @@ writing the logic that drives them. Things to know:
 
 3. **Timed mode is in the data model** — one field, `Match.timeLimitSeconds`
    (`null` = untimed), mirrored by `matches.time_limit_seconds`. One clock
-   covers the whole match (the Bo1's game or the entire Bo3) and **never
-   pauses**: the between-games break is sideboarding time and is played on the
-   same clock. There is no live clock state anywhere — remaining time is derived
-   from wall-clock (`limit - (now - game 1 startedAt)`, see
-   `apps/mobile/lib/clock.ts`), so it survives backgrounding, a JS reload, and
-   an outbox restore. History stores only the configured limit; how long the
-   match ran, and so whether it went to overtime, is derived from
-   `started_at`/`ended_at`.
+   covers the whole match (the Bo1's game or the entire Bo3) and keeps running
+   through the between-games break (sideboarding time is on the clock). It only
+   stops when a player **pauses** it on the board — e.g. for a judge call — and
+   a paused clock stays frozen, including while the app is in the background.
+   There is no live clock state anywhere — remaining time is derived from
+   wall-clock minus banked pauses (see `apps/mobile/lib/clock.ts`), so it
+   survives backgrounding, a JS reload, and an outbox restore. History stores
+   the configured limit and the total paused time; how long the match was
+   played (excluding pauses), and so whether it went to overtime, is derived
+   from those and `started_at`/`ended_at`.
 
 Forward-compatible fields already in the model (`Player.userId`,
-`Player.deck`, `Match.hostUserId`, `Match.guestUserIds`, `Match.notes`,
-`Match.tags`) exist on purpose for the features below. Don't remove them.
+`Player.deck`, `Match.hostUserId`, `Match.guestUserIds`, `Match.tags`) exist
+on purpose for the features below. Don't remove them. (`Match.notes` and
+`Player.deck` are now in use: round notes, and the deck you played.)
 
 ---
 
@@ -111,11 +114,14 @@ games and the match themselves.
 **Match lifecycle (the core behavior to implement):**
 
 1. **Pre-match setup.** Before a match starts, the player picks format
-   (Bo1 / Bo3) and player names. Later this also includes deck selection
-   (Feature 4). The player can also toggle **timed game** and choose a round
+   (Bo1 / Bo3) and player names, and — signed in — optionally the deck they're
+   playing (Feature 4), from a dropdown of their saved decks with "No deck"
+   first. The player can also toggle **timed game** and choose a round
    length; one clock then counts down for the whole match — it keeps running
    between games in a Bo3 (sideboarding is on the clock) and past zero into
-   overtime. Built: format, names, and the timed toggle + presets.
+   overtime. Built: format, names, deck, and the timed toggle + presets.
+   The match saves the exact deck *version* played, so renaming, editing, or
+   deleting the deck later never changes what history says you played.
 2. **During a game.** `incrementScore` / `decrementScore` / `setScore` adjust
    `Player.gameScore`. Scores can't go below 0; there is no upper bound and no
    auto-end at any value — reaching 8 (or any number) does nothing on its own.
@@ -163,7 +169,8 @@ symmetric players, so v1 renders **two name inputs** (Player 1 / Player 2),
 styled like the design's input. The remaining elements are designed and
 recorded here so they slot onto this same sheet when their features land:
 
-- **Your deck** carousel → deck selection entry point (Feature 4).
+- **Your deck** carousel → deck selection (Feature 4). Built as a dropdown
+  under the player's name rather than a carousel.
 - **Scan QR ("SOON")** → match-mode teaser (Feature 8). The disabled "SOON"
   affordance could ship earlier than the feature itself (see open questions).
 - **Track turns** toggle → turn tracking (Feature 10); not in the data model.
@@ -180,7 +187,11 @@ still unbuilt — the two are separate toggles, not alternatives.
 filter chips (All / Wins / Losses / BO3), rows that expand into per-game
 scores, and deleting — swipe a row left, or tap **Select** (or long-press a
 row) to pick several and delete them together. Deleting a match is permanent
-and removes its games. The designed list / detail view is still planned.
+and removes its games. A match played with a deck shows the deck's name on
+its row, and the expanded row links to the deck (a deck deleted since is
+named but not linked). "View details" opens the **match detail**: the
+result, a per-game breakdown, each game's score graph, and the deck you
+played.
 
 **What it is.** A browsable list of completed matches, newest first. Tapping a
 match opens a detail view.
@@ -189,10 +200,40 @@ match opens a detail view.
 letter badge + colored bar), format (Bo1/Bo3), final game score, and the deck
 played (once decks ship).
 
-**Detail view shows:** per-game breakdown (score at end, winner), format,
-the deck snapshot, and any notes/tags. Because the
-deck is stored as an immutable snapshot, the detail always reflects the exact
-list played. The match-end flow in Feature 1 routes here as the overview.
+**Detail view (built, v1 — your side only).** A result card (Victory /
+Defeat / Draw with the W/L/D badge, "vs {opponent} · Best of n", the series or
+game score, the date, and for timed matches the time played excluding pauses).
+Then **Games**: one card per game with your score, a bar filled to your share
+of the points in the result color, their score, and the W/L/D badge (an
+unfinished game, from ending the match early, is marked as such). Tapping a
+game expands its **score graph**: your line and the opponent's as they climbed
+over the game, ending in the final scores — deliberately low-detail, no
+per-point labels. Your line is colored by how each point was scored: from a
+point until the next, it takes that point's color (Conquer / Hold / Special,
+the board's button colors); before your first point it's the standard color.
+The opponent's line stays one muted color. A point taken back on the board cancels the point it undid,
+and neither appears. Each game card also shows **your note on that game**
+(or "Add note"). Then **Deck**: the deck you played, linking to its decklist,
+or a note that none was chosen. Then **Notes**: your note on the whole round.
+
+**Notes.** One free-text note per game plus one for the round (up to 2000
+characters each), written in a full-screen editor (type, line-break, Save /
+Cancel). They're offered while it's fresh — on the between-games screen
+("Add a note for game n") and on the match-complete screen (every game, so
+the last one too, plus the round) — and stay editable any time from the
+match detail. Signed-in only (a guest's match isn't saved). Notes are part of
+the match in Postgres: added on the match-complete screen they re-sync to the
+already-saved match, offline through the outbox like any write.
+
+Score graphs exist for games played since point recording shipped: the board
+records each score change, including how it was scored (`Game.events`), so a
+richer breakdown is possible later. Older games show the bars only, with a
+note. Tags aren't built yet, and there's no location.
+
+**With match mode (Feature 8)** the detail gains the opponent: their deck (a
+"Decklist" card like yours), their linked Riftlog profile, your head-to-head
+record, and their win rate. Nothing for it is shown in v1 — the data doesn't
+exist until two accounts share a match.
 
 **Result perspective.** History is owner-centric: results render as win / loss
 / draw relative to the owning player, always pairing color with the W/L/D
@@ -283,9 +324,13 @@ them together — but it's a *soft* delete: the deck disappears for the player w
 its versions stay, because match history will pin them. There's no restore in
 the app yet.
 
-**Entry points:** "My decks" on Profile today. Later, the **Your deck**
-carousel on the pre-match setup sheet (Feature 1), where the player picks the
-deck they're running before a match.
+**Entry points:** "My decks" on Profile, and **Your deck** on the pre-match
+setup sheet (Feature 1), where the player picks the deck they're running
+before a match. Home also shows a **Recently played deck** card
+(above Recent matches): the deck from your most recent match that had one —
+name, legend, domains, when it was played — tapping through to the deck. It's
+hidden for guests, until a match has been played with a deck, and it skips a
+deck deleted since.
 
 **Requirements:**
 
@@ -384,7 +429,9 @@ still to be decided.
 ## Feature 8 — Match mode (QR co-recording)
 
 **Status:** deferred to v2. Forward-compatible fields exist
-(`Match.hostUserId`, `Match.guestUserIds`).
+(`Match.hostUserId`, `Match.guestUserIds`). When it lands, the match detail
+(Feature 2) adds an opponent section: their deck, linked profile,
+head-to-head, and their win rate.
 
 **What it is.** When both players have the app and want a shared record, one
 player surfaces a QR code and the other scans it to join or receive the match,

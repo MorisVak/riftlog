@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { useSharedValue } from 'react-native-reanimated';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchDeck, renameDeck, type Deck } from '@/lib/decks';
+import { fetchDeck, fetchDeckVersion, renameDeck, type Deck } from '@/lib/decks';
+import type { DeckList } from '@riftlog/core';
 import DeckView from '@/components/deck/deckView';
 import DeckNameEditor from '@/components/deck/deckNameEditor';
 import Icon from '@/components/icon';
@@ -11,48 +12,82 @@ import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 type LoadState =
   | { kind: 'loading' }
-  | { kind: 'ready'; deck: Deck }
+  | {
+      kind: 'ready';
+      deck: Deck;
+      /** Set when showing an earlier version (the list a match was played
+       *  with) instead of the current one. */
+      played: { list: DeckList; createdAt: string } | null;
+    }
   | { kind: 'missing' }
   | { kind: 'error' };
 
 /**
  * One saved deck, read from Postgres (its current version). The name can be
- * changed in place; the list is read-only — editing it will add a new
- * immutable version, which isn't built yet.
+ * changed in place; "Edit list" opens the import screen in edit mode
+ * (`/decks/import?deckId=…`), which saves a new immutable version. The deck
+ * re-reads on every focus — quietly, once it's on screen — so returning from
+ * an edit shows the new list.
+ *
+ * With a `version` param (a match's deck link, see `deckHref`) it shows that
+ * version — the list AS PLAYED — read-only, with a note and a way to the
+ * current list. If that version is still current, it's just the normal view.
  */
 const DeckDetail = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, version } = useLocalSearchParams<{
+    id: string;
+    version?: string;
+  }>();
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
 
   const intro = useSharedValue(0);
   const introStyle = useRise(intro);
 
+  // Whether the deck has been shown: later loads refresh in place, without
+  // the loading text or the intro.
+  const shown = useRef(false);
+
   const load = useCallback(() => {
     let active = true;
-    setState({ kind: 'loading' });
+    const quiet = shown.current;
+    if (!quiet) setState({ kind: 'loading' });
     fetchDeck(id)
-      .then((deck) => {
+      .then(async (deck) => {
+        // An earlier version, when a match link asked for one that isn't
+        // current any more.
+        const played =
+          deck && version && version !== deck.versionId
+            ? await fetchDeckVersion(id, version)
+            : null;
         if (!active) return;
-        setState(deck ? { kind: 'ready', deck } : { kind: 'missing' });
-        if (deck) playIntro([intro]);
+        if (deck && version && version !== deck.versionId && !played) {
+          setState({ kind: 'missing' });
+          return;
+        }
+        setState(deck ? { kind: 'ready', deck, played } : { kind: 'missing' });
+        if (deck && !quiet) {
+          shown.current = true;
+          playIntro([intro]);
+        }
       })
       .catch(() => {
-        if (active) setState({ kind: 'error' });
+        // A failed quiet refresh keeps the deck already on screen.
+        if (active && !quiet) setState({ kind: 'error' });
       });
     return () => {
       active = false;
     };
-  }, [id, intro]);
+  }, [id, version, intro]);
 
-  useEffect(load, [load]);
+  useFocusEffect(load);
 
   const rename = async (name: string) => {
     if (state.kind !== 'ready') return;
     const saved = await renameDeck(state.deck.id, name);
     setState({
-      kind: 'ready',
+      ...state,
       deck: { ...state.deck, name: saved.name, updatedAt: saved.updatedAt },
     });
   };
@@ -77,6 +112,25 @@ const DeckDetail = () => {
         >
           <Icon name="chevron-left" size={18} className="text-ink-secondary" />
         </TouchableOpacity>
+        {state.kind === 'ready' && !state.played && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Edit decklist"
+            onPress={() =>
+              router.push({
+                pathname: '/decks/import',
+                params: { deckId: state.deck.id },
+              })
+            }
+            hitSlop={8}
+            className="ml-auto h-9 flex-row items-center gap-1.5 rounded-full border border-border bg-elevated px-3.5 active:bg-surface"
+          >
+            <Icon name="list" size={14} className="text-accent" />
+            <Text className="font-display text-[15px] text-accent">
+              Edit list
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {state.kind === 'ready' ? (
@@ -90,11 +144,48 @@ const DeckDetail = () => {
           showsVerticalScrollIndicator={false}
         >
           <Animated.View style={introStyle}>
+            {state.played && (
+              <View className="mb-5 flex-row gap-3 rounded-2xl border border-border bg-surface p-4">
+                <Icon name="clock" size={16} className="mt-0.5 text-accent" />
+                <View className="flex-1">
+                  <Text className="font-display-bold text-[15px] text-ink-primary">
+                    Outdated version
+                  </Text>
+                  <Text className="mt-1 text-[13px] leading-[18px] text-ink-secondary">
+                    You&apos;ve edited this deck since. This version is from{' '}
+                    {new Date(state.played.createdAt).toLocaleDateString(
+                      undefined,
+                      { month: 'short', day: 'numeric', year: 'numeric' },
+                    )}
+                    .
+                  </Text>
+                  <TouchableOpacity
+                    accessibilityRole="link"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/decks/[id]',
+                        params: { id: state.deck.id },
+                      })
+                    }
+                    hitSlop={8}
+                    className="mt-2.5 flex-row items-center gap-1 self-start"
+                  >
+                    <Text className="font-display text-[14px] text-accent">
+                      See current list
+                    </Text>
+                    <Icon name="chevron-right" size={15} className="text-accent" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
             <DeckView
               name={state.deck.name}
-              list={state.deck.list}
+              list={state.played?.list ?? state.deck.list}
+              // An earlier version is read-only: no rename from here.
               title={
-                <DeckNameEditor name={state.deck.name} onSave={rename} />
+                state.played ? undefined : (
+                  <DeckNameEditor name={state.deck.name} onSave={rename} />
+                )
               }
             />
           </Animated.View>

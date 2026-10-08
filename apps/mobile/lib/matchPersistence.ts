@@ -1,13 +1,32 @@
-import type { Database, Match } from '@riftlog/core';
+import { normalizeNote, type Database, type Match } from '@riftlog/core';
 import { supabase } from './supabase';
+import { totalPausedMs } from './clock';
 
 type MatchInsert = Database['public']['Tables']['matches']['Insert'];
 type GameInsert = Database['public']['Tables']['games']['Insert'];
 export type MatchRow = Database['public']['Tables']['matches']['Row'];
 export type GameRow = Database['public']['Tables']['games']['Row'];
 
+/** The deck a match was played with, as read back for History. */
+export type MatchDeckRef = {
+  /** The deck itself — the History link opens this. */
+  id: string;
+  /** Its CURRENT name (renames show up in old matches too). */
+  name: string;
+  /** Soft-deleted since: still named, no longer linkable. */
+  archivedAt: string | null;
+  /** The immutable version the match was played with. */
+  versionId: string;
+  /** The deck has been edited since: its current list isn't the one played. */
+  edited: boolean;
+};
+
 /** A match row with its games embedded (newest match first; games by index). */
-export type MatchWithGames = MatchRow & { games: GameRow[] };
+export type MatchWithGames = MatchRow & {
+  games: GameRow[];
+  /** null when no deck was chosen (or the match predates deck selection). */
+  deck: MatchDeckRef | null;
+};
 
 /**
  * Persist a SETTLED match (and its games) directly to Postgres. The device has
@@ -30,8 +49,13 @@ export async function saveCompletedMatch(match: Match): Promise<void> {
     id: match.id,
     best_of: match.bestOf,
     winner_id: match.winnerId,
-    // jsonb columns: the Player/score shapes are plain JSON at runtime.
-    players: match.players as unknown as MatchInsert['players'],
+    // jsonb columns: the Player/score shapes are plain JSON at runtime. The
+    // chosen deck is NOT copied in here — it's referenced by version id below,
+    // and the version already holds the immutable list.
+    players: match.players.map(({ deck: _deck, ...player }) => player) as unknown as MatchInsert['players'],
+    // The exact deck version p1 played, or null for "no deck". The DB's
+    // composite FK only accepts the caller's own versions.
+    deck_version_id: match.players.find((p) => p.id === 'p1')?.deck?.versionId ?? null,
     started_at: match.startedAt,
     ended_at: match.endedAt,
     // Timed mode: only the configured limit is persisted — how long the match
@@ -39,8 +63,14 @@ export async function saveCompletedMatch(match: Match): Promise<void> {
     // started_at / ended_at. null for an untimed match.
     // `?? null` covers a match queued in the outbox before timed mode existed.
     time_limit_seconds: match.timeLimitSeconds ?? null,
+    // Total time the clock was paused (a pause still open at the end counts up
+    // to endedAt), so History's "played" excludes it. 0 for untimed matches
+    // and for outbox entries queued before pausing existed.
+    clock_paused_ms: Math.round(totalPausedMs(match, Date.parse(match.endedAt))),
     host_user_id: match.hostUserId,
     guest_user_ids: match.guestUserIds,
+    // The round note; blank is stored as null.
+    notes: normalizeNote(match.notes),
   };
 
   const { error: matchError } = await supabase.from('matches').upsert(matchRow);
@@ -54,6 +84,10 @@ export async function saveCompletedMatch(match: Match): Promise<void> {
     winner_id: game.winnerId,
     started_at: game.startedAt,
     ended_at: game.endedAt,
+    // The point-by-point record for the match detail's timeline. `?? []`
+    // covers games (and outbox entries) from before recording existed.
+    events: (game.events ?? []) as unknown as GameInsert['events'],
+    notes: normalizeNote(game.notes),
   }));
 
   const { error: gamesError } = await supabase.from('games').upsert(gameRows);
@@ -66,15 +100,72 @@ export async function saveCompletedMatch(match: Match): Promise<void> {
  * breakdown. RLS scopes both tables to the caller's own rows, so no explicit
  * user filter is needed. Read on demand — history is never mirrored locally.
  */
+// matches → deck_versions → decks. Both hops name their FK: decks and
+// deck_versions are related both ways (a version's deck, a deck's current
+// version), so PostgREST needs the hint to pick one.
+const HISTORY_COLUMNS =
+  '*, games(*), ' +
+  'deck_version:deck_versions!matches_deck_version_fkey(id, ' +
+  'deck:decks!deck_versions_deck_id_owner_id_fkey(' +
+  'id, name, archived_at, current_version_id))';
+
+type HistoryRow = MatchRow & {
+  games: GameRow[];
+  deck_version: {
+    id: string;
+    deck: {
+      id: string;
+      name: string;
+      archived_at: string | null;
+      current_version_id: string | null;
+    } | null;
+  } | null;
+};
+
+const withDeck = ({ deck_version, ...row }: HistoryRow): MatchWithGames => {
+  const deck = deck_version?.deck ?? null;
+  return {
+    ...row,
+    deck:
+      deck_version && deck
+        ? {
+            id: deck.id,
+            name: deck.name,
+            archivedAt: deck.archived_at,
+            versionId: deck_version.id,
+            edited: deck.current_version_id !== deck_version.id,
+          }
+        : null,
+  };
+};
+
 export async function fetchMatchHistory(): Promise<MatchWithGames[]> {
   const { data, error } = await supabase
     .from('matches')
-    .select('*, games(*)')
+    .select(HISTORY_COLUMNS)
     .order('ended_at', { ascending: false })
-    .order('game_index', { referencedTable: 'games', ascending: true });
+    .order('game_index', { referencedTable: 'games', ascending: true })
+    .returns<HistoryRow[]>();
 
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map(withDeck);
+}
+
+/**
+ * One match (games in order, with their point events, plus the deck played)
+ * for the match detail screen. null if it doesn't exist or isn't the caller's.
+ */
+export async function fetchMatch(id: string): Promise<MatchWithGames | null> {
+  const { data, error } = await supabase
+    .from('matches')
+    .select(HISTORY_COLUMNS)
+    .eq('id', id)
+    .order('game_index', { referencedTable: 'games', ascending: true })
+    .returns<HistoryRow[]>()
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? withDeck(data) : null;
 }
 
 /**
@@ -98,4 +189,29 @@ export async function deleteMatches(matchIds: string[]): Promise<void> {
   if (matchIds.length === 0) return;
   const { error } = await supabase.from('matches').delete().in('id', matchIds);
   if (error) throw error;
+}
+
+/**
+ * Edit the round note on a saved match (match detail, any time later). Owner
+ * RLS scopes it; blank text clears it. Returns the stored value.
+ */
+export async function updateMatchNote(
+  matchId: string,
+  text: string,
+): Promise<string | null> {
+  const notes = normalizeNote(text);
+  const { error } = await supabase.from('matches').update({ notes }).eq('id', matchId);
+  if (error) throw error;
+  return notes;
+}
+
+/** Edit one game's note on a saved match. Same rules as `updateMatchNote`. */
+export async function updateGameNote(
+  gameId: string,
+  text: string,
+): Promise<string | null> {
+  const notes = normalizeNote(text);
+  const { error } = await supabase.from('games').update({ notes }).eq('id', gameId);
+  if (error) throw error;
+  return notes;
 }

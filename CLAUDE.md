@@ -147,13 +147,14 @@ Don't invent terminology that doesn't exist in Riftbound.
 - Onboarding beyond the required handle step — the optional deck-import step
   isn't built, even though text import now exists; it goes *after*
   `onboarded_at` is set so it can never block the gate.
-- Deck selection and track-turns in pre-match setup — the setup sheet itself
-  is built (Bo1/Bo3, player names, timed toggle + round length)
+- Track-turns in pre-match setup — the setup sheet itself is built (Bo1/Bo3,
+  player names, timed toggle + round length, optional deck)
 - Deck imports beyond plain text — Piltover Archive deck-code decoding, then
-  Riftmana. Plain-text import, the sectioned deck view, and a bare "My decks"
-  list on Profile are built; decks aren't attached to matches yet.
-- Match history view — a minimal read-only list is wired to Postgres; the
-  designed history UI / detail view is still to come
+  Riftmana. Plain-text import, editing a deck's list (each save is a new
+  immutable version), the sectioned deck view, a bare "My decks" list on
+  Profile, and choosing your deck for a match are built.
+- Match mode extras on the match detail — the opponent's deck, linked profile,
+  head-to-head, their win rate (v1 shows your side only)
 - v2 QR co-recording feature (data model has placeholder fields)
 
 See `SPEC.md` for the full feature detail and build order. When extending the

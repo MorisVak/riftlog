@@ -37,7 +37,23 @@ export {
   type Domain,
   type DomainCount,
 } from './decks/domains';
-export type { PlayerId, Player, Game, Match } from './types/match';
+export type {
+  PlayerId,
+  Player,
+  Game,
+  Match,
+  PointEvent,
+  ScoringAction,
+} from './types/match';
+export {
+  isPointEvent,
+  netPoints,
+  pointShare,
+  scoreSeries,
+  toPointEvents,
+  type ScoreStep,
+} from './matches/timeline';
+export { NOTE_MAX, normalizeNote } from './matches/notes';
 export type { Profile } from './types/profile';
 
 export {

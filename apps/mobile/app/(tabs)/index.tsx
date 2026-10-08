@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -15,10 +15,14 @@ import { useAuth } from '@/contexts/authContext';
 import { useMatch } from '@/contexts/matchContext';
 import GuestBanner from '@/components/guestBanner';
 import PlayField from '@/components/playField';
+import GameStartIntro from '@/components/gameStartIntro';
 import BetweenGamesScreen from '@/components/betweenGamesScreen';
 import MatchOverview from '@/components/matchOverview';
+import { SCREEN_ENTER } from '@/components/transitions';
 import MatchSetup from '@/components/matchSetup';
 import RecentMatchRow from '@/components/recentMatchRow';
+import RecentDeckCard from '@/components/deck/recentDeckCard';
+import { fetchDeck, type Deck } from '@/lib/decks';
 import {
   fetchMatchHistory,
   type MatchWithGames,
@@ -84,6 +88,18 @@ const GuestRecentState = () => (
   </View>
 );
 
+/** Guest stand-in for "Recently played deck": decks need an account. */
+const GuestDeckState = () => (
+  <View className="rounded-2xl border border-border bg-surface px-6 py-8">
+    <Text className="text-center font-display text-base text-ink-primary">
+      No decks in guest mode
+    </Text>
+    <Text className="mt-2 text-center text-sm text-ink-secondary">
+      Sign in to import your decks and pick one when you start a match.
+    </Text>
+  </View>
+);
+
 const Home = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -96,8 +112,10 @@ const Home = () => {
   const headerIntro = useSharedValue(0);
   const ctaIntro = useSharedValue(0);
   const statsIntro = useSharedValue(0);
+  const deckIntro = useSharedValue(0);
   const recentIntro = useSharedValue(0);
   const headerStyle = useRise(headerIntro);
+  const deckStyle = useRise(deckIntro);
   const ctaStyle = useRise(ctaIntro);
   const statsStyle = useRise(statsIntro);
   const recentStyle = useRise(recentIntro);
@@ -109,7 +127,7 @@ const Home = () => {
       // Replay the intro on each focus, staggering the elements top-to-bottom
       // (header → CTA → stats → recent) so the screen assembles dynamically
       // rather than fading in all at once, matching the other tabs.
-      playIntro([headerIntro, ctaIntro, statsIntro, recentIntro]);
+      playIntro([headerIntro, ctaIntro, statsIntro, deckIntro, recentIntro]);
       // Home is the one guest-usable screen, so it must not touch the network
       // while signed out — stats read as zeroes and the recent list explains
       // itself instead.
@@ -124,12 +142,35 @@ const Home = () => {
       return () => {
         active = false;
       };
-    }, [authed, headerIntro, ctaIntro, statsIntro, recentIntro]),
+    }, [authed, headerIntro, ctaIntro, statsIntro, deckIntro, recentIntro]),
   );
 
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
   const recent = useMemo(() => vms.slice(0, 3), [vms]);
   const stats = useMemo(() => deriveStats(vms), [vms]);
+
+  // "Recently played deck": the deck from the most recent match that had one
+  // (history is newest-first). A deck deleted since is skipped — the card
+  // must open something.
+  const lastPlayed = useMemo(() => {
+    const m = (rows ?? []).find((r) => r.deck && r.deck.archivedAt === null);
+    return m?.deck ? { id: m.deck.id, name: m.deck.name, playedAt: m.ended_at } : null;
+  }, [rows]);
+  const [lastDeck, setLastDeck] = useState<Deck | null>(null);
+  const lastDeckId = lastPlayed?.id ?? null;
+  useEffect(() => {
+    setLastDeck(null);
+    if (!lastDeckId) return;
+    let active = true;
+    // Only for the card's legend + domains; the name is already known, so a
+    // failed fetch just leaves the card without them.
+    fetchDeck(lastDeckId)
+      .then((d) => active && setLastDeck(d))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [lastDeckId]);
 
   // A guest never fetches, so `rows === null` isn't "still loading" for them.
   // Session restore counts as loading though — otherwise every cold start
@@ -212,15 +253,42 @@ const Home = () => {
         </Pressable>
         </Animated.View>
 
-        {/* Season stats */}
-        <Animated.View
-          style={statsStyle}
-          className="mt-3.5 flex-row overflow-hidden rounded-2xl border border-border bg-surface"
-        >
-          <StatCell value={stats.wins} label="Wins" color="text-win-text" />
-          <StatCell value={stats.losses} label="Losses" color="text-loss-text" />
-          <StatCell value={stats.winRate} label="Win rate" color="text-accent" last />
-        </Animated.View>
+        {/* Season stats — your own saved matches, so none for a guest (they
+            have nothing saved; a row of zeroes would just look broken).
+            Shown while the session restores so a signed-in cold start
+            doesn't jump. */}
+        {status !== 'guest' && (
+          <Animated.View
+            style={statsStyle}
+            className="mt-3.5 flex-row overflow-hidden rounded-2xl border border-border bg-surface"
+          >
+            <StatCell value={stats.wins} label="Wins" color="text-win-text" />
+            <StatCell value={stats.losses} label="Losses" color="text-loss-text" />
+            <StatCell value={stats.winRate} label="Win rate" color="text-accent" last />
+          </Animated.View>
+        )}
+
+        {/* Recently played deck — signed in, once a match has been played
+            with a deck; a guest gets a stand-in, like Recent matches. */}
+        {(status === 'guest' || (authed && lastPlayed)) && (
+          <Animated.View style={deckStyle}>
+            <View className="mb-3 mt-6 px-0.5">
+              <Text className="font-display-bold text-[15px] text-ink-primary">
+                Recently played deck
+              </Text>
+            </View>
+            {authed && lastPlayed ? (
+              <RecentDeckCard
+                name={lastPlayed.name}
+                playedAt={lastPlayed.playedAt}
+                deck={lastDeck}
+                onPress={() => router.push(`/decks/${lastPlayed.id}`)}
+              />
+            ) : (
+              <GuestDeckState />
+            )}
+          </Animated.View>
+        )}
 
         {/* Recent matches */}
         <Animated.View style={recentStyle}>
@@ -277,7 +345,9 @@ const Index = () => {
   if (phase === 'over') {
     return (
       <View className="flex-1 bg-background">
-        <MatchOverview />
+        <Animated.View entering={SCREEN_ENTER} className="flex-1">
+          <MatchOverview />
+        </Animated.View>
       </View>
     );
   }
@@ -285,7 +355,9 @@ const Index = () => {
   if (phase === 'between-games') {
     return (
       <View className="flex-1 bg-background">
-        <BetweenGamesScreen />
+        <Animated.View entering={SCREEN_ENTER} className="flex-1">
+          <BetweenGamesScreen />
+        </Animated.View>
       </View>
     );
   }
@@ -294,6 +366,9 @@ const Index = () => {
     return (
       <View className="flex-1 bg-background">
         <PlayField />
+        {/* The "VS" intro at the start of each game; renders nothing
+            otherwise. */}
+        <GameStartIntro />
       </View>
     );
   }

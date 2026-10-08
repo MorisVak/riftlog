@@ -240,16 +240,25 @@ Pre-match setup collects **format (Bo1/Bo3)**, **player names**, and the
 (`components/matchSetup.tsx`), passed to `startMatch` as a `MatchConfig`; blank
 names fall back to "You"/"Opponent". The two slots are **not interchangeable**:
 `p1` is always the device owner and `p2` the opponent (see the p1-perspective
-rule below). Still deferred (specced in `SPEC.md`, not built): deck selection
-and the track-turns control. See the match flow before extending it.
+rule below). Signed in, the sheet also offers **Your deck**
+(`components/deck/deckPicker.tsx`, optional, "No deck" first) → `MatchConfig.deck`
+→ `players[0].deck` (a `DeckSnapshot`). On save only its `versionId` is
+written (`matches.deck_version_id`); the deck is stripped from the `players`
+jsonb, since the immutable version already holds the list. History reads it
+back through `matches → deck_versions → decks` (current name, archived flag):
+the name on the row's meta line, a link in the expanded row, and a "View
+details" button to the match detail (`app/matches/[id].tsx`, see below).
+Still deferred: the track-turns control. See the match flow before extending
+it.
 
 ### Timed mode
 
 `Match.timeLimitSeconds` (null = untimed) is the **only** timed-mode state.
 There is no ticking value in context, no paused flag, nothing on `Game`:
 
-- One clock covers the whole match and **never pauses** — the between-games
-  break in a Bo3 is sideboarding time and runs on the same clock.
+- One clock covers the whole match and keeps running through the between-games
+  break in a Bo3 (sideboarding is on the clock); only the board's pause control
+  stops it.
 - Remaining time is **derived from wall-clock** in `lib/clock.ts`
   (`limit - (now - game 1 startedAt)`), so it can't drift and needs no
   restoring after a background/reload/outbox resume. Don't add a stored
@@ -265,8 +274,16 @@ There is no ticking value in context, no paused flag, nothing on `Game`:
   more: `Match.clockPausedAt` + `clockPausedMs` bank the pauses and
   `runningMs()` subtracts them. Still nothing ticks — a paused clock is a
   steady derived value, and `MatchClock` stops its own timer while paused.
-  Pause state is not persisted to Postgres, so a completed match's "played"
-  time in history includes any paused time.
+  The finished match persists the total (`totalPausedMs` →
+  `matches.clock_paused_ms`), and History's "played" subtracts it.
+- **`MatchClock` reads `Date.now()` at render time and opts out of the React
+  Compiler (`'use no memo'`).** Two bugs taught this: (1) rendering with the
+  last tick's stored timestamp made the countdown jump UP by the pause length
+  on resume (the pause is banked immediately, the stale timestamp predates it);
+  (2) with `experiments.reactCompiler` on, reading `Date.now()` in render got
+  memoized on `match` alone and froze the clock. The tick (`useTick`) only
+  triggers re-renders. Any other component that reads the clock during render
+  needs the same opt-out.
 - **Rotating text needs an explicitly sized wrapper.** A transform is paint
   only — it doesn't change layout — so a rotated clock dropped into a narrow
   slot lays out at that slot's width and truncates (`50:00` → `2…`). The board
@@ -299,8 +316,13 @@ game counter, nothing taking board space from either player:
   + glow and greys the clock; there's deliberately no "PAUSED" label, which
   would grow the rotated capsule. Nothing else belongs here — the pass-turn
   control is still deferred.
-- History stores only the configured limit; elapsed time and the
-  overtime flag are derived from `started_at`/`ended_at` in `lib/historyView.ts`.
+- **Game-start intro** (`components/gameStartIntro.tsx`, over `PlayField`):
+  the design's "VS" transition — cards slide in, VS pops, "Match start" /
+  "Game 2" / "Game 3" — ~1.75s, tap to skip. It plays once per game id and
+  only for a game that *just* started (no events, `startedAt` < 3s ago), so a
+  restored match never replays it.
+- History stores the configured limit and the total paused time; played time
+  (excluding pauses) and the overtime flag are derived in `lib/historyView.ts`.
 - The setup sheet offers two presets (30 / 60 min) plus **Custom**, which opens
   `components/durationPicker.tsx` — minute/second wheels built from a snapping
   `ScrollView`, not a picker dependency. A timed match at 00:00 can't start; the
@@ -313,9 +335,39 @@ Conventions:
 
 - **A point is scored by saying HOW.** Under the numeral sit three buttons —
   conquer / hold / special — and **tapping the numeral takes a point back**;
-  there is no separate decrement control. All three actions currently just
-  `incrementScore` by 1; which one was pressed is **not** recorded yet (that
-  needs a field on `Game`), so don't assume history can break points down.
+  there is no separate decrement control. Every change is **recorded** on the
+  current game as a `PointEvent` (`Game.events`: ms since the game started,
+  player, ±1, and `conquer`/`hold`/`special`, or null for a take-back), in the
+  same update as the score so they can't drift (`changeScore` in
+  `matchContext`). A take-back at 0 records nothing. `setScore` jumps a score
+  without events and isn't used by the board — don't wire it to UI.
+- **Match detail** (`app/matches/[id].tsx`, `fetchMatch` →
+  `lib/matchDetailView.ts` → `components/match/gameCard.tsx`): result card,
+  per-game bars (fill = your share of points, `pointShare` in core) that
+  expand into a score graph (`components/match/scoreGraph.tsx`, step lines
+  drawn from plain Views — no SVG dependency), and your deck. The graph uses
+  `scoreSeries` in core, which nets take-backs out first (`netPoints`: a -1
+  cancels that player's latest point; neither is shown). Your line is colored
+  per run by the scoring action that started it (`bg-conquer` / `bg-hold` /
+  `bg-special`; `bg-accent` before your first point); the opponent's stays
+  `ink-tertiary` so the two lines never share a color. Validated for
+  separation; the muted line is under 3:1 contrast, so both lines are always
+  direct-labeled with their final score, and the legend explains the action
+  colors.
+  The VM builds on `toHistoryRowVM` so History and the detail can't disagree.
+- **Notes** (`Game.notes`, `Match.notes`): one shared editor,
+  `components/match/noteEditor.tsx` (a native page-sheet `Modal`, Save /
+  Cancel, 2000-char counter), and `noteRow.tsx` for "note or Add note" rows.
+  Live: the between-games screen and the match-complete screen
+  (`setGameNote` / `setMatchNote` in `matchContext`, signed-in only). Later:
+  the match detail edits Postgres directly (`updateGameNote` /
+  `updateMatchNote`). Text is stored via core's `normalizeNote` (trimmed,
+  blank → null). **The match is already saved when the match-complete screen
+  shows**, so `MatchSync` re-syncs a settled match whenever its notes change
+  (`notesKey`), and every completed-match write goes through one promise
+  chain (`enqueueWrite`) so a late first save can't overwrite newer notes.
+  v1 is **your side only** — the opponent block (their deck, profile,
+  head-to-head) waits for match mode.
 - **Scoring is a manual tally — no auto-end.** Score can't drop below 0;
   there's no upper bound and no win-at-target logic. Games and the match end
   only via explicit user action (with a confirm prompt), so stray or accidental
@@ -493,13 +545,31 @@ locally** — keep the footprint to these two items.
 narrowed with core's `isDeckList`, archived decks filtered out), never cached
 on-device. The writes are `createDeck()` → the `create_deck` RPC,
 `renameDeck()` → a plain update of `decks.name` (the one column clients may
-write; the deck screen's pencil button), and `deleteDeck()` → the
+write; the deck screen's pencil button), `updateDeckList()` → the
+`update_deck_list` RPC (a new immutable version; matches keep the one they
+pinned), and `deleteDeck()` → the
 `delete_deck` RPC, a **soft** delete (see `../../supabase/CLAUDE.md`).
 "My decks" deletes like match history: swipe a row left
 (`components/swipeToDelete.tsx`), confirm, the row drops optimistically and
 comes back with an alert if the server call fails. A swipe row's card must be
 opaque (`Pressable` + `bg-surface`, not `TouchableOpacity`) or the red action
 shows through on tap.
+
+**Editing a list** reuses the import screen: the deck screen's "Edit list"
+pushes `/decks/import?deckId=…`, which pre-fills the box with
+`formatDeckText(list)` — tweak a line to change a few cards, or Clear + paste a
+whole new list. Same parser, preview, and error blocking as an import; Save is
+off until the list actually differs (compared as formatted text). The name
+isn't edited there. The deck screen re-reads on focus, quietly once shown, so
+it reflects the edit on return.
+
+**A match links to the list as played.** History's deck link and the match
+detail's "Decklist" go through `deckHref` (`lib/historyView.ts`) to
+`/decks/[id]?version=<pinned version>`. If the deck was edited since, the deck
+screen shows that version read-only (no rename, no Edit list) under an
+"Outdated version" note with a "See current list" link; if the version
+is still current it's the normal view. The match detail says "You played an
+earlier version" when it differs (`MatchDeckRef.edited`).
 
 **Multi-select (History and "My decks").** WhatsApp-style: a "Select" button
 in the list header, or long-press a row (which selects it). While selecting,
@@ -535,6 +605,10 @@ Rules that are easy to get wrong:
 - **Legacy placeholder names are normalized.** Matches started with blank name
   fields stored the literal `"Player 1"` / `"Player 2"`; those render as
   `You` / `Opponent` rather than being shown as if they were real names.
+- **Home's "Recently played deck"** (`components/deck/recentDeckCard.tsx`) is
+  derived from the same `fetchMatchHistory()` rows — the newest match whose
+  `deck` isn't archived — then `fetchDeck` fills in legend + domains. It
+  renders with the name first so Recent matches below doesn't jump.
 - **Home's preview row mirrors the History row.** Both render the same
   `HistoryRowVM` and share `components/matchMeta.tsx` for the format + clock
   line, so they can't drift. Home's copy just drops the swipe-delete and the
@@ -687,11 +761,14 @@ that file's "exactly two match keys" contract stays true.
 The user is building incrementally. Don't add the following until its slice
 is explicitly started:
 
-- Deck selection and the track-turns control in pre-match setup (format,
-  player names, and timed mode are built; the rest is deferred)
-- Deck **code** decoding (detected only), Riftmana import, deck editing /
-  versions, restoring deleted decks, and attaching decks to matches. Text
-  import, the deck view, renaming, (soft) delete, and "My decks" are built.
+- The track-turns control in pre-match setup (format, names, timed mode,
+  and deck are built)
+- The match detail's opponent block (their deck, linked profile,
+  head-to-head, win rate) — needs match mode
+- Deck **code** decoding (detected only), Riftmana import, a version
+  history UI, and restoring deleted decks. Text import, the deck view,
+  renaming, editing the list (new version), (soft) delete, "My decks", and
+  choosing a deck for a match are built.
 - The designed history UI / detail view (only a minimal read-only list exists)
 - Profile **editing** — the handle rename UI and stats. `claim_username`
   already enforces the rules (30-day limit); nothing calls it from the client

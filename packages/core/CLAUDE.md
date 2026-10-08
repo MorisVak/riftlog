@@ -44,8 +44,11 @@ So nothing here can assume a specific runtime. Pure TS only.
     │   ├── validate.ts       isDeckList (runtime guard for stored lists)
     │   ├── *.test.ts         Vitest
     │   └── __fixtures__/     kennen.txt (text export), kennen.code.txt (Piltover code)
+    ├── matches/
+    │   ├── timeline.ts       netPoints, scoreSeries, pointShare, toPointEvents / isPointEvent
+    │   └── notes.ts          NOTE_MAX, normalizeNote (trimmed; blank → null)
     ├── types/
-    │   ├── match.ts          Player, PlayerId, Game, Match
+    │   ├── match.ts          Player, PlayerId, Game, Match, PointEvent, ScoringAction
     │   ├── deck.ts           CardRef, DeckList, DeckImportSource, DeckSnapshot
     │   └── profile.ts        Profile
     └── db/database.types.ts  generated Supabase types (never hand-edit)
@@ -101,10 +104,12 @@ type-checked by `pnpm typecheck` like everything else.
 Several types include fields with no current consumer:
 
 - `Player.userId` — Supabase user ID once auth lands
-- `Player.deck` — DeckSnapshot; pins an immutable deck version once decks are
-  attached to matches (not built yet)
+- `Player.deck` — DeckSnapshot for the deck p1 chose in setup; only its
+  `versionId` is persisted (`matches.deck_version_id`). Unused for p2 until
+  match mode
 - `Match.hostUserId` / `guestUserIds` — for v2 QR co-recording
-- `Match.notes` / `tags` — for match history features
+- `Match.tags` — for match history features (`Match.notes` is in use: the
+  round note, with `Game.notes` per game — see `src/matches/notes.ts`)
 
 These are intentional. Don't remove them or treat them as dead code.
 

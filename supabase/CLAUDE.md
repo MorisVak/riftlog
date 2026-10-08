@@ -40,7 +40,11 @@ supabase/
 │   ├── 20260924151509_drop_profile_avatar.sql
 │   ├── 20260924155255_decks.sql
 │   ├── 20261007131426_deck_soft_delete.sql
-│   └── 20261007132243_delete_decks_bulk.sql
+│   ├── 20261007132243_delete_decks_bulk.sql
+│   ├── 20261007153123_match_deck.sql
+│   ├── 20261007155324_matches_clock_paused.sql
+│   ├── 20261007161708_games_point_events.sql
+│   └── 20261008092736_match_game_notes.sql
 └── config.toml       Supabase CLI config (linked, anon auth OFF)
 
 ## Schema
@@ -55,13 +59,29 @@ mirror the `@riftlog/core` domain terms (a **match** is the Bo1/Bo3 series, a
   `winner_id` (text `'p1'`/`'p2'`, null = draw), `players` (jsonb, mirrors the
   `Player[]` shape), `started_at`, `ended_at` (not null — a row only exists for a
   settled match), `time_limit_seconds` (integer, **null = untimed** — the
-  configured clock for the whole match; see below), `host_user_id` /
-  `guest_user_ids` (forward-compat, unused in v1), `created_at`.
+  configured clock for the whole match; see below), `deck_version_id`
+  (nullable — the exact deck version the owner/p1 played, see below),
+  `host_user_id` / `guest_user_ids` (forward-compat, unused in v1),
+  `notes` (text, nullable, ≤ 2000 chars — the round note), `created_at`.
+
+  **`deck_version_id` is ownership-checked by its key**: a composite FK
+  `(user_id, deck_version_id) → deck_versions (owner_id, id)`, so a match can
+  only reference a version its own user owns (null = no deck, MATCH SIMPLE).
+  It pins the *version*, never the deck, so renames, edits, and soft deletes
+  don't rewrite history. History embeds it as
+  `deck_versions!matches_deck_version_fkey(deck:decks!deck_versions_deck_id_owner_id_fkey(...))`.
+  A match-mode opponent's deck will get its own column.
 - **`games`** — `id` (uuid PK = client `Game.id`), `match_id`
   (FK → `matches.id` `on delete cascade`), `user_id` (**denormalized**,
   `default auth.uid()` — so RLS is a direct column check, no join), `game_index`,
   `scores_at_end` (jsonb), `winner_id` (text, **nullable**), `started_at`,
-  `ended_at` (**nullable**), `created_at`.
+  `ended_at` (**nullable**), `events` (jsonb array of core `PointEvent`s —
+  the source of the match detail's score graph; `'[]'` for games recorded
+  before it, ≤ 64 KB),
+  `notes` (text, nullable, ≤ 2000 chars — the game note), `created_at`.
+  `scores_at_end` stays the authority; the database never replays `events`.
+  Notes are edited later with a plain owner-scoped UPDATE (the existing
+  policies cover it).
 
 - **`profiles`** — `id` (uuid PK **and** FK → `auth.users` `on delete cascade`
   — a profile can't exist without its user and dies with it), `username`
@@ -127,12 +147,14 @@ mirror the `@riftlog/core` domain terms (a **match** is the Bo1/Bo3 series, a
 `concludeMatch()` settles the series without freezing the in-progress game — a
 settled match can carry a game with no winner / end time.
 
-**Timed mode stores the limit only.** `matches.time_limit_seconds` is the
-configured clock; how long the match actually took comes from
-`ended_at - started_at`, and "went into overtime" is that duration compared
-against the limit. Don't add elapsed / expired / paused columns — the clock is
-derived from wall-clock on the client (`apps/mobile/lib/clock.ts`) and never
-pauses, not even between games in a Bo3.
+**Timed mode stores the limit plus total paused time.**
+`matches.time_limit_seconds` is the configured clock; `clock_paused_ms` is how
+long the board's pause control held the clock, in total (written once with the
+settled match; a pause still open at the end counts up to `ended_at`). Played
+time is `ended_at - started_at - clock_paused_ms`, and "went into overtime" is
+that compared against the limit. Don't add elapsed / expired / live-clock
+columns — the countdown itself is derived on the client
+(`apps/mobile/lib/clock.ts`) and keeps running between games in a Bo3.
 
 **The DB never re-derives Bo3 / draw logic.** The device settles every match in
 `@riftlog/mobile`'s `matchContext` (`settleMatch` / `endGame` / `concludeMatch`);
@@ -209,6 +231,13 @@ version writes.
 for multi-select, in one round trip; ids that aren't the caller's are skipped
 silently; idempotent; max 200 ids (`too_many`). Matches have no RPC for this —
 a bulk match delete is a plain `delete … in (ids)` under RLS, cascading games.
+
+**`update_deck_list(p_deck_id, p_list)`** → current version id. Editing a
+list: inserts a new immutable version and moves `current_version_id` to it
+(the deck row is locked `for update`, and `updated_at` moves via trigger).
+An identical list adds nothing and returns the existing version, so a retry
+can't stack duplicates. `not_found` (`P0002`) for a deck that isn't the
+caller's or is archived; `invalid_list` (`22023`) for a non-DeckList.
 
 **`create_deck(p_name, p_import_source, p_source_code, p_list)`** → deck id.
 `security definer`, `require_account()`, `authenticated` only. Inserts the

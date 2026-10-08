@@ -122,9 +122,11 @@ export type Database = {
         Row: {
           created_at: string
           ended_at: string | null
+          events: Json
           game_index: number
           id: string
           match_id: string
+          notes: string | null
           scores_at_end: Json
           started_at: string
           user_id: string
@@ -133,9 +135,11 @@ export type Database = {
         Insert: {
           created_at?: string
           ended_at?: string | null
+          events?: Json
           game_index: number
           id: string
           match_id: string
+          notes?: string | null
           scores_at_end: Json
           started_at: string
           user_id?: string
@@ -144,9 +148,11 @@ export type Database = {
         Update: {
           created_at?: string
           ended_at?: string | null
+          events?: Json
           game_index?: number
           id?: string
           match_id?: string
+          notes?: string | null
           scores_at_end?: Json
           started_at?: string
           user_id?: string
@@ -165,11 +171,14 @@ export type Database = {
       matches: {
         Row: {
           best_of: number
+          clock_paused_ms: number
           created_at: string
+          deck_version_id: string | null
           ended_at: string
           guest_user_ids: string[]
           host_user_id: string | null
           id: string
+          notes: string | null
           players: Json
           started_at: string
           time_limit_seconds: number | null
@@ -178,11 +187,14 @@ export type Database = {
         }
         Insert: {
           best_of: number
+          clock_paused_ms?: number
           created_at?: string
+          deck_version_id?: string | null
           ended_at: string
           guest_user_ids?: string[]
           host_user_id?: string | null
           id: string
+          notes?: string | null
           players: Json
           started_at: string
           time_limit_seconds?: number | null
@@ -191,18 +203,29 @@ export type Database = {
         }
         Update: {
           best_of?: number
+          clock_paused_ms?: number
           created_at?: string
+          deck_version_id?: string | null
           ended_at?: string
           guest_user_ids?: string[]
           host_user_id?: string | null
           id?: string
+          notes?: string | null
           players?: Json
           started_at?: string
           time_limit_seconds?: number | null
           user_id?: string
           winner_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "matches_deck_version_fkey"
+            columns: ["user_id", "deck_version_id"]
+            isOneToOne: false
+            referencedRelation: "deck_versions"
+            referencedColumns: ["owner_id", "id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -281,6 +304,10 @@ export type Database = {
       }
       set_username: {
         Args: { p_uid: string; p_username: string }
+        Returns: string
+      }
+      update_deck_list: {
+        Args: { p_deck_id: string; p_list: Json }
         Returns: string
       }
       username_status: {

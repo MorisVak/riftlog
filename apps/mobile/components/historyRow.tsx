@@ -9,9 +9,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import type { HistoryRowVM, Result } from '@/lib/historyView';
+import { deckHref, type HistoryRowVM, type Result } from '@/lib/historyView';
 import MatchMeta from './matchMeta';
 import { SelectionGutter } from './selectCheck';
 
@@ -25,6 +26,7 @@ const RESULT: Record<Result, { bar: string; badge: string; text: string }> = {
 
 const INK_SECONDARY = '#868FB0';
 const INK_PRIMARY = '#E4E5F2';
+const ACCENT = '#8B93D9';
 
 // Separates the two names in the expanded detail, matching the score chips.
 const EN_DASH = '–';
@@ -78,6 +80,7 @@ const HistoryRow = ({
   onLongPress,
 }: Props) => {
   const r = RESULT[vm.result];
+  const router = useRouter();
 
   // Natural height of the detail block, measured once from the always-mounted
   // (but clipped) content so we can animate the container height to/from it.
@@ -171,7 +174,11 @@ const HistoryRow = ({
     // In selection mode the check sits OUTSIDE the card, to its left (as in a
     // WhatsApp chat); the gutter slides open and pushes the card right.
     <View className="flex-row items-center">
-      <SelectionGutter selecting={selecting} selected={selected} />
+      <SelectionGutter
+        selecting={selecting}
+        selected={selected}
+        onToggle={() => onSelect?.(vm.id)}
+      />
       <Animated.View
         // Subtle fade + slight rise on mount, matching the design's `rowIn`.
         entering={FadeInDown.duration(380)
@@ -298,6 +305,56 @@ const HistoryRow = ({
                       <GameChip key={g.n} {...g} />
                     ))}
                   </View>
+
+                  {/* The deck you played. Tappable through to the list as it
+                      was played, unless the deck has since been deleted — then
+                      it's named, not linked. */}
+                  {vm.deck && (
+                    <View className="mt-3 flex-row items-center gap-1.5">
+                      <Text className="font-display text-[11px] text-ink-secondary">
+                        Deck
+                      </Text>
+                      {vm.deck.deleted ? (
+                        <Text
+                          className="flex-shrink text-[13px] text-ink-tertiary"
+                          numberOfLines={1}
+                        >
+                          {vm.deck.name} (deleted)
+                        </Text>
+                      ) : (
+                        <Pressable
+                          accessibilityRole="link"
+                          accessibilityLabel={`Open deck ${vm.deck.name}`}
+                          disabled={selecting}
+                          hitSlop={8}
+                          onPress={() => vm.deck && router.push(deckHref(vm.deck))}
+                          className="min-h-[32px] flex-shrink flex-row items-center gap-1"
+                        >
+                          <Text
+                            className="flex-shrink font-display text-[13px] text-accent"
+                            numberOfLines={1}
+                          >
+                            {vm.deck.name}
+                          </Text>
+                          <Feather name="chevron-right" size={14} color={ACCENT} />
+                        </Pressable>
+                      )}
+                    </View>
+                  )}
+
+                  {/* Placeholder until the match detail screen is built. */}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`View details of the match vs ${vm.opponent}`}
+                    disabled={selecting}
+                    onPress={() => router.push(`/matches/${vm.id}`)}
+                    className="mt-3 h-10 flex-row items-center justify-center gap-1.5 self-start rounded-full border border-border px-4 active:bg-elevated"
+                  >
+                    <Text className="font-display text-[13px] text-ink-primary">
+                      View details
+                    </Text>
+                    <Feather name="arrow-right" size={14} color={INK_PRIMARY} />
+                  </Pressable>
                 </View>
               </Animated.View>
             </View>

@@ -21,6 +21,9 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { MatchConfig } from '@/contexts/matchContext';
 import { useMatch } from '@/contexts/matchContext';
+import { useAuth } from '@/contexts/authContext';
+import { toDeckSnapshot, type Deck } from '@/lib/decks';
+import DeckPicker from './deck/deckPicker';
 import DurationPicker from './durationPicker';
 import React, { useEffect, useState } from 'react';
 
@@ -61,14 +64,16 @@ const ENTER_EASING = Easing.out(Easing.cubic);
 const EXIT_DURATION = 200;
 
 /**
- * Pre-match setup sheet. Collects the format (Bo1 / Bo3) and both player names —
- * `p1` is always you, `p2` the opponent — then starts the match with that
- * config. Replaces the old hardcoded startMatch() defaults. Deck selection,
- * timed mode, and turn tracking are deferred to later slices and intentionally
- * omitted.
+ * Pre-match setup sheet. Collects the format (Bo1 / Bo3), the timed-match
+ * clock, both player names — `p1` is always you, `p2` the opponent — and,
+ * when signed in, the deck you're playing (optional), then starts the match
+ * with that config. Turn tracking is still deferred.
  */
 const MatchSetup = ({ onClose }: MatchSetupProps) => {
   const { startMatch } = useMatch();
+  // Decks are an account feature; a guest has none and their match isn't saved.
+  const { status } = useAuth();
+  const signedIn = status === 'authed';
 
   const [bestOf, setBestOf] = useState<1 | 3>(1);
   const [p1Name, setP1Name] = useState('');
@@ -76,6 +81,7 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
   const [timed, setTimed] = useState(false);
   const [choice, setChoice] = useState<TimeChoice>(TIME_PRESETS[0]);
   const [custom, setCustom] = useState(DEFAULT_CUSTOM);
+  const [deck, setDeck] = useState<Deck | null>(null);
 
   // The configured clock, in seconds. null when the match isn't timed.
   const timeLimitSeconds = !timed
@@ -108,6 +114,7 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
       bestOf,
       playerNames: [p1Name, p2Name],
       timeLimitSeconds,
+      deck: signedIn && deck ? toDeckSnapshot(deck) : null,
     };
     startMatch(config);
     onClose();
@@ -318,6 +325,17 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
             returnKeyType="next"
             className="mb-4 rounded-xl border border-border bg-elevated px-4 py-3 text-base text-ink-primary"
           />
+          {signedIn && (
+            <View className="mb-4">
+              <View className="mb-2 flex-row items-baseline justify-between">
+                <Text className="font-display text-base text-ink-secondary">
+                  Your deck
+                </Text>
+                <Text className="text-xs text-ink-tertiary">Optional</Text>
+              </View>
+              <DeckPicker value={deck} onChange={setDeck} />
+            </View>
+          )}
           <Text className="mb-2 font-display text-base text-ink-secondary">
             Opponent
           </Text>

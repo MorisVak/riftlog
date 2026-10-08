@@ -3,6 +3,7 @@ import {
   type Database,
   type DeckImportSource,
   type DeckList,
+  type DeckSnapshot,
 } from '@riftlog/core';
 import { supabase } from './supabase';
 
@@ -12,7 +13,7 @@ import { supabase } from './supabase';
  *
  * Creating goes through the `create_deck` RPC: clients can't insert into
  * `decks` / `deck_versions` directly, so a deck never exists without a
- * version. Versions are immutable; an edit (not built yet) will add one.
+ * version. Versions are immutable; editing a list (`updateDeckList`) adds one.
  *
  * Deleting is a SOFT delete (`delete_deck` stamps `archived_at`), because
  * match history will pin deck versions. Every read here filters archived
@@ -47,6 +48,8 @@ const DECK_COLUMNS =
   'current_version:deck_versions!decks_current_version_fkey(id, list)';
 
 type CreateDeckArgs = Database['public']['Functions']['create_deck']['Args'];
+type UpdateDeckListArgs =
+  Database['public']['Functions']['update_deck_list']['Args'];
 
 const IMPORT_SOURCES: readonly DeckImportSource[] = [
   'text',
@@ -118,6 +121,27 @@ export async function fetchDeck(id: string): Promise<Deck | null> {
 }
 
 /**
+ * One specific version of a deck — the list a match was played with, which
+ * may no longer be the current one. Versions are immutable and stay readable
+ * (owner-only RLS) after later edits. null if it doesn't exist, isn't the
+ * caller's, or belongs to another deck.
+ */
+export async function fetchDeckVersion(
+  deckId: string,
+  versionId: string,
+): Promise<{ id: string; list: DeckList; createdAt: string } | null> {
+  const { data, error } = await supabase
+    .from('deck_versions')
+    .select('id, list, created_at')
+    .eq('id', versionId)
+    .eq('deck_id', deckId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data || !isDeckList(data.list)) return null;
+  return { id: data.id, list: data.list, createdAt: data.created_at };
+}
+
+/**
  * Save a new deck and its first version in one transaction. Returns the deck
  * id. The server re-checks name / source / list shape; the caller is expected
  * to have validated already, so a rejection here is a bug and is thrown.
@@ -162,6 +186,22 @@ export async function renameDeck(
 }
 
 /**
+ * Replace a deck's list. Versions are immutable, so the `update_deck_list`
+ * RPC adds a new one and makes it current — matches already played keep the
+ * version they pinned. Saving an unchanged list adds nothing. Returns the
+ * (new) current version id.
+ */
+export async function updateDeckList(id: string, list: DeckList): Promise<string> {
+  const { data, error } = await supabase.rpc('update_deck_list', {
+    p_deck_id: id,
+    // See createDeck: DeckList is plain JSON.
+    p_list: list as unknown as UpdateDeckListArgs['p_list'],
+  });
+  if (error) throw error;
+  return data;
+}
+
+/**
  * Delete a deck. Soft: the server stamps `archived_at` and keeps its versions
  * (match history will reference them), and every read above hides it. There
  * is no restore yet, so the UI treats this as final.
@@ -181,3 +221,17 @@ export async function deleteDecks(ids: string[]): Promise<void> {
   const { error } = await supabase.rpc('delete_decks', { p_deck_ids: ids });
   if (error) throw error;
 }
+
+/**
+ * A saved deck as the snapshot a match carries (`Player.deck`). It pins the
+ * deck's CURRENT version; that version id is what the match persists.
+ */
+export const toDeckSnapshot = (deck: Deck): DeckSnapshot => ({
+  deckId: deck.id,
+  versionId: deck.versionId,
+  name: deck.name,
+  source: deck.importSource,
+  sourceCode: deck.sourceCode,
+  list: deck.list,
+  importedAt: deck.createdAt,
+});

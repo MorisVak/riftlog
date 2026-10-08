@@ -7,8 +7,12 @@ import type { Match } from '@riftlog/core';
  * recomputes the same number from `Match.timeLimitSeconds` and the moment game
  * 1 started.
  *
- * The clock covers the whole match (a Bo1's game or the entire Bo3) and never
- * pauses — the between-games break in a Bo3 is played on the same clock.
+ * The clock covers the whole match (a Bo1's game or the entire Bo3) and keeps
+ * running through the between-games break in a Bo3 (sideboarding is on the
+ * clock). It only stops when a player pauses it on the board; pauses are
+ * banked in `Match.clockPausedMs` and subtracted, and the match's total paused
+ * time is persisted (`matches.clock_paused_ms`) so History's "played" time
+ * excludes it.
  */
 
 /**
@@ -54,6 +58,18 @@ export function formatClock(seconds: number): string {
   const secs = total % 60;
   const sign = seconds < 0 ? '+' : '';
   return `${sign}${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+/**
+ * Total milliseconds the clock spent paused, up to `at`: every banked pause,
+ * plus the pause still open (if the match ended while paused, it counts up to
+ * the end). This is what gets persisted with a finished match.
+ */
+export function totalPausedMs(match: Match, at: number = Date.now()): number {
+  const open = match.clockPausedAt
+    ? Math.max(0, at - Date.parse(match.clockPausedAt))
+    : 0;
+  return Math.max(0, (match.clockPausedMs ?? 0) + open);
 }
 
 /** Wall-clock length of a finished match, in whole seconds. */

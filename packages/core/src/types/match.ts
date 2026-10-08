@@ -20,12 +20,37 @@ export type Player = {
   userId: string | null;
 };
 
+/** How a point was taken on the board (the three scoring buttons). */
+export type ScoringAction = 'conquer' | 'hold' | 'special';
+
+/**
+ * One change to a player's score during a game — the raw material of the
+ * match detail's score graph.
+ */
+export type PointEvent = {
+  /** Milliseconds after the game's `startedAt` (wall clock, pauses included). */
+  atMs: number;
+  playerId: PlayerId;
+  /** +1 for a point scored, -1 for a point taken back (tap on the numeral). */
+  delta: 1 | -1;
+  /** How the point was scored; null for a correction (`delta: -1`). */
+  action: ScoringAction | null;
+};
+
 export type Game = {
   id: string;
   scoresAtEnd: Record<PlayerId, number>;
   winnerId: PlayerId | null;
   startedAt: string; // ISO-8601
   endedAt: string | null;
+  /**
+   * Every score change in this game, in order. Optional: games played before
+   * point recording existed (and outbox entries queued before it) have none,
+   * and their detail view shows only the final score.
+   */
+  events?: PointEvent[];
+  /** The player's note on this game (see `normalizeNote`); absent = none. */
+  notes?: string;
 };
 
 export type Match = {

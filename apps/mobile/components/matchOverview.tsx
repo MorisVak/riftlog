@@ -4,7 +4,11 @@ import * as Haptics from 'expo-haptics';
 import type { Match, Player, PlayerId } from '@riftlog/core';
 import { useAuth } from '@/contexts/authContext';
 import { useMatch } from '@/contexts/matchContext';
-import React from 'react';
+import NoteEditor from './match/noteEditor';
+import NoteRow from './match/noteRow';
+import React, { useState } from 'react';
+import Animated from 'react-native-reanimated';
+import { riseIn } from './transitions';
 
 type Outcome = 'win' | 'loss' | 'draw';
 
@@ -44,14 +48,17 @@ const PlayerResultRow = ({ player, outcome }: { player: Player; outcome: Outcome
 };
 
 /**
- * In-memory summary shown when a match is over. Per-game breakdown plus each
- * player's W/L/D outcome. Not persisted (no cloud store yet) — "Done" discards
- * and returns to idle.
+ * Summary shown when a match is over: each player's W/L/D outcome, the per-game
+ * breakdown, and (signed in) notes on each game and the round. The match was
+ * saved the moment it ended; notes added here re-sync (see MatchSync). "Done"
+ * clears it from memory and returns to idle.
  */
 const MatchOverview = () => {
-  const { match, endMatch } = useMatch();
+  const { match, endMatch, setGameNote, setMatchNote } = useMatch();
   const { status } = useAuth();
   const router = useRouter();
+  // Which note is open: a game index, 'match' for the round, or null.
+  const [editing, setEditing] = useState<number | 'match' | null>(null);
   if (!match) return null;
 
   const nameOf = (id: PlayerId | null) =>
@@ -77,12 +84,10 @@ const MatchOverview = () => {
           Best of {match.bestOf}
         </Text>
 
-        {match.players.map((player) => (
-          <PlayerResultRow
-            key={player.id}
-            player={player}
-            outcome={outcomeFor(match, player)}
-          />
+        {match.players.map((player, i) => (
+          <Animated.View key={player.id} entering={riseIn(i)}>
+            <PlayerResultRow player={player} outcome={outcomeFor(match, player)} />
+          </Animated.View>
         ))}
 
         <Text className="mb-3 mt-8 font-display text-sm uppercase tracking-widest text-ink-secondary">
@@ -102,6 +107,44 @@ const MatchOverview = () => {
             </Text>
           </View>
         ))}
+
+        {/* Notes while it's fresh — each game (the last one has had no
+            between-games screen) and the round. The match is already saved;
+            MatchSync re-syncs when these change. Signed-in only. */}
+        {status === 'authed' && (
+          <>
+            <Text className="mb-2 mt-8 font-display text-base text-ink-secondary">
+              Notes
+            </Text>
+            <View className="rounded-xl border border-border bg-surface px-4">
+              {match.games.map((game, i) => (
+                <View key={game.id} className={i > 0 ? 'border-t border-border/60' : ''}>
+                  <NoteRow
+                    label={`Game ${i + 1}`}
+                    showLabel
+                    note={game.notes}
+                    prompt={`Add a note for game ${i + 1}`}
+                    onPress={() => setEditing(i)}
+                    lines={2}
+                  />
+                </View>
+              ))}
+              <View className="border-t border-border/60">
+                <NoteRow
+                  label="Round"
+                  showLabel
+                  note={match.notes}
+                  prompt="Add notes on the round"
+                  onPress={() => setEditing('match')}
+                  lines={3}
+                />
+              </View>
+            </View>
+            <Text className="mt-2 px-1 text-[12px] leading-4 text-ink-tertiary">
+              You can edit these any time from the match in History.
+            </Text>
+          </>
+        )}
 
         {/* A guest's match ends here and is gone — Done discards it and nothing
             was ever written. This is the moment that loss is actually felt, so
@@ -132,6 +175,28 @@ const MatchOverview = () => {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <NoteEditor
+        visible={editing !== null}
+        initial={
+          editing === 'match'
+            ? (match.notes ?? null)
+            : editing !== null
+              ? (match.games[editing]?.notes ?? null)
+              : null
+        }
+        title={editing === 'match' ? 'Round notes' : `Game ${(editing ?? 0) + 1} note`}
+        placeholder={
+          editing === 'match'
+            ? 'How did the round go? What would you change next time?'
+            : 'What happened this game? Mulligans, key turns, misplays…'
+        }
+        onSave={(text) => {
+          if (editing === 'match') setMatchNote(text);
+          else if (editing !== null) setGameNote(editing, text);
+        }}
+        onClose={() => setEditing(null)}
+      />
     </View>
   );
 };
