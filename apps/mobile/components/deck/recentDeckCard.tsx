@@ -36,11 +36,8 @@ const RecentDeckCard = ({
       accessibilityRole="button"
       accessibilityLabel={`Recently played deck: ${name}, played ${played}. Open deck`}
       onPress={onPress}
-      className="flex-row items-center gap-3.5 rounded-2xl border border-border bg-surface px-4 py-3.5 active:bg-elevated"
+      className="flex-row items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3.5 active:bg-elevated"
     >
-      <View className="h-12 w-12 items-center justify-center rounded-xl bg-accent/15">
-        <Icon name="layers" size={20} className="text-accent" />
-      </View>
       <View className="flex-1">
         <Text
           className="font-display-bold text-[16px] text-ink-primary"
