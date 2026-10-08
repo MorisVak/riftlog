@@ -25,7 +25,7 @@ export type ScoringAction = 'conquer' | 'hold' | 'special';
 
 /**
  * One change to a player's score during a game — the raw material of the
- * match detail's point timeline.
+ * match detail's score graph.
  */
 export type PointEvent = {
   /** Milliseconds after the game's `startedAt` (wall clock, pauses included). */

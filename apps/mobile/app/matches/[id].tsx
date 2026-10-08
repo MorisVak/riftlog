@@ -24,7 +24,7 @@ const RESULT: Record<Result, { bar: string; badge: string; text: string }> = {
 
 /**
  * Match detail (from "View details" on a History row): the result, a per-game
- * breakdown with each game's point timeline, and the deck you played.
+ * breakdown with each game's score graph, and the deck you played.
  *
  * v1 shows YOUR side only. When match mode lands (SPEC Feature 8) this screen
  * gains the opponent: their deck (a "Decklist" card like yours), their linked
@@ -114,8 +114,7 @@ const MatchDetail = () => {
             </View>
             {state.vm.missingTimelines && (
               <Text className="mt-2 px-1 text-[12px] leading-4 text-ink-tertiary">
-                Point-by-point timelines are recorded for games played from now
-                on.
+                Score graphs are recorded for games played from now on.
               </Text>
             )}
           </Animated.View>

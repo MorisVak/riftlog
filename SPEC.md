@@ -189,7 +189,7 @@ row) to pick several and delete them together. Deleting a match is permanent
 and removes its games. A match played with a deck shows the deck's name on
 its row, and the expanded row links to the deck (a deck deleted since is
 named but not linked). "View details" opens the **match detail**: the
-result, a per-game breakdown, each game's point timeline, and the deck you
+result, a per-game breakdown, each game's score graph, and the deck you
 played.
 
 **What it is.** A browsable list of completed matches, newest first. Tapping a
@@ -205,14 +205,16 @@ game score, the date, and for timed matches the time played excluding pauses).
 Then **Games**: one card per game with your score, a bar filled to your share
 of the points in the result color, their score, and the W/L/D badge (an
 unfinished game, from ending the match early, is marked as such). Tapping a
-game expands its **point timeline**: every point in order with its game time,
-who scored, how (Conquer / Hold / Special — colored like the board's buttons —
-or a point taken back), and the running score. Then **Deck**: the deck you
-played, linking to its decklist, or a note that none was chosen.
+game expands its **score graph**: your line and the opponent's as they climbed
+over the game, ending in the final scores — deliberately low-detail, no
+per-point labels. A point taken back on the board cancels the point it undid,
+and neither appears. Then **Deck**: the deck you played, linking to its
+decklist, or a note that none was chosen.
 
-Point timelines exist for games played since point recording shipped: the
-board records each score change (`Game.events`). Older games show the bars
-only, with a note. Notes/tags aren't shown yet, and there's no location.
+Score graphs exist for games played since point recording shipped: the board
+records each score change, including how it was scored (`Game.events`), so a
+richer breakdown is possible later. Older games show the bars only, with a
+note. Notes/tags aren't shown yet, and there's no location.
 
 **With match mode (Feature 8)** the detail gains the opponent: their deck (a
 "Decklist" card like yours), their linked Riftlog profile, your head-to-head

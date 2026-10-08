@@ -339,7 +339,13 @@ Conventions:
 - **Match detail** (`app/matches/[id].tsx`, `fetchMatch` →
   `lib/matchDetailView.ts` → `components/match/gameCard.tsx`): result card,
   per-game bars (fill = your share of points, `pointShare` in core) that
-  expand into the point timeline (`buildTimeline` in core), and your deck.
+  expand into a score graph (`components/match/scoreGraph.tsx`, step lines
+  drawn from plain Views — no SVG dependency), and your deck. The graph uses
+  `scoreSeries` in core, which nets take-backs out first (`netPoints`: a -1
+  cancels that player's latest point; neither is shown). Series colors are
+  accent (you) and `ink-tertiary` (opponent), validated for separation; the
+  muted line is under 3:1 contrast, so both lines are always direct-labeled
+  with their final score and named in a legend.
   The VM builds on `toHistoryRowVM` so History and the detail can't disagree.
   v1 is **your side only** — the opponent block (their deck, profile,
   head-to-head) waits for match mode.

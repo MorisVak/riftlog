@@ -1,10 +1,5 @@
 import type { PlayerId, PointEvent, ScoringAction } from '../types/match';
 
-/** A point event with the score as it stood right after it. */
-export type TimelineEntry = PointEvent & {
-  score: Record<PlayerId, number>;
-};
-
 const ACTIONS: readonly ScoringAction[] = ['conquer', 'hold', 'special'];
 
 /** Runtime check for one stored point event (a `games.events` element). */
@@ -31,16 +26,47 @@ export function toPointEvents(value: unknown): PointEvent[] {
 }
 
 /**
- * Replay a game's events into a timeline with the running score after each
- * one. Scores never go below 0, matching the board (a take-back at 0 is never
- * recorded, but a stray one in old data is clamped rather than trusted).
+ * The points that actually stood. A take-back (`delta: -1`) cancels that
+ * player's most recent remaining point, and neither shows up — the board's
+ * "tap the numeral" is a correction, not part of how the game went. A stray
+ * take-back with nothing to cancel is ignored.
  */
-export function buildTimeline(events: readonly PointEvent[]): TimelineEntry[] {
-  const score: Record<PlayerId, number> = { p1: 0, p2: 0 };
-  return events.map((e) => {
-    score[e.playerId] = Math.max(0, score[e.playerId] + e.delta);
-    return { ...e, score: { ...score } };
-  });
+export function netPoints(events: readonly PointEvent[]): PointEvent[] {
+  const kept: (PointEvent | null)[] = [];
+  const open: Record<PlayerId, number[]> = { p1: [], p2: [] };
+  for (const e of events) {
+    if (e.delta === 1) {
+      open[e.playerId].push(kept.length);
+      kept.push(e);
+    } else {
+      const i = open[e.playerId].pop();
+      if (i !== undefined) kept[i] = null;
+    }
+  }
+  return kept.filter((e): e is PointEvent => e !== null);
+}
+
+/** One step of a player's score line: their score from `atMs` on. */
+export type ScoreStep = { atMs: number; score: number };
+
+/**
+ * Each player's score as a step series over game time, from the net points.
+ * Every series starts at `{ atMs: 0, score: 0 }`; each kept point adds a step.
+ * This is what the match detail's score graph draws.
+ */
+export function scoreSeries(
+  events: readonly PointEvent[],
+): Record<PlayerId, ScoreStep[]> {
+  const series: Record<PlayerId, ScoreStep[]> = {
+    p1: [{ atMs: 0, score: 0 }],
+    p2: [{ atMs: 0, score: 0 }],
+  };
+  for (const e of netPoints(events)) {
+    const line = series[e.playerId];
+    const last = line[line.length - 1]?.score ?? 0;
+    line.push({ atMs: e.atMs, score: last + 1 });
+  }
+  return series;
 }
 
 /**

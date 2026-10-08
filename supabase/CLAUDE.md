@@ -75,7 +75,8 @@ mirror the `@riftlog/core` domain terms (a **match** is the Bo1/Bo3 series, a
   `default auth.uid()` — so RLS is a direct column check, no join), `game_index`,
   `scores_at_end` (jsonb), `winner_id` (text, **nullable**), `started_at`,
   `ended_at` (**nullable**), `events` (jsonb array of core `PointEvent`s —
-  the point timeline; `'[]'` for games recorded before it, ≤ 64 KB),
+  the source of the match detail's score graph; `'[]'` for games recorded
+  before it, ≤ 64 KB),
   `created_at`. `scores_at_end` stays the authority; the database never
   replays `events`.
 

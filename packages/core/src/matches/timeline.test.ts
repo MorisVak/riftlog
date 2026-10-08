@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { PointEvent } from '../types/match';
-import { buildTimeline, isPointEvent, pointShare, toPointEvents } from './timeline';
+import {
+  isPointEvent,
+  netPoints,
+  pointShare,
+  scoreSeries,
+  toPointEvents,
+} from './timeline';
 
 const ev = (
   atMs: number,
@@ -9,31 +15,70 @@ const ev = (
   action: PointEvent['action'] = delta === 1 ? 'conquer' : null,
 ): PointEvent => ({ atMs, playerId, delta, action });
 
-describe('buildTimeline', () => {
-  it('replays the running score after each event', () => {
-    const t = buildTimeline([
+describe('netPoints', () => {
+  it('a take-back cancels that player\'s latest point, and neither remains', () => {
+    const kept = netPoints([
+      ev(1000, 'p1', 1, 'conquer'),
+      ev(2000, 'p1', 1, 'hold'),
+      ev(3000, 'p2', 1),
+      ev(4000, 'p1', 1, 'special'),
+      ev(5000, 'p1', -1),
+      ev(6000, 'p1', 1, 'conquer'),
+    ]);
+    expect(kept.map((e) => [e.atMs, e.playerId, e.action])).toEqual([
+      [1000, 'p1', 'conquer'],
+      [2000, 'p1', 'hold'],
+      [3000, 'p2', 'conquer'],
+      [6000, 'p1', 'conquer'],
+    ]);
+    expect(kept.every((e) => e.delta === 1)).toBe(true);
+  });
+
+  it('only cancels the same player\'s points', () => {
+    const kept = netPoints([ev(1, 'p1', 1), ev(2, 'p2', 1), ev(3, 'p2', -1)]);
+    expect(kept.map((e) => e.playerId)).toEqual(['p1']);
+  });
+
+  it('cancels back through several take-backs in a row', () => {
+    const kept = netPoints([
+      ev(1, 'p1', 1),
+      ev(2, 'p1', 1),
+      ev(3, 'p1', -1),
+      ev(4, 'p1', -1),
+    ]);
+    expect(kept).toEqual([]);
+  });
+
+  it('ignores a take-back with nothing to cancel', () => {
+    expect(netPoints([ev(1, 'p1', -1), ev(2, 'p1', 1)])).toHaveLength(1);
+  });
+});
+
+describe('scoreSeries', () => {
+  it('builds each player\'s step line from the net points', () => {
+    const s = scoreSeries([
       ev(1000, 'p1', 1),
-      ev(2000, 'p2', 1, 'hold'),
-      ev(3000, 'p1', 1, 'special'),
+      ev(2000, 'p2', 1),
+      ev(3000, 'p1', 1),
       ev(4000, 'p1', -1),
+      ev(5000, 'p1', 1),
     ]);
-    expect(t.map((e) => e.score)).toEqual([
-      { p1: 1, p2: 0 },
-      { p1: 1, p2: 1 },
-      { p1: 2, p2: 1 },
-      { p1: 1, p2: 1 },
+    expect(s.p1).toEqual([
+      { atMs: 0, score: 0 },
+      { atMs: 1000, score: 1 },
+      { atMs: 5000, score: 2 },
     ]);
-    // Each entry keeps its own snapshot, not a shared reference.
-    expect(t[0]?.score).toEqual({ p1: 1, p2: 0 });
+    expect(s.p2).toEqual([
+      { atMs: 0, score: 0 },
+      { atMs: 2000, score: 1 },
+    ]);
   });
 
-  it('never goes below zero', () => {
-    const t = buildTimeline([ev(1, 'p2', -1), ev(2, 'p2', 1)]);
-    expect(t.map((e) => e.score.p2)).toEqual([0, 1]);
-  });
-
-  it('handles no events', () => {
-    expect(buildTimeline([])).toEqual([]);
+  it('starts both lines at 0 when there are no points', () => {
+    expect(scoreSeries([])).toEqual({
+      p1: [{ atMs: 0, score: 0 }],
+      p2: [{ atMs: 0, score: 0 }],
+    });
   });
 });
 

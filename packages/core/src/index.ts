@@ -46,11 +46,12 @@ export type {
   ScoringAction,
 } from './types/match';
 export {
-  buildTimeline,
   isPointEvent,
+  netPoints,
   pointShare,
+  scoreSeries,
   toPointEvents,
-  type TimelineEntry,
+  type ScoreStep,
 } from './matches/timeline';
 export type { Profile } from './types/profile';
 

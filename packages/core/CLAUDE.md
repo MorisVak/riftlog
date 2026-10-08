@@ -45,7 +45,7 @@ So nothing here can assume a specific runtime. Pure TS only.
     │   ├── *.test.ts         Vitest
     │   └── __fixtures__/     kennen.txt (text export), kennen.code.txt (Piltover code)
     ├── matches/
-    │   └── timeline.ts       buildTimeline, pointShare, toPointEvents / isPointEvent
+    │   └── timeline.ts       netPoints, scoreSeries, pointShare, toPointEvents / isPointEvent
     ├── types/
     │   ├── match.ts          Player, PlayerId, Game, Match, PointEvent, ScoringAction
     │   ├── deck.ts           CardRef, DeckList, DeckImportSource, DeckSnapshot
