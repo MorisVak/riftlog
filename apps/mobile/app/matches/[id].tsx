@@ -153,8 +153,13 @@ const MatchDetail = () => {
                 <GameCard
                   key={g.n}
                   game={g}
-                  onEditNote={(game) =>
-                    setEditing({ kind: 'game', gameId: game.id, n: game.n })
+                  // A Bo1's one game is the round, so it only gets the round
+                  // note — unless it already has a game note from before.
+                  onEditNote={
+                    state.vm.format === 'BO1' && !g.notes
+                      ? undefined
+                      : (game) =>
+                          setEditing({ kind: 'game', gameId: game.id, n: game.n })
                   }
                 />
               ))}

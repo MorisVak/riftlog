@@ -109,15 +109,17 @@ const MatchOverview = () => {
         ))}
 
         {/* Notes while it's fresh — each game (the last one has had no
-            between-games screen) and the round. The match is already saved;
-            MatchSync re-syncs when these change. Signed-in only. */}
+            between-games screen) and the round. A Bo1 gets the round note
+            only: its one game IS the round, so a game note would be a
+            duplicate. The match is already saved; MatchSync re-syncs when
+            these change. Signed-in only. */}
         {status === 'authed' && (
           <>
             <Text className="mb-2 mt-8 font-display text-base text-ink-secondary">
               Notes
             </Text>
             <View className="rounded-xl border border-border bg-surface px-4">
-              {match.games.map((game, i) => (
+              {match.bestOf > 1 && match.games.map((game, i) => (
                 <View key={game.id} className={i > 0 ? 'border-t border-border/60' : ''}>
                   <NoteRow
                     label={`Game ${i + 1}`}
@@ -129,7 +131,7 @@ const MatchOverview = () => {
                   />
                 </View>
               ))}
-              <View className="border-t border-border/60">
+              <View className={match.bestOf > 1 ? 'border-t border-border/60' : ''}>
                 <NoteRow
                   label="Round"
                   showLabel

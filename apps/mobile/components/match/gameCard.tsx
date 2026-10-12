@@ -34,8 +34,8 @@ const GameCard = ({
   onEditNote,
 }: {
   game: DetailGameVM;
-  /** Open the note editor for this game. */
-  onEditNote: (game: DetailGameVM) => void;
+  /** Open the note editor for this game. Omitted: the card has no note row. */
+  onEditNote?: (game: DetailGameVM) => void;
 }) => {
   const [open, setOpen] = useState(false);
   const tone = TONE[game.result];
@@ -113,15 +113,17 @@ const GameCard = ({
         </Animated.View>
       )}
 
-      {/* Your note on this game — always visible, tap to write or edit. */}
-      <View className="border-t border-border/60 px-4">
-        <NoteRow
-          label={`Game ${game.n}`}
-          note={game.notes}
-          onPress={() => onEditNote(game)}
-          lines={2}
-        />
-      </View>
+      {/* Your note on this game — tap to write or edit. */}
+      {onEditNote && (
+        <View className="border-t border-border/60 px-4">
+          <NoteRow
+            label={`Game ${game.n}`}
+            note={game.notes}
+            onPress={() => onEditNote(game)}
+            lines={2}
+          />
+        </View>
+      )}
     </View>
   );
 };
