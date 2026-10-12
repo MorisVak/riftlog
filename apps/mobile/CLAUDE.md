@@ -241,7 +241,11 @@ Pre-match setup collects **format (Bo1/Bo3)**, **player names**, and the
 names fall back to "You"/"Opponent". The two slots are **not interchangeable**:
 `p1` is always the device owner and `p2` the opponent (see the p1-perspective
 rule below). Signed in, the sheet also offers **Your deck**
-(`components/deck/deckPicker.tsx`, optional, "No deck" first) → `MatchConfig.deck`
+(`components/deck/deckPicker.tsx`, optional, "No deck" first — a field that
+opens a full-height page sheet of large deck rows, with a search field (deck
+name or legend) and a small "Legend" filter dropdown beside it once your decks
+span 2+ legends; it pre-selects your
+**default deck** from Profile, `profiles.default_deck_id`) → `MatchConfig.deck`
 → `players[0].deck` (a `DeckSnapshot`). On save only its `versionId` is
 written (`matches.deck_version_id`); the deck is stripped from the `players`
 jsonb, since the immutable version already holds the list. History reads it
@@ -318,7 +322,9 @@ game counter, nothing taking board space from either player:
   control is still deferred.
 - **Game-start intro** (`components/gameStartIntro.tsx`, over `PlayField`):
   the design's "VS" transition — cards slide in, VS pops, "Match start" /
-  "Game 2" / "Game 3" — ~1.75s, tap to skip. It plays once per game id and
+  "Game 2" / "Game 3" — ~2s, tap to skip. Laid out a quarter turn (-90°,
+  like the board clock) at the screen's landscape size, so both players read
+  it from the side and your card sits at your end. It plays once per game id and
   only for a game that *just* started (no events, `startedAt` < 3s ago), so a
   restored match never replays it.
 - History stores the configured limit and the total paused time; played time
@@ -569,7 +575,16 @@ detail's "Decklist" go through `deckHref` (`lib/historyView.ts`) to
 screen shows that version read-only (no rename, no Edit list) under an
 "Outdated version" note with a "See current list" link; if the version
 is still current it's the normal view. The match detail says "You played an
-earlier version" when it differs (`MatchDeckRef.edited`).
+earlier version" when it differs (`MatchDeckRef.edited`). Under the note, a
+"What changed since" card (`components/deck/deckDiff.tsx`) lists each card
+whose count differs — Then → Now, with a ± delta or an Added / Removed label —
+from core's `diffDeckLists(played, current)` (per section, matched by name).
+
+**Default deck** (Profile, above "My decks"): the same `DeckPicker`, saved
+with `setDefaultDeck()` (`lib/profile.ts`, a plain update of
+`profiles.default_deck_id`) and tagged "Default" on its row. The setup sheet
+pre-selects it (`preselect`) unless you've already picked. Deleting that deck
+clears it server-side, so Profile refreshes after a delete.
 
 **Multi-select (History and "My decks").** WhatsApp-style: a "Select" button
 in the list header, or long-press a row (which selects it). While selecting,
@@ -772,7 +787,7 @@ is explicitly started:
 - The designed history UI / detail view (only a minimal read-only list exists)
 - Profile **editing** — the handle rename UI and stats. `claim_username`
   already enforces the rules (30-day limit); nothing calls it from the client
-  yet. The profile screen is read-only by design.
+  yet. The only setting on Profile is the default deck.
 - **Profile pictures of any kind** — not deferred, ruled out. One default
   avatar for everyone.
 - Any manual account-linking UI
