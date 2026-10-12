@@ -40,15 +40,19 @@ const cardsOf = (list: DeckList, section: DeckSection): CardRef[] => {
   }
 };
 
-/** Matching is by name, case- and whitespace-insensitive (text imports carry no codes). */
-const keyOf = (name: string): string =>
+/**
+ * How cards are matched across versions: by name, case- and
+ * whitespace-insensitive (text imports carry no codes). Exported so a UI
+ * annotating a list with `diffDeckLists` output matches the same way.
+ */
+export const deckCardKey = (name: string): string =>
   name.trim().replace(/\s+/g, ' ').toLowerCase();
 
 /** Totals per card, keeping the first spelling seen and first-seen order. */
 const tally = (cards: readonly CardRef[]) => {
   const map = new Map<string, { name: string; count: number }>();
   for (const c of cards) {
-    const k = keyOf(c.name);
+    const k = deckCardKey(c.name);
     const cur = map.get(k);
     if (cur) cur.count += c.count;
     else map.set(k, { name: c.name, count: c.count });

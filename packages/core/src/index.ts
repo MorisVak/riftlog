@@ -22,6 +22,7 @@ export {
 } from './decks/parseText';
 export { formatDeckText } from './decks/formatText';
 export {
+  deckCardKey,
   diffDeckLists,
   type DeckCardChange,
   type DeckSectionDiff,
