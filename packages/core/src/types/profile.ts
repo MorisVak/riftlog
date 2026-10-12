@@ -35,6 +35,12 @@ export type Profile = {
   /** Last post-onboarding rename; null if never renamed. */
   usernameChangedAt: string | null; // ISO-8601
 
+  /**
+   * The deck the match setup pre-selects; null = none. Always one of the
+   * owner's own decks (enforced by FK); cleared when that deck is deleted.
+   */
+  defaultDeckId: string | null;
+
   createdAt: string; // ISO-8601
   updatedAt: string; // ISO-8601
 };

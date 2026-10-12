@@ -13,6 +13,8 @@ import AuthGate from '@/components/authGate';
 import Avatar from '@/components/avatar';
 import Icon from '@/components/icon';
 import DeckRow from '@/components/deck/deckRow';
+import DeckPicker from '@/components/deck/deckPicker';
+import { setDefaultDeck } from '@/lib/profile';
 import { deleteDeck, deleteDecks, fetchMyDecks, type Deck } from '@/lib/decks';
 import { useSelection } from '@/hooks/useSelection';
 import SelectionBar from '@/components/selectionBar';
@@ -72,6 +74,29 @@ const Profile = () => {
     }, [titleIntro, headerIntro, decksIntro, refresh, status]),
   );
 
+  // The default deck, shown optimistically while the save is in flight.
+  const [pendingDefault, setPendingDefault] = useState<string | null | undefined>(
+    undefined,
+  );
+  const defaultDeckId =
+    pendingDefault !== undefined ? pendingDefault : (profile?.defaultDeckId ?? null);
+  const defaultDeck =
+    decksState.kind === 'ready'
+      ? (decksState.decks.find((d) => d.id === defaultDeckId) ?? null)
+      : null;
+
+  const chooseDefault = (deck: Deck | null) => {
+    const id = deck?.id ?? null;
+    setPendingDefault(id);
+    setDefaultDeck(id)
+      .then(() => refresh())
+      .catch((e) => {
+        if (__DEV__) console.warn('[profile] default deck save failed:', e);
+        Alert.alert('Could not save', 'Please check your connection and try again.');
+      })
+      .finally(() => setPendingDefault(undefined));
+  };
+
   const confirmSignOut = () => {
     Alert.alert(
       'Sign out?',
@@ -113,7 +138,7 @@ const Profile = () => {
                 : cur,
             );
             exitSelection();
-            deleteDecks(ids).catch((e) => {
+            deleteDecks(ids).then(() => refresh()).catch((e) => {
               if (__DEV__) console.warn('[decks] bulk delete failed:', e);
               setDecksState((cur) =>
                 cur.kind === 'ready'
@@ -141,7 +166,7 @@ const Profile = () => {
         ? { kind: 'ready', decks: cur.decks.filter((d) => d.id !== deck.id) }
         : cur,
     );
-    deleteDeck(deck.id).catch((e) => {
+    deleteDeck(deck.id).then(() => refresh()).catch((e) => {
       if (__DEV__) console.warn('[decks] delete failed:', e);
       setDecksState((cur) =>
         cur.kind === 'ready'
@@ -212,6 +237,27 @@ const Profile = () => {
         <Text className="mt-4 text-center text-sm text-loss-text">
           {"Couldn't load your profile. Check your connection."}
         </Text>
+      )}
+
+      {/* The deck a new match starts with. Only once there are decks to
+          choose from; the server clears it if that deck is deleted. */}
+      {decksState.kind === 'ready' && decksState.decks.length > 0 && (
+        <Animated.View style={decksStyle} className="mt-8">
+          <Text className="mb-2 font-display text-base text-ink-secondary">
+            Default deck
+          </Text>
+          <DeckPicker
+            value={defaultDeck}
+            onChange={chooseDefault}
+            noneLabel="No default deck"
+            title="Default deck"
+            defaultDeckId={defaultDeckId}
+          />
+          <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
+            Picked for you when you start a match. You can still change it
+            there.
+          </Text>
+        </Animated.View>
       )}
 
       <Animated.View style={decksStyle} className="mt-8">
@@ -307,6 +353,7 @@ const Profile = () => {
               <DeckRow
                 key={deck.id}
                 deck={deck}
+                isDefault={deck.id === defaultDeckId}
                 onPress={() => router.push(`/decks/${deck.id}`)}
                 onDelete={() => handleDeleteDeck(deck)}
                 selecting={selection.active}

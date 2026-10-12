@@ -24,6 +24,7 @@ import { useMatch } from '@/contexts/matchContext';
 import { useAuth } from '@/contexts/authContext';
 import { toDeckSnapshot, type Deck } from '@/lib/decks';
 import DeckPicker from './deck/deckPicker';
+import { useProfile } from '@/contexts/profileContext';
 import DurationPicker from './durationPicker';
 import React, { useEffect, useState } from 'react';
 
@@ -74,6 +75,8 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
   // Decks are an account feature; a guest has none and their match isn't saved.
   const { status } = useAuth();
   const signedIn = status === 'authed';
+  // Your default deck (Profile) is pre-selected; you can still change it.
+  const { profile } = useProfile();
 
   const [bestOf, setBestOf] = useState<1 | 3>(1);
   const [p1Name, setP1Name] = useState('');
@@ -333,7 +336,12 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
                 </Text>
                 <Text className="text-xs text-ink-tertiary">Optional</Text>
               </View>
-              <DeckPicker value={deck} onChange={setDeck} />
+              <DeckPicker
+                value={deck}
+                onChange={setDeck}
+                defaultDeckId={profile?.defaultDeckId ?? null}
+                preselect
+              />
             </View>
           )}
           <Text className="mb-2 font-display text-base text-ink-secondary">

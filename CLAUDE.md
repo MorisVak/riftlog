@@ -139,8 +139,9 @@ Don't invent terminology that doesn't exist in Riftbound.
 
 - Profile editing — the `@handle` rename UI, profile stats. The
   `profiles` table, seeding trigger, onboarding (claim handle + display name),
-  and a **read-only** profile screen are built; the rename RPC exists but no
-  client UI calls it yet. Profile pictures are ruled out, not deferred.
+  and a profile screen (read-only identity, plus a default-deck setting) are
+  built; the rename RPC exists but no client UI calls it yet. Profile pictures
+  are ruled out, not deferred.
 - Manual account-linking UI. Supabase's automatic email linking is on and left
   alone; Apple "Hide My Email" relay addresses can't match and may produce a
   second account (accepted, see `SPEC.md`).

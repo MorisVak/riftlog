@@ -14,7 +14,7 @@ export async function fetchMyProfile(): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
     .select(
-      'id, username, display_name, onboarded_at, username_changed_at, created_at, updated_at',
+      'id, username, display_name, onboarded_at, username_changed_at, default_deck_id, created_at, updated_at',
     )
     .maybeSingle();
 
@@ -27,9 +27,27 @@ export async function fetchMyProfile(): Promise<Profile | null> {
     displayName: data.display_name,
     onboardedAt: data.onboarded_at,
     usernameChangedAt: data.username_changed_at,
+    defaultDeckId: data.default_deck_id,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
+}
+
+/**
+ * Set (or clear, with null) the deck the match setup pre-selects. A plain
+ * owner-scoped update — `default_deck_id` is client-writable, and its FK only
+ * accepts one of the caller's own decks.
+ */
+export async function setDefaultDeck(deckId: string | null): Promise<void> {
+  // The local session is enough for the id; RLS checks it server-side.
+  const { data: auth } = await supabase.auth.getSession();
+  const uid = auth.session?.user.id;
+  if (!uid) throw new Error('Not signed in');
+  const { error } = await supabase
+    .from('profiles')
+    .update({ default_deck_id: deckId })
+    .eq('id', uid);
+  if (error) throw error;
 }
 
 // ---- Handles & onboarding --------------------------------------------------

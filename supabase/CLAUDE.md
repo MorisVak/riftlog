@@ -177,11 +177,17 @@ removed solely by the cascade from `auth.users`, so the client can neither mint
 nor drop a profile. Don't "fix" this by adding an insert policy.
 
 **RLS picks the row; column grants pick the columns.** `authenticated` holds
-`UPDATE (display_name)` and nothing else on `profiles` (insert / delete /
+`UPDATE (display_name, default_deck_id)` and nothing else on `profiles` (insert / delete /
 truncate revoked from `anon` and `authenticated`). Without that, the owner
 update policy would let a client rewrite its own `username` — skipping format,
 reserved, and rate-limit checks — or stamp `onboarded_at`. **Don't re-grant
 table-wide UPDATE.**
+
+**`default_deck_id`** (nullable) is the deck the match setup pre-selects. A
+composite FK `(default_deck_id, id) → decks (id, owner_id)` means it can only
+name one of the owner's own decks (`on delete set null (default_deck_id)` for
+real deletes). Soft deletes don't trip an FK, so `delete_deck` / `delete_decks`
+also clear it when they archive that deck.
 
 ### Profile RPCs
 
