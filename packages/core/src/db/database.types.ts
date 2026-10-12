@@ -230,6 +230,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          default_deck_id: string | null
           display_name: string
           id: string
           onboarded_at: string | null
@@ -239,6 +240,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          default_deck_id?: string | null
           display_name: string
           id: string
           onboarded_at?: string | null
@@ -248,6 +250,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          default_deck_id?: string | null
           display_name?: string
           id?: string
           onboarded_at?: string | null
@@ -255,7 +258,15 @@ export type Database = {
           username?: string
           username_changed_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_default_deck_fkey"
+            columns: ["default_deck_id", "id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id", "owner_id"]
+          },
+        ]
       }
       reserved_names: {
         Row: {

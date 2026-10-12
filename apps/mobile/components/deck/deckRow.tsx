@@ -32,8 +32,11 @@ const DeckRow = ({
   selected = false,
   onSelect,
   onLongPress,
+  isDefault = false,
 }: {
   deck: Deck;
+  /** Tag the row "Default" — the deck a new match starts with. */
+  isDefault?: boolean;
   onPress: () => void;
   onDelete: () => void;
   selecting?: boolean;
@@ -98,12 +101,21 @@ const DeckRow = ({
             >
               <View className="flex-1">
                 <View className="flex-row items-baseline justify-between gap-2">
-                  <Text
-                    className="flex-1 font-display-bold text-[15px] text-ink-primary"
-                    numberOfLines={1}
-                  >
-                    {deck.name}
-                  </Text>
+                  <View className="flex-1 flex-row items-center gap-2">
+                    <Text
+                      className="flex-shrink font-display-bold text-[15px] text-ink-primary"
+                      numberOfLines={1}
+                    >
+                      {deck.name}
+                    </Text>
+                    {isDefault && (
+                      <View className="rounded-full bg-accent/15 px-2 py-0.5">
+                        <Text className="font-display text-[11px] text-accent">
+                          Default
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text className="font-mono-medium text-[11px] text-ink-tertiary">
                     {updated}
                   </Text>
