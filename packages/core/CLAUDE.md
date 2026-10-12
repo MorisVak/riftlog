@@ -11,7 +11,7 @@ Parent conventions in `../../CLAUDE.md` apply.
   `CardRef`, `DeckList`, `DeckSnapshot`, future `Card`, etc.)
 - Zod schemas for those types (when added)
 - Pure functions that operate on domain types (`parseDeckText`,
-  `sectionTotals`, handle rules; later `diffDecks`, a deck-code decoder)
+  `sectionTotals`, `diffDeckLists`, handle rules; later a deck-code decoder)
 - Constants (Riftbound formats, deck-building rules)
 
 ## What does NOT belong here
@@ -40,6 +40,7 @@ So nothing here can assume a specific runtime. Pure TS only.
     │   ├── formatText.ts     formatDeckText (inverse of the parser)
     │   ├── sections.ts       DeckSection, DECK_TARGETS, sectionTotals, emptyDeckList
     │   ├── domains.ts        DOMAINS, domainFromRuneName, deckDomains
+    │   ├── diff.ts           diffDeckLists (per-section card changes), deckCardKey
     │   ├── deckCode.ts       looksLikeDeckCode (detection only, no decoding)
     │   ├── validate.ts       isDeckList (runtime guard for stored lists)
     │   ├── *.test.ts         Vitest
@@ -126,7 +127,7 @@ need one.
 
 - No Zod schemas (runtime checks so far are hand-written: `isDeckList`)
 - No deck-code decoder (Piltover Archive codes are detected, not decoded)
-- No Riftmana import, no `diffDecks`, no win-rate utilities
+- No Riftmana import, no win-rate utilities
 
 These are on the roadmap. Stubs and placeholders should be avoided — add real
 implementations when they're needed.

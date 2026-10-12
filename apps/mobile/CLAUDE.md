@@ -84,6 +84,10 @@ How a point was taken, on the play board. A separate family from win/loss/draw
 on purpose — those describe a *result*, these describe an *action*, and mixing
 them would make either impossible to restyle alone.
 
+**Deck changes** — `added` (green) and `cut` (red), each with a dark `-tint`
+for the count badge, used only by "Show changes" in the decklist. Their own
+family: a deck edit isn't a result or a scoring action.
+
 **Domains** — `domain-{fury,calm,mind,body,chaos,order}` (base) and
 `domain-*-tint` (dark chip fill), for deck views: domain chips and the rune
 proportion bar. An identity family, separate from results and scoring actions.
@@ -138,7 +142,8 @@ anywhere (none stored, none read from the identity provider), so it has no
 image prop on purpose. Don't add one.
 
 **One place for card art.** Every card on every deck surface renders through
-`components/deck/cardRow.tsx` → `components/deck/cardArt.tsx`, and
+`components/deck/cardRow.tsx` (list) or `components/deck/cardGrid.tsx`
+(gallery) → `components/deck/cardArt.tsx`, and
 `cardArt.tsx`'s `resolveArt(card)` is the single spot art is looked up (by
 `card.code` when present, else by name — text imports have no code). Today it
 resolves nothing: rows stay text-only and identity cards show a card-shaped
@@ -575,10 +580,38 @@ detail's "Decklist" go through `deckHref` (`lib/historyView.ts`) to
 screen shows that version read-only (no rename, no Edit list) under an
 "Outdated version" note with a "See current list" link; if the version
 is still current it's the normal view. The match detail says "You played an
-earlier version" when it differs (`MatchDeckRef.edited`). Under the note, a
-"What changed since" card (`components/deck/deckDiff.tsx`) lists each card
-whose count differs — Then → Now, with a ± delta or an Added / Removed label —
-from core's `diffDeckLists(played, current)` (per section, matched by name).
+earlier version" when it differs (`MatchDeckRef.edited`).
+
+**List / Gallery.** The deck screen has a two-button switch beside the domain
+chips (`LayoutSwitch` in `deckView.tsx`, state per visit — not persisted).
+Gallery draws every section as a 3-column grid (`cardGrid.tsx`, width
+measured with `onLayout`) of `CardArt` `tile`s — today a card-shaped
+placeholder that names the card — with a "×n" badge bottom-right and the
+chosen champion first, tagged "Chosen", as on Piltover Archive. Show changes
+works in both layouts (gallery: tinted badge + label, cut cards faded).
+
+**Version history.** The deck screen loads every version with the deck
+(`fetchDeckVersions`, oldest first, so "Version 1" is always the first
+import). Once there's more than one, a "Versions" expander card at the bottom
+(`components/deck/deckVersions.tsx`) lists them newest first — number, date,
+"Current" tag, nothing else. Tapping an earlier one opens the same read-only
+`?version=` view a match link uses ("Version 1 of 2"); from there "See current
+list" just goes back. Renames never create versions — the name lives on the
+deck — so the history survives any rename.
+
+**Show changes** (`components/deck/changesToggle.tsx`) sits at the BOTTOM of
+the decklist, above "Versions", so the list itself stays clean; it appears on
+any version but the first. Turned on, it marks inside the list what changed
+since an earlier version — by default **the version just before the one on
+screen** (for the current deck: your last edit), never the current list.
+"Compared with" lets you pick any earlier version instead (only earlier ones,
+so green always means "added since then"). `DeckView` takes
+`changes = diffDeckLists(chosen earlier, shown)`: changed rows become an
+inset rounded pill tinted `added` (green) or `cut` (red) — inset so they never
+meet the section card's rounded edges — plus "+n" / "−n" / "New"; cards
+cut since then are appended struck through with "Removed"; runes switch from
+the bar to rows so their changes show; a replaced legend gets "New". Matching
+is by `deckCardKey` (core). Color is never the only signal.
 
 **Default deck** (Profile, above "My decks"): the same `DeckPicker`, saved
 with `setDefaultDeck()` (`lib/profile.ts`, a plain update of
@@ -780,8 +813,8 @@ is explicitly started:
   and deck are built)
 - The match detail's opponent block (their deck, linked profile,
   head-to-head, win rate) — needs match mode
-- Deck **code** decoding (detected only), Riftmana import, a version
-  history UI, and restoring deleted decks. Text import, the deck view,
+- Deck **code** decoding (detected only), Riftmana import, restoring an old
+  version as current, and restoring deleted decks. Text import, the deck view,
   renaming, editing the list (new version), (soft) delete, "My decks", and
   choosing a deck for a match are built.
 - The designed history UI / detail view (only a minimal read-only list exists)
