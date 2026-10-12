@@ -120,25 +120,25 @@ export async function fetchDeck(id: string): Promise<Deck | null> {
   return data ? toDeck(data) : null;
 }
 
+/** One saved version of a deck's list. */
+export type DeckVersion = { id: string; list: DeckList; createdAt: string };
+
 /**
- * One specific version of a deck — the list a match was played with, which
- * may no longer be the current one. Versions are immutable and stay readable
- * (owner-only RLS) after later edits. null if it doesn't exist, isn't the
- * caller's, or belongs to another deck.
+ * Every version of a deck, OLDEST first — the deck's history, so version 1 is
+ * the list it was first imported with. Renames don't touch versions (the name
+ * lives on the deck), so a renamed deck keeps its whole history. Versions
+ * that somehow aren't a valid list are skipped.
  */
-export async function fetchDeckVersion(
-  deckId: string,
-  versionId: string,
-): Promise<{ id: string; list: DeckList; createdAt: string } | null> {
+export async function fetchDeckVersions(deckId: string): Promise<DeckVersion[]> {
   const { data, error } = await supabase
     .from('deck_versions')
     .select('id, list, created_at')
-    .eq('id', versionId)
     .eq('deck_id', deckId)
-    .maybeSingle();
+    .order('created_at', { ascending: true });
   if (error) throw error;
-  if (!data || !isDeckList(data.list)) return null;
-  return { id: data.id, list: data.list, createdAt: data.created_at };
+  return data.flatMap((v) =>
+    isDeckList(v.list) ? [{ id: v.id, list: v.list, createdAt: v.created_at }] : [],
+  );
 }
 
 /**

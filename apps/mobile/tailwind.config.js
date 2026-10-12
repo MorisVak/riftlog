@@ -85,6 +85,20 @@ module.exports = {
           tint: '#3A1B31',
         },
 
+        // Deck changes between versions — a card added / increased (`added`)
+        // or cut / reduced (`cut`), shown in the decklist's "Show changes"
+        // mode. Their own family: a deck edit isn't a result or a scoring
+        // action. Never color alone — rows also carry +n / −n / New /
+        // Removed, and cut cards are struck through. `tint` is the row wash.
+        added: {
+          DEFAULT: '#4ADE80',
+          tint: '#1C3326',
+        },
+        cut: {
+          DEFAULT: '#FB8181',
+          tint: '#3A2222',
+        },
+
         // Riftbound's six domains (card color identities), for deck views:
         // domain chips and the rune proportion bar. Their own family again —
         // a domain is an identity, not a result or a scoring action. Base is

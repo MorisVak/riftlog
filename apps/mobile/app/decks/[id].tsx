@@ -3,10 +3,21 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchDeck, fetchDeckVersion, renameDeck, type Deck } from '@/lib/decks';
-import { diffDeckLists, type DeckList } from '@riftlog/core';
-import DeckDiff from '@/components/deck/deckDiff';
-import DeckView from '@/components/deck/deckView';
+import {
+  fetchDeck,
+  fetchDeckVersions,
+  renameDeck,
+  type Deck,
+  type DeckVersion,
+} from '@/lib/decks';
+import { diffDeckLists } from '@riftlog/core';
+import DeckVersions, {
+  formatVersionDate,
+} from '@/components/deck/deckVersions';
+import ChangesToggle, {
+  type CompareOption,
+} from '@/components/deck/changesToggle';
+import DeckView, { type DeckLayout } from '@/components/deck/deckView';
 import DeckNameEditor from '@/components/deck/deckNameEditor';
 import Icon from '@/components/icon';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
@@ -16,9 +27,11 @@ type LoadState =
   | {
       kind: 'ready';
       deck: Deck;
+      /** The deck's whole history, oldest first (version 1 = first import). */
+      versions: DeckVersion[];
       /** Set when showing an earlier version (the list a match was played
-       *  with) instead of the current one. */
-      played: { list: DeckList; createdAt: string } | null;
+       *  with, or one picked from "Show versions") instead of the current. */
+      played: DeckVersion | null;
     }
   | { kind: 'missing' }
   | { kind: 'error' };
@@ -30,16 +43,23 @@ type LoadState =
  * re-reads on every focus — quietly, once it's on screen — so returning from
  * an edit shows the new list.
  *
- * With a `version` param (a match's deck link, see `deckHref`) it shows that
- * version — the list AS PLAYED — read-only, with a note and a way to the
- * current list. If that version is still current, it's just the normal view.
+ * With a `version` param (a match's deck link, see `deckHref`, or a row in
+ * "Show versions") it shows that version read-only, with its number, a
+ * before/after against the current list, and a way back to the current list.
+ * If that version is still current, it's just the normal view.
+ *
+ * At the bottom, "Show versions" lists the deck's history once it has more
+ * than one version. Renames don't create versions — the name lives on the
+ * deck — so the history always starts from the first imported list.
  */
 const DeckDetail = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { id, version } = useLocalSearchParams<{
+  const { id, version, from } = useLocalSearchParams<{
     id: string;
     version?: string;
+    /** 'versions' when opened from this deck's own version list. */
+    from?: string;
   }>();
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
 
@@ -49,25 +69,34 @@ const DeckDetail = () => {
   // Whether the deck has been shown: later loads refresh in place, without
   // the loading text or the intro.
   const shown = useRef(false);
+  // "Show changes": mark what the shown version changed from the one before.
+  const [showChanges, setShowChanges] = useState(false);
+  // List or gallery, for this visit (not persisted).
+  const [layout, setLayout] = useState<DeckLayout>('list');
+  // Which earlier version to compare with; null = the one just before.
+  const [compareId, setCompareId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     let active = true;
     const quiet = shown.current;
     if (!quiet) setState({ kind: 'loading' });
-    fetchDeck(id)
-      .then(async (deck) => {
-        // An earlier version, when a match link asked for one that isn't
-        // current any more.
+    Promise.all([fetchDeck(id), fetchDeckVersions(id)])
+      .then(([deck, versions]) => {
+        // An earlier version, when a link asked for one that isn't current.
         const played =
           deck && version && version !== deck.versionId
-            ? await fetchDeckVersion(id, version)
+            ? (versions.find((v) => v.id === version) ?? null)
             : null;
         if (!active) return;
         if (deck && version && version !== deck.versionId && !played) {
           setState({ kind: 'missing' });
           return;
         }
-        setState(deck ? { kind: 'ready', deck, played } : { kind: 'missing' });
+        setState(
+          deck
+            ? { kind: 'ready', deck, versions, played }
+            : { kind: 'missing' },
+        );
         if (deck && !quiet) {
           shown.current = true;
           playIntro([intro]);
@@ -97,6 +126,32 @@ const DeckDetail = () => {
     if (router.canGoBack()) router.back();
     else router.replace('/profile');
   };
+
+  // The version on screen (an earlier one, or the current), and the one
+  // before it — what "Show changes" compares against. Version 1 has none.
+  const shownIndex =
+    state.kind === 'ready'
+      ? state.versions.findIndex(
+          (v) => v.id === (state.played?.id ?? state.deck.versionId),
+        )
+      : -1;
+  // Earlier versions to compare with, newest first; the first is the default.
+  const earlier: CompareOption[] =
+    state.kind === 'ready' && shownIndex > 0
+      ? state.versions
+          .slice(0, shownIndex)
+          .map((v, i) => ({
+            id: v.id,
+            label: `Version ${i + 1}`,
+            date: formatVersionDate(v.createdAt),
+          }))
+          .reverse()
+      : [];
+  const previous =
+    state.kind === 'ready' && earlier.length > 0
+      ? (state.versions.find((v) => v.id === (compareId ?? earlier[0]?.id)) ??
+        null)
+      : null;
 
   return (
     <View className="flex-1 bg-background">
@@ -153,20 +208,25 @@ const DeckDetail = () => {
                     Outdated version
                   </Text>
                   <Text className="mt-1 text-[13px] leading-[18px] text-ink-secondary">
-                    You&apos;ve edited this deck since. This version is from{' '}
-                    {new Date(state.played.createdAt).toLocaleDateString(
-                      undefined,
-                      { month: 'short', day: 'numeric', year: 'numeric' },
-                    )}
-                    .
+                    Version{' '}
+                    {state.versions.findIndex(
+                      (v) => v.id === state.played?.id,
+                    ) + 1}{' '}
+                    of {state.versions.length}, from{' '}
+                    {formatVersionDate(state.played.createdAt)}. You&apos;ve
+                    edited this deck since.
                   </Text>
                   <TouchableOpacity
                     accessibilityRole="link"
                     onPress={() =>
-                      router.push({
-                        pathname: '/decks/[id]',
-                        params: { id: state.deck.id },
-                      })
+                      // From the version list, the current deck is the
+                      // screen underneath; otherwise open it.
+                      from === 'versions' && router.canGoBack()
+                        ? router.back()
+                        : router.push({
+                            pathname: '/decks/[id]',
+                            params: { id: state.deck.id },
+                          })
                     }
                     hitSlop={8}
                     className="mt-2.5 flex-row items-center gap-1 self-start"
@@ -174,15 +234,13 @@ const DeckDetail = () => {
                     <Text className="font-display text-[14px] text-accent">
                       See current list
                     </Text>
-                    <Icon name="chevron-right" size={15} className="text-accent" />
+                    <Icon
+                      name="chevron-right"
+                      size={15}
+                      className="text-accent"
+                    />
                   </TouchableOpacity>
                 </View>
-              </View>
-            )}
-            {/* Before → after: this version vs. the current list. */}
-            {state.played && (
-              <View className="mb-5">
-                <DeckDiff diff={diffDeckLists(state.played.list, state.deck.list)} />
               </View>
             )}
             <DeckView
@@ -194,7 +252,43 @@ const DeckDetail = () => {
                   <DeckNameEditor name={state.deck.name} onSave={rename} />
                 )
               }
+              layout={layout}
+              onLayoutChange={setLayout}
+              changes={
+                previous && showChanges
+                  ? diffDeckLists(
+                      previous.list,
+                      state.played?.list ?? state.deck.list,
+                    )
+                  : null
+              }
             />
+            {/* Below the list, so the decklist itself stays clean. */}
+            {previous && (
+              <ChangesToggle
+                on={showChanges}
+                onChange={setShowChanges}
+                options={earlier}
+                selectedId={previous.id}
+                onSelect={setCompareId}
+              />
+            )}
+            {!state.played && state.versions.length > 1 && (
+              <DeckVersions
+                versions={state.versions}
+                currentId={state.deck.versionId}
+                onOpen={(versionId) =>
+                  router.push({
+                    pathname: '/decks/[id]',
+                    params: {
+                      id: state.deck.id,
+                      version: versionId,
+                      from: 'versions',
+                    },
+                  })
+                }
+              />
+            )}
           </Animated.View>
         </ScrollView>
       ) : (
