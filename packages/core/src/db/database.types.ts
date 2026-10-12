@@ -13,7 +13,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   graphql_public: {
     Tables: {
@@ -117,6 +117,60 @@ export type Database = {
             referencedColumns: ["deck_id", "id"]
           },
         ]
+      }
+      feedback: {
+        Row: {
+          body: string
+          created_at: string
+          headline: string
+          id: string
+          read_at: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          headline: string
+          id?: string
+          read_at?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          headline?: string
+          id?: string
+          read_at?: string | null
+        }
+        Relationships: []
+      }
+      feedback_admins: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      feedback_submissions: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       games: {
         Row: {
@@ -301,20 +355,41 @@ export type Database = {
       }
       delete_deck: { Args: { p_deck_id: string }; Returns: undefined }
       delete_decks: { Args: { p_deck_ids: string[] }; Returns: number }
+      delete_feedback: { Args: { p_ids: string[] }; Returns: number }
+      feedback_unread_count: { Args: never; Returns: number }
       insert_seed_profile: {
         Args: { p_display_name: string; p_uid: string }
         Returns: undefined
       }
       is_deck_list: { Args: { p_list: Json }; Returns: boolean }
+      is_feedback_admin: { Args: { p_uid: string }; Returns: boolean }
       is_name_reserved: { Args: { p_name: string }; Returns: boolean }
       is_username_available: { Args: { p_username: string }; Returns: string }
+      list_feedback: {
+        Args: never
+        Returns: {
+          body: string
+          created_at: string
+          headline: string
+          id: string
+          read_at: string
+        }[]
+      }
       require_account: { Args: never; Returns: string }
       seed_display_name: {
         Args: { p_email: string; p_meta: Json }
         Returns: string
       }
+      set_feedback_read: {
+        Args: { p_ids: string[]; p_read: boolean }
+        Returns: number
+      }
       set_username: {
         Args: { p_uid: string; p_username: string }
+        Returns: string
+      }
+      submit_feedback: {
+        Args: { p_body: string; p_headline: string }
         Returns: string
       }
       update_deck_list: {

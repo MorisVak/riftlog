@@ -44,7 +44,11 @@ supabase/
 │   ├── 20261007153123_match_deck.sql
 │   ├── 20261007155324_matches_clock_paused.sql
 │   ├── 20261007161708_games_point_events.sql
-│   └── 20261008092736_match_game_notes.sql
+│   ├── 20261008092736_match_game_notes.sql
+│   ├── 20261008111758_deck_edit.sql
+│   ├── 20261009125510_profile_default_deck.sql
+│   ├── 20261012165614_feedback.sql
+│   └── 20261012170431_feedback_manage.sql
 └── config.toml       Supabase CLI config (linked, anon auth OFF)
 
 ## Schema
@@ -256,6 +260,42 @@ string: pass `''` for "none" — the function stores it as null.
 The client embeds the current version with
 `deck_versions!decks_current_version_fkey(...)`; the FK name is required
 because the two tables are related both ways.
+
+### Feedback
+
+In-app feedback (Profile → "Send feedback"), **anonymous** and readable only
+by feedback admins. Three tables, all RLS on with **no policies and no client
+grants** — everything goes through definer RPCs:
+
+- **`feedback`** — `id`, `headline` (trimmed, 1–80), `body` (trimmed,
+  1–2000), `created_at`, `read_at` (null = unread). **No user column, on
+  purpose** — don't add one.
+- **`feedback_submissions`** — `user_id`, `created_at`. The rate-limit log,
+  deliberately **not linked** to `feedback` (no feedback id), purged of rows
+  older than 24 h on every submit.
+- **`feedback_admins`** — `user_id`. Who may read feedback. Seeded once by the
+  migration from the `morisv` profile; held by id, so renames don't matter.
+  Add another admin with a plain SQL insert.
+
+RPCs (`authenticated` only, `require_account()`):
+
+- **`submit_feedback(p_headline, p_body)`** → `ok | invalid_headline |
+  invalid_body | rate_limited`. Limits per account: 3 per 10 minutes, 10 per
+  24 hours, serialised per account with an advisory lock so parallel calls
+  can't slip past the count.
+- **`feedback_unread_count()`** → the unread count for an admin, **null for
+  everyone else** — the client uses the null to hide the inbox entry.
+- **`list_feedback()`** → newest first (max 500); raises `forbidden`
+  (`42501`) for non-admins.
+- **`set_feedback_read(p_ids uuid[], p_read boolean)`** → number changed.
+  Marks entries read (stamps `read_at`) or unread (clears it); admin only.
+  The inbox marks an entry read when it's opened.
+- **`delete_feedback(p_ids uuid[])`** → number deleted. A hard delete;
+  admin only. Both take ≤ 500 ids (`too_many`), so selection mode is one
+  round trip and a single entry is a one-element list.
+
+(`mark_feedback_read()`, the first version's "everything read on open", was
+dropped in `20261012170431_feedback_manage.sql`.)
 
 ## Auth
 

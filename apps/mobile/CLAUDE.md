@@ -13,11 +13,13 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
   - `(tabs)/_layout.tsx` — tab navigator (History, Home, Profile)
   - `(tabs)/index.tsx` — Home; also hosts the whole match flow by `phase`
   - `(tabs)/history.tsx` — match history (account-gated)
-  - `(tabs)/profile.tsx` — profile header, sign out, "My decks" (account-gated)
+  - `(tabs)/profile.tsx` — profile header, sign out, default deck, "My decks",
+    Feedback (account-gated)
   - `login.tsx` / `verify-otp.tsx` — modal auth routes
   - `onboarding.tsx` — first-login handle + display-name step (guarded)
   - `decks/import.tsx` — paste-a-decklist import (modal)
   - `decks/[id].tsx` — one saved deck, read-only
+  - `feedback.tsx` — the feedback inbox (feedback admins only)
 - `components/` — reusable UI components; deck UI lives in `components/deck/`
 - `contexts/` — React context providers (`authContext`, `profileContext`,
   `matchContext`)
@@ -370,7 +372,10 @@ Conventions:
   `components/match/noteEditor.tsx` (a native page-sheet `Modal`, Save /
   Cancel, 2000-char counter), and `noteRow.tsx` for "note or Add note" rows.
   Live: the between-games screen and the match-complete screen
-  (`setGameNote` / `setMatchNote` in `matchContext`, signed-in only). Later:
+  (`setGameNote` / `setMatchNote` in `matchContext`, signed-in only).
+  **A Bo1 has a round note only** — its one game *is* the round, so the
+  match-complete screen and the match detail hide the game note (the detail
+  still shows one that an older Bo1 already has). Later:
   the match detail edits Postgres directly (`updateGameNote` /
   `updateMatchNote`). Text is stored via core's `normalizeNote` (trimmed,
   blank → null). **The match is already saved when the match-complete screen
@@ -618,6 +623,22 @@ with `setDefaultDeck()` (`lib/profile.ts`, a plain update of
 `profiles.default_deck_id`) and tagged "Default" on its row. The setup sheet
 pre-selects it (`preselect`) unless you've already picked. Deleting that deck
 clears it server-side, so Profile refreshes after a delete.
+
+**Search and sort ("My decks")**, once there's more than one deck: a search
+field (deck name or legend, like the picker) with a sort dropdown beside it —
+"Recently updated" (default) or "Recently created", built like the picker's
+Legend menu. Rows show the date the list is sorted by (`DeckRow`'s `date`
+prop). A search change clears the selection.
+
+**Feedback** (`lib/feedback.ts`, schema in `../../supabase/CLAUDE.md`).
+"Send feedback" on Profile opens `components/feedbackSheet.tsx` — headline +
+text, anonymous, rate-limited server-side (the sheet shows `rate_limited`).
+Feedback admins also get "View feedback" with an unread badge
+(`feedback_unread_count()` is null for everyone else, which hides the row) →
+`app/feedback.tsx`: All / Unread / Read chips with counts, search, tap to open
+(marks read, "Mark as unread" to flip back), swipe to delete, and
+multi-select with mark read / unread / delete. Changes are optimistic and
+re-read on failure.
 
 **Multi-select (History and "My decks").** WhatsApp-style: a "Select" button
 in the list header, or long-press a row (which selects it). While selecting,

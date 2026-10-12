@@ -1,11 +1,20 @@
-import React, { useCallback, useState } from 'react';
-import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import Animated, {
   FadeIn,
   FadeOut,
   useSharedValue,
 } from 'react-native-reanimated';
 import { useFocusEffect, useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/authContext';
 import { useProfile } from '@/contexts/profileContext';
@@ -18,9 +27,27 @@ import { setDefaultDeck } from '@/lib/profile';
 import { deleteDeck, deleteDecks, fetchMyDecks, type Deck } from '@/lib/decks';
 import { useSelection } from '@/hooks/useSelection';
 import SelectionBar from '@/components/selectionBar';
+import FeedbackSheet from '@/components/feedbackSheet';
+import { fetchFeedbackUnreadCount } from '@/lib/feedback';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 type DecksState = { kind: 'loading' } | { kind: 'ready'; decks: Deck[] } | { kind: 'error' };
+
+/** "My decks" order: last edited (the server's order) or when imported. */
+type DeckSort = 'updated' | 'created';
+const SORTS: { key: DeckSort; label: string; short: string }[] = [
+  { key: 'updated', label: 'Recently updated', short: 'Updated' },
+  { key: 'created', label: 'Recently created', short: 'Created' },
+];
+
+// The sort menu floats over the list — same lift as the deck picker's menu,
+// as a style object (see the shadow note in apps/mobile/CLAUDE.md).
+const MENU_SHADOW = {
+  shadowColor: '#0D1B2A',
+  shadowOffset: { width: 0, height: 8 },
+  shadowOpacity: 0.6,
+  shadowRadius: 16,
+} as const;
 
 /**
  * Profile tab: identity header, then "My decks". The handle is claimed at
@@ -28,7 +55,8 @@ type DecksState = { kind: 'loading' } | { kind: 'ready'; decks: Deck[] } | { kin
  * because there's nowhere else for it yet.
  *
  * "My decks" is deliberately bare — a plain list plus an import entry point;
- * its final placement is still to be decided.
+ * its final placement is still to be decided. With more than one deck it gets
+ * a search (deck name or legend, like the deck picker) and a sort.
  */
 const Profile = () => {
   const insets = useSafeAreaInsets();
@@ -36,7 +64,41 @@ const Profile = () => {
   const { signOut, status } = useAuth();
   const [decksState, setDecksState] = useState<DecksState>({ kind: 'loading' });
   const selection = useSelection();
-  const { exit: exitSelection } = selection;
+  const { exit: exitSelection, clearSelected } = selection;
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<DeckSort>('updated');
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  // Unread feedback for the feedback admin; null for everyone else, which
+  // also hides the inbox entry.
+  const [feedbackUnread, setFeedbackUnread] = useState<number | null>(null);
+  const pickSort = (key: DeckSort) => {
+    Haptics.selectionAsync();
+    setSort(key);
+    setSortMenuOpen(false);
+  };
+
+  const allDecks = useMemo(
+    () => (decksState.kind === 'ready' ? decksState.decks : []),
+    [decksState],
+  );
+  const shownDecks = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const key = sort === 'updated' ? 'updatedAt' : 'createdAt';
+    return allDecks
+      .filter(
+        (d) =>
+          q === '' ||
+          d.name.toLowerCase().includes(q) ||
+          (d.list.legend?.name.toLowerCase().includes(q) ?? false),
+      )
+      .sort((a, b) => b[key].localeCompare(a[key]));
+  }, [allDecks, query, sort]);
+
+  // A search can hide selected rows; never act on rows you can't see.
+  useEffect(() => {
+    clearSelected();
+  }, [query, clearSelected]);
 
   // Leaving the tab ends selection mode.
   useFocusEffect(useCallback(() => () => exitSelection(), [exitSelection]));
@@ -61,6 +123,11 @@ const Profile = () => {
       // would only paint an RLS error under the blur.
       if (status !== 'authed') return;
       let active = true;
+      fetchFeedbackUnreadCount()
+        .then((n) => active && setFeedbackUnread(n))
+        .catch((e) => {
+          if (__DEV__) console.warn('[feedback] unread count failed:', e);
+        });
       fetchMyDecks()
         .then((decks) => {
           if (active) setDecksState({ kind: 'ready', decks });
@@ -191,6 +258,9 @@ const Profile = () => {
         paddingBottom: 32,
       }}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      onScrollBeginDrag={() => setSortMenuOpen(false)}
     >
       <Animated.View style={titleStyle}>
         <Text className="mb-7 font-display-bold text-2xl text-ink-primary">
@@ -325,6 +395,87 @@ const Profile = () => {
           )}
         </View>
 
+        {allDecks.length > 1 && (
+          // z-20 so the sort menu drops over the list below.
+          <View className="z-20 mb-3 flex-row items-center gap-2">
+            <View className="flex-1 flex-row items-center gap-2 rounded-xl border border-border bg-surface px-3">
+              <Icon name="search" size={16} className="text-ink-tertiary" />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                onFocus={() => setSortMenuOpen(false)}
+                placeholder="Search decks or legends"
+                autoCorrect={false}
+                autoCapitalize="none"
+                returnKeyType="search"
+                clearButtonMode="while-editing"
+                accessibilityLabel="Search decks"
+                className="h-11 flex-1 text-[16px] text-ink-primary placeholder:text-ink-tertiary"
+              />
+            </View>
+            <View>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`Sort: ${SORTS.find((o) => o.key === sort)?.label}`}
+                accessibilityState={{ expanded: sortMenuOpen }}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setSortMenuOpen((o) => !o);
+                }}
+                className={`h-11 flex-row items-center gap-1.5 rounded-xl border px-3 ${
+                  sortMenuOpen ? 'border-accent bg-accent/15' : 'border-border bg-surface'
+                }`}
+              >
+                <Icon
+                  name="filter"
+                  size={15}
+                  className={sortMenuOpen ? 'text-accent' : 'text-ink-secondary'}
+                />
+                <Text
+                  className={`font-display text-[14px] ${
+                    sortMenuOpen ? 'text-accent' : 'text-ink-secondary'
+                  }`}
+                >
+                  {SORTS.find((o) => o.key === sort)?.short}
+                </Text>
+                <Icon
+                  name={sortMenuOpen ? 'chevron-up' : 'chevron-down'}
+                  size={14}
+                  className={sortMenuOpen ? 'text-accent' : 'text-ink-secondary'}
+                />
+              </TouchableOpacity>
+
+              {sortMenuOpen && (
+                <Animated.View
+                  entering={FadeIn.duration(120)}
+                  exiting={FadeOut.duration(100)}
+                  style={MENU_SHADOW}
+                  className="absolute right-0 top-[52px] w-56 overflow-hidden rounded-xl border border-border bg-elevated"
+                >
+                  {SORTS.map((o, i) => (
+                    <Pressable
+                      key={o.key}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: sort === o.key }}
+                      onPress={() => pickSort(o.key)}
+                      className={`min-h-[44px] flex-row items-center gap-2 px-3.5 py-2.5 active:bg-surface ${
+                        i > 0 ? 'border-t border-border/60' : ''
+                      }`}
+                    >
+                      <Text className="flex-1 text-[15px] text-ink-primary">
+                        {o.label}
+                      </Text>
+                      {sort === o.key && (
+                        <Icon name="check" size={16} className="text-accent" />
+                      )}
+                    </Pressable>
+                  ))}
+                </Animated.View>
+              )}
+            </View>
+          </View>
+        )}
+
         {decksState.kind === 'loading' ? (
           <Text className="py-6 text-center text-sm text-ink-tertiary">
             Loading decks…
@@ -347,13 +498,29 @@ const Profile = () => {
               Paste a decklist from Piltover Archive to import your first deck.
             </Text>
           </TouchableOpacity>
+        ) : shownDecks.length === 0 ? (
+          <View className="items-center py-6">
+            <Text className="text-center text-[14px] text-ink-secondary">
+              No decks match “{query.trim()}”.
+            </Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              onPress={() => setQuery('')}
+              className="mt-2 px-3 py-2"
+            >
+              <Text className="font-display text-[14px] text-accent">
+                Clear search
+              </Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <View className="gap-2.5">
-            {decksState.decks.map((deck) => (
+            {shownDecks.map((deck) => (
               <DeckRow
                 key={deck.id}
                 deck={deck}
                 isDefault={deck.id === defaultDeckId}
+                date={sort}
                 onPress={() => router.push(`/decks/${deck.id}`)}
                 onDelete={() => handleDeleteDeck(deck)}
                 selecting={selection.active}
@@ -364,7 +531,78 @@ const Profile = () => {
             ))}
           </View>
         )}
+
+        {/* Tap anywhere else in the section to close the sort menu. */}
+        {sortMenuOpen && (
+          <Pressable
+            accessibilityLabel="Close sort menu"
+            onPress={() => setSortMenuOpen(false)}
+            className="absolute inset-0 z-10"
+          />
+        )}
       </Animated.View>
+
+      <Animated.View style={decksStyle} className="mt-8">
+        <Text className="mb-2 font-display text-base text-ink-secondary">
+          Feedback
+        </Text>
+        <View className="overflow-hidden rounded-2xl border border-border bg-surface">
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setFeedbackOpen(true);
+            }}
+            className="min-h-[52px] flex-row items-center gap-3 px-4 active:bg-elevated"
+          >
+            <Icon name="message-square" size={17} className="text-accent" />
+            <Text className="flex-1 font-display text-[15px] text-ink-primary">
+              Send feedback
+            </Text>
+            <Icon name="chevron-right" size={16} className="text-ink-tertiary" />
+          </TouchableOpacity>
+
+          {/* Only the feedback admin gets the inbox; the server enforces it. */}
+          {feedbackUnread !== null && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={`View feedback, ${feedbackUnread} unread`}
+              onPress={() => router.push('/feedback')}
+              className="min-h-[52px] flex-row items-center gap-3 border-t border-border/60 px-4 active:bg-elevated"
+            >
+              <Icon name="inbox" size={17} className="text-ink-secondary" />
+              <Text className="flex-1 font-display text-[15px] text-ink-primary">
+                View feedback
+              </Text>
+              {feedbackUnread > 0 && (
+                <View className="min-w-[22px] items-center rounded-full bg-accent px-1.5 py-0.5">
+                  <Text className="font-display-bold text-[12px] text-background">
+                    {feedbackUnread > 99 ? '99+' : feedbackUnread}
+                  </Text>
+                </View>
+              )}
+              <Icon name="chevron-right" size={16} className="text-ink-tertiary" />
+            </TouchableOpacity>
+          )}
+        </View>
+        <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
+          Tell us what you like and what to improve. It&apos;s sent anonymously.
+        </Text>
+      </Animated.View>
+
+      <FeedbackSheet
+        visible={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        onSent={() => {
+          Alert.alert('Thanks!', 'Your feedback was sent.');
+          // An admin sending feedback should see it land in the counter.
+          if (feedbackUnread !== null) {
+            fetchFeedbackUnreadCount()
+              .then(setFeedbackUnread)
+              .catch(() => {});
+          }
+        }}
+      />
     </ScrollView>
   );
 };
