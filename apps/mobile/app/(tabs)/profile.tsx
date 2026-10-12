@@ -27,6 +27,8 @@ import { setDefaultDeck } from '@/lib/profile';
 import { deleteDeck, deleteDecks, fetchMyDecks, type Deck } from '@/lib/decks';
 import { useSelection } from '@/hooks/useSelection';
 import SelectionBar from '@/components/selectionBar';
+import FeedbackSheet from '@/components/feedbackSheet';
+import { fetchFeedbackUnreadCount } from '@/lib/feedback';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 type DecksState = { kind: 'loading' } | { kind: 'ready'; decks: Deck[] } | { kind: 'error' };
@@ -66,6 +68,10 @@ const Profile = () => {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<DeckSort>('updated');
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  // Unread feedback for the feedback admin; null for everyone else, which
+  // also hides the inbox entry.
+  const [feedbackUnread, setFeedbackUnread] = useState<number | null>(null);
   const pickSort = (key: DeckSort) => {
     Haptics.selectionAsync();
     setSort(key);
@@ -117,6 +123,11 @@ const Profile = () => {
       // would only paint an RLS error under the blur.
       if (status !== 'authed') return;
       let active = true;
+      fetchFeedbackUnreadCount()
+        .then((n) => active && setFeedbackUnread(n))
+        .catch((e) => {
+          if (__DEV__) console.warn('[feedback] unread count failed:', e);
+        });
       fetchMyDecks()
         .then((decks) => {
           if (active) setDecksState({ kind: 'ready', decks });
@@ -531,6 +542,67 @@ const Profile = () => {
         )}
       </Animated.View>
 
+      <Animated.View style={decksStyle} className="mt-8">
+        <Text className="mb-2 font-display text-base text-ink-secondary">
+          Feedback
+        </Text>
+        <View className="overflow-hidden rounded-2xl border border-border bg-surface">
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setFeedbackOpen(true);
+            }}
+            className="min-h-[52px] flex-row items-center gap-3 px-4 active:bg-elevated"
+          >
+            <Icon name="message-square" size={17} className="text-accent" />
+            <Text className="flex-1 font-display text-[15px] text-ink-primary">
+              Send feedback
+            </Text>
+            <Icon name="chevron-right" size={16} className="text-ink-tertiary" />
+          </TouchableOpacity>
+
+          {/* Only the feedback admin gets the inbox; the server enforces it. */}
+          {feedbackUnread !== null && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={`View feedback, ${feedbackUnread} unread`}
+              onPress={() => router.push('/feedback')}
+              className="min-h-[52px] flex-row items-center gap-3 border-t border-border/60 px-4 active:bg-elevated"
+            >
+              <Icon name="inbox" size={17} className="text-ink-secondary" />
+              <Text className="flex-1 font-display text-[15px] text-ink-primary">
+                View feedback
+              </Text>
+              {feedbackUnread > 0 && (
+                <View className="min-w-[22px] items-center rounded-full bg-accent px-1.5 py-0.5">
+                  <Text className="font-display-bold text-[12px] text-background">
+                    {feedbackUnread > 99 ? '99+' : feedbackUnread}
+                  </Text>
+                </View>
+              )}
+              <Icon name="chevron-right" size={16} className="text-ink-tertiary" />
+            </TouchableOpacity>
+          )}
+        </View>
+        <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
+          Tell us what you like and what to improve. It&apos;s sent anonymously.
+        </Text>
+      </Animated.View>
+
+      <FeedbackSheet
+        visible={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        onSent={() => {
+          Alert.alert('Thanks!', 'Your feedback was sent.');
+          // An admin sending feedback should see it land in the counter.
+          if (feedbackUnread !== null) {
+            fetchFeedbackUnreadCount()
+              .then(setFeedbackUnread)
+              .catch(() => {});
+          }
+        }}
+      />
     </ScrollView>
   );
 };
