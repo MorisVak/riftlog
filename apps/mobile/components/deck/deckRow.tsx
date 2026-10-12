@@ -9,7 +9,7 @@ import SwipeToDelete from '@/components/swipeToDelete';
 import { SelectionGutter } from '@/components/selectCheck';
 
 /** "Sep 24"; the year is added only when it isn't this year. */
-const formatUpdated = (iso: string): string => {
+const formatDate = (iso: string): string => {
   const date = new Date(iso);
   const sameYear = date.getFullYear() === new Date().getFullYear();
   return date.toLocaleDateString(undefined, {
@@ -20,7 +20,8 @@ const formatUpdated = (iso: string): string => {
 };
 
 /**
- * One saved deck in a list: name, legend, domains, last updated. Swipe left to
+ * One saved deck in a list: name, legend, domains, and a date (last updated,
+ * or created when the list is sorted that way). Swipe left to
  * delete, same as a match-history row. In selection mode a tap toggles the
  * row and swiping is off; a long-press starts selection with this row.
  */
@@ -33,8 +34,11 @@ const DeckRow = ({
   onSelect,
   onLongPress,
   isDefault = false,
+  date = 'updated',
 }: {
   deck: Deck;
+  /** Which date the row shows — match it to the list's sort. */
+  date?: 'updated' | 'created';
   /** Tag the row "Default" — the deck a new match starts with. */
   isDefault?: boolean;
   onPress: () => void;
@@ -45,7 +49,9 @@ const DeckRow = ({
   onLongPress?: () => void;
 }) => {
   const domains = deckDomains(deck.list);
-  const updated = formatUpdated(deck.updatedAt);
+  const shownDate = formatDate(
+    date === 'created' ? deck.createdAt : deck.updatedAt,
+  );
 
   return (
     // In selection mode the check sits OUTSIDE the card, to its left (as in a
@@ -70,7 +76,7 @@ const DeckRow = ({
           {({ isOpen, close }) => (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`${deck.name}${deck.list.legend ? `, ${deck.list.legend.name}` : ''}, updated ${updated}`}
+              accessibilityLabel={`${deck.name}${deck.list.legend ? `, ${deck.list.legend.name}` : ''}, ${date} ${shownDate}`}
               accessibilityState={selecting ? { selected } : undefined}
               // Selecting: toggle. Otherwise a tap on an open row closes it
               // instead of opening the deck.
@@ -117,7 +123,7 @@ const DeckRow = ({
                     )}
                   </View>
                   <Text className="font-mono-medium text-[11px] text-ink-tertiary">
-                    {updated}
+                    {shownDate}
                   </Text>
                 </View>
                 <Text
