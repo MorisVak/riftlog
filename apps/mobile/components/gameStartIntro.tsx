@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import Animated, {
   Easing,
   FadeOut,
@@ -16,15 +22,20 @@ import { formatClock } from '@/lib/clock';
  * The "VS" transition at the start of a game — from the Claude Design file
  * (Riftlog.dc.html, "MATCH-START ANIMATION"): your card slides in from the
  * left and the opponent's from the right, "VS" pops in between, then the label
- * and the format line. ~1.75s, tap to skip. Plays at match start ("Match
+ * and the format line. ~2s, tap to skip. Plays at match start ("Match
  * start") and before each further game of a Bo3 ("Game 2", "Game 3").
+ *
+ * Laid out a quarter turn (-90°), like the board clock: the phone lies flat
+ * between two players at opposite ends, so sideways text reads equally for
+ * both — and your card lands at your end (bottom), the opponent's at theirs.
  *
  * Shown once per game, and only for a game that has JUST started (no points
  * yet, started under a few seconds ago) — so restoring an interrupted match,
  * or any re-render, never replays it.
  */
 
-const SHOW_MS = 1750;
+// The design's 1.75s plus a quarter second, so both players have time to read it.
+const SHOW_MS = 2000;
 /** A game older than this when the board mounts is a restore, not a start. */
 const FRESH_MS = 3000;
 
@@ -35,9 +46,9 @@ const CARD_GRADIENT = ['#222D47', '#18223A'] as const;
 // as a style object per the shadow rule in apps/mobile/CLAUDE.md.
 const YOU_GLOW = {
   shadowColor: '#8B93D9', // accent
-  shadowOffset: { width: 0, height: 12 },
+  shadowOffset: { width: 0, height: 16 },
   shadowOpacity: 0.5,
-  shadowRadius: 15,
+  shadowRadius: 22,
 } as const;
 
 // cubic-bezier(.2,.8,.2,1) — the design's card slide easing.
@@ -68,7 +79,7 @@ const SideCard = ({
       // Fully visible by 60% of the slide, like the keyframe.
       opacity: interpolate(t.value, [0, 0.6, 1], [0, 1, 1]),
       transform: [
-        { translateX: dir * 70 * (1 - p) },
+        { translateX: dir * 110 * (1 - p) },
         { rotate: `${dir * 8 * (1 - p)}deg` },
       ],
     };
@@ -76,13 +87,13 @@ const SideCard = ({
 
   const you = side === 'left';
   return (
-    <Animated.View style={style} className="items-center gap-2.5">
-      <View style={you ? YOU_GLOW : undefined} className="rounded-[14px]">
+    <Animated.View style={style} className="items-center gap-3.5">
+      <View style={you ? YOU_GLOW : undefined} className="rounded-[20px]">
         {/* Size, radius and border live on a plain View: NativeWind doesn't
             map classNames onto third-party native components (see the
             BlurView note in CLAUDE.md), so the gradient just fills it. */}
         <View
-          className={`h-[108px] w-20 items-center justify-center overflow-hidden rounded-[14px] border ${
+          className={`h-[162px] w-[120px] items-center justify-center overflow-hidden rounded-[20px] border-2 ${
             you ? 'border-accent' : 'border-border'
           }`}
         >
@@ -93,7 +104,7 @@ const SideCard = ({
             style={StyleSheet.absoluteFill}
           />
           <Text
-            className={`font-display-bold text-[30px] ${
+            className={`font-display-bold text-[46px] ${
               you ? 'text-accent' : 'text-ink-primary'
             }`}
           >
@@ -102,7 +113,7 @@ const SideCard = ({
         </View>
       </View>
       <Text
-        className="max-w-[110px] font-display text-[12px] text-ink-secondary"
+        className="max-w-[180px] font-display text-[17px] text-ink-secondary"
         numberOfLines={1}
       >
         {name}
@@ -148,13 +159,16 @@ const IntroOverlay = ({
       { scale: interpolate(vs.value, [0, 0.55, 0.75, 1], [0.4, 0.4, 1.15, 1]) },
     ],
   }));
-  // Hidden until 70%; rises 8px and tightens .5em → .28em (at 15px).
+  // Hidden until 70%; rises 8px and tightens .5em → .28em (at 24px).
   const labelStyle = useAnimatedStyle(() => ({
     opacity: interpolate(lbl.value, [0, 0.7, 1], [0, 0, 1]),
     transform: [{ translateY: interpolate(lbl.value, [0, 1], [8, 0]) }],
-    letterSpacing: interpolate(lbl.value, [0, 1], [7.5, 4.2]),
+    letterSpacing: interpolate(lbl.value, [0, 1], [12, 6.7]),
   }));
   const formatStyle = useAnimatedStyle(() => ({ opacity: fmt.value }));
+  // Rotation is paint-only, so the content is laid out at the screen's
+  // landscape size (long side as width) before it's turned.
+  const { width, height } = useWindowDimensions();
 
   return (
     <Animated.View
@@ -168,29 +182,38 @@ const IntroOverlay = ({
         onPress={onSkip}
         className="flex-1 items-center justify-center bg-background"
       >
-        <View className="mb-[34px] flex-row items-center gap-[18px]">
-          <SideCard side="left" initial={youInitial} name={youName} />
+        <View
+          style={{
+            width: height,
+            height: width,
+            transform: [{ rotate: '-90deg' }],
+          }}
+          className="items-center justify-center"
+        >
+          <View className="mb-[44px] flex-row items-center gap-[34px]">
+            <SideCard side="left" initial={youInitial} name={youName} />
+            <Animated.Text
+              style={vsStyle}
+              className="font-mono text-[40px] text-ink-secondary"
+            >
+              VS
+            </Animated.Text>
+            <SideCard side="right" initial={oppInitial} name={oppName} />
+          </View>
           <Animated.Text
-            style={vsStyle}
-            className="font-mono text-[26px] text-ink-secondary"
+            style={labelStyle}
+            className="font-display-bold text-[24px] uppercase text-ink-primary"
+            numberOfLines={1}
           >
-            VS
+            {label}
           </Animated.Text>
-          <SideCard side="right" initial={oppInitial} name={oppName} />
+          <Animated.Text
+            style={formatStyle}
+            className="mt-3 text-[16px] text-ink-secondary"
+          >
+            {format}
+          </Animated.Text>
         </View>
-        <Animated.Text
-          style={labelStyle}
-          className="font-display-bold text-[15px] uppercase text-ink-primary"
-          numberOfLines={1}
-        >
-          {label}
-        </Animated.Text>
-        <Animated.Text
-          style={formatStyle}
-          className="mt-2 text-[12px] text-ink-secondary"
-        >
-          {format}
-        </Animated.Text>
       </Pressable>
     </Animated.View>
   );
