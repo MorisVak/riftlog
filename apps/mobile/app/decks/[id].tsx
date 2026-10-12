@@ -4,7 +4,8 @@ import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchDeck, fetchDeckVersion, renameDeck, type Deck } from '@/lib/decks';
-import type { DeckList } from '@riftlog/core';
+import { diffDeckLists, type DeckList } from '@riftlog/core';
+import DeckDiff from '@/components/deck/deckDiff';
 import DeckView from '@/components/deck/deckView';
 import DeckNameEditor from '@/components/deck/deckNameEditor';
 import Icon from '@/components/icon';
@@ -176,6 +177,12 @@ const DeckDetail = () => {
                     <Icon name="chevron-right" size={15} className="text-accent" />
                   </TouchableOpacity>
                 </View>
+              </View>
+            )}
+            {/* Before → after: this version vs. the current list. */}
+            {state.played && (
+              <View className="mb-5">
+                <DeckDiff diff={diffDeckLists(state.played.list, state.deck.list)} />
               </View>
             )}
             <DeckView
