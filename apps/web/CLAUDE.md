@@ -4,7 +4,8 @@
 
 Next.js 16 app, App Router, React 19, Tailwind CSS v4, TypeScript strict.
 The riftlog.net website. Today it's a **marketing one-pager** with a working
-waitlist, plus `/contact`, `/privacy`, `/terms` and `/impressum`. **Keep it
+waitlist, plus `/contact`, `/privacy` (Privacy Policy), `/terms` (Terms of Service) and
+`/legal-notice` (Legal Notice = Impressum; `/impressum` redirects there). **Keep it
 simple** (riftatlas.com is the reference): a short hero, two feature blocks
 of one paragraph + screenshots each, a one-line roadmap, a slim waitlist band
 and a compact footer. Short, plain sentences; no lists of feature points. No product functionality
@@ -21,7 +22,7 @@ older training data — check `node_modules/next/dist/docs/` when unsure.
 
 - `src/app/` — App Router routes. `layout.tsx` (root layout, fonts, site
   metadata), `page.tsx` (the one-pager), `contact/`, `privacy/`, `terms/`,
-  `impressum/`, `actions/` (`waitlist.ts`, `contact.ts` Server Actions), `opengraph-image.tsx` (link preview,
+  `legal-notice/`, `actions/` (`waitlist.ts`, `contact.ts` Server Actions), `opengraph-image.tsx` (link preview,
   rendered at build), `favicon.ico` / `icon.svg` / `apple-icon.png`
   (generated), `globals.css` (Tailwind entry, tokens, reveal motion).
 - `src/components/` — sections (`Hero`, `Showcase` → `TableShowcase` /
@@ -117,8 +118,13 @@ way that matters for the list. Single opt-in for now. Schema in
 
 ## Legal pages
 
-`/privacy`, `/terms`, `/impressum` share `LegalPage` and carry a "Draft,
-pending review" banner until the owner signs them off. Operator details live
+`/privacy`, `/terms`, `/legal-notice` share `LegalPage` (a "Legal" label,
+title, one-sentence intro, "Last updated") and carry a "Draft, pending review"
+banner until the owner signs them off. **Keep them short and plain** like
+riftatlas.com's: plain-English headings, no numbering, first person ("I"),
+legal bases described in words rather than article numbers — but every fact
+GDPR Art. 13 requires (who, what, why, processors, retention, rights,
+complaint) must stay. Operator details live
 only in `OPERATOR` (`src/lib/legal.ts`); a value still in `[[BRACKETS]]` is a
 placeholder and renders highlighted (`Fill`). **Never invent the operator's
 name, address or contact details.** Find what's left with

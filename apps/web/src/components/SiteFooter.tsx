@@ -1,10 +1,10 @@
 import Link from "next/link";
 
 const LINKS = [
+  { href: "/legal-notice", label: "Legal Notice" },
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/terms", label: "Terms of Service" },
   { href: "/contact", label: "Contact" },
-  { href: "/privacy", label: "Privacy" },
-  { href: "/terms", label: "Terms" },
-  { href: "/impressum", label: "Impressum" },
 ];
 
 export function SiteFooter() {

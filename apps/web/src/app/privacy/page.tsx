@@ -6,140 +6,106 @@ import { OPERATOR } from "@/lib/legal";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   alternates: { canonical: "/privacy" },
-  description:
-    "How Riftlog handles your data on riftlog.net and in the Riftlog app.",
+  description: "What data Riftlog handles, why, and what you can do about it.",
 };
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy Policy">
+    <LegalPage
+      title="Privacy Policy"
+      intro="What data Riftlog handles when you visit this site, join the waitlist, send a message or use the app, and what you can do about it."
+    >
+      <h2>Overview</h2>
       <p>
-        Riftlog is a solo project, and it collects as little data as possible:
-        no ads, no tracking, no cookies, no analytics.
+        Riftlog is a free fan project run by one person,{" "}
+        <Fill value={OPERATOR.name} />. It collects as little as possible: no
+        ads, no tracking, no cookies, no analytics, and your data is never sold.
       </p>
 
-      <h2>1. Who I am</h2>
+      <h2>Visiting this site</h2>
       <p>
-        <Fill value={OPERATOR.name} />
-        <br />
-        <Fill value={OPERATOR.street} />
-        <br />
-        <Fill value={OPERATOR.city} />
-        <br />
-        {OPERATOR.country}
-        <br />
-        Email: <Fill value={OPERATOR.email} />
+        The site is hosted by Vercel. To deliver pages, Vercel briefly logs
+        technical data like your IP address and browser. That&apos;s needed to
+        keep the site running and secure. Fonts load from riftlog.net itself.
       </p>
 
-      <h2>2. This website</h2>
-      <p>
-        The site is hosted by Vercel Inc. (USA). To deliver pages, Vercel
-        briefly logs technical data such as your IP address, browser and the
-        page requested (legal basis: my legitimate interest in a working, secure
-        site, Art. 6(1)(f) GDPR). Vercel is certified under the EU-US Data
-        Privacy Framework. Fonts are served from riftlog.net itself.
-      </p>
-
-      <h2>3. The waitlist</h2>
+      <h2>The waitlist</h2>
       <p>
         If you join, I store your email address, when you signed up and which
-        version of this policy you agreed to. I use it for one email only: to
-        tell you when Riftlog launches. Then I delete it (legal basis: your
-        consent, Art. 6(1)(a) GDPR). Changed your mind before then? Email{" "}
-        <Fill value={OPERATOR.email} /> and I&apos;ll delete your address.
+        version of this policy you saw, and use it for one email when Riftlog
+        launches. Then I delete it. This is based
+        on your consent: email <Fill value={OPERATOR.email} />{" "}
+        any time before launch and I&apos;ll delete it sooner.
       </p>
 
-      <h2>4. The contact form</h2>
+      <h2>The contact form</h2>
       <p>
-        If you use the <Link href="/contact">contact form</Link>, I store your
-        name, email address and message so I can answer you (legal basis: my
-        legitimate interest in replying to your request, Art. 6(1)(f) GDPR). I
-        delete it once your request is dealt with.
+        If you send a message, I store your name, email and message so I can
+        reply, and delete it once we&apos;re done.
       </p>
 
-      <h2>5. The app</h2>
+      <h2>The app</h2>
       <p>
-        Guest matches stay on your phone and aren&apos;t saved. With an account
-        I store what&apos;s needed to run the app (legal basis: performing the
-        contract with you, Art. 6(1)(b) GDPR):
+        You can play as a guest; guest matches stay on your phone and
+        aren&apos;t saved. If you create an account, I store what the app needs
+        to work for you:
       </p>
       <ul>
         <li>
-          <strong>Sign-in:</strong> your email address and the account details
-          your sign-in provider (Discord, Google or Apple) shares, such as your
-          name. Email codes are sent by{" "}
-          <Fill value="[[EMAIL SENDER, e.g. Supabase or your SMTP provider]]" />
-          .
+          your email and the basic profile your sign-in provider (Discord,
+          Google or Apple) shares, like your name;
         </li>
+        <li>your display name and @handle;</li>
         <li>
-          <strong>Profile:</strong> your display name and @handle.
-        </li>
-        <li>
-          <strong>Your content:</strong> matches, scores, notes, opponent names
-          you enter, and your decks. Only you can see them.
-        </li>
-        <li>
-          <strong>On your phone:</strong> your login session, the match in
-          progress, and matches waiting to upload.
+          your matches, notes, decks and any opponent names you type in. Only
+          you can see them.
         </li>
       </ul>
-      <p>Feedback you send from the app isn&apos;t linked to your account.</p>
+      <p>
+        Email sign-in codes are sent by{" "}
+        <Fill value="[[EMAIL SENDER, e.g. Supabase or your SMTP provider]]" />.
+        Feedback you send from the app isn&apos;t linked to your account.
+      </p>
 
-      <h2>6. Who processes your data</h2>
+      <h2>Service providers</h2>
       <ul>
         <li>
-          <strong>Vercel Inc.</strong> (USA) hosts this website.
+          <strong>Vercel</strong> (USA) hosts this website.
         </li>
         <li>
-          <strong>Supabase, Inc.</strong> (USA) runs the sign-in and the
-          database behind the app, the waitlist and the contact form, with the
-          data stored in the EU (Stockholm, Sweden){" "}
+          <strong>Supabase</strong> (USA) runs sign-in and the database. Your
+          data is stored in the EU (Stockholm){" "}
           <Fill value="[[CHECK: Supabase DPA signed?]]" />.
         </li>
       </ul>
       <p>
-        Both work on my behalf under data processing agreements, with EU
-        Standard Contractual Clauses for any access from outside the EU. I
-        don&apos;t sell your data or share it with Riot Games.
+        Both only process data on my behalf, under data processing agreements
+        with the EU&apos;s standard safeguards. Nothing is shared with Riot
+        Games.
       </p>
 
-      <h2>7. How long I keep it</h2>
-      <ul>
-        <li>
-          <strong>Account data:</strong> until you delete it. You can delete
-          matches and decks in the app. To delete your whole account, email{" "}
-          <Fill value={OPERATOR.email} /> and I&apos;ll do it within 30 days.
-        </li>
-        <li>
-          <strong>Waitlist emails:</strong> deleted after the launch email.
-        </li>
-        <li>
-          <strong>Contact messages:</strong> deleted once dealt with.
-        </li>
-        <li>
-          <strong>Server logs:</strong> kept briefly by Vercel, then deleted.
-        </li>
-      </ul>
-
-      <h2>8. Your rights</h2>
-      <p>You can, at any time:</p>
-      <ul>
-        <li>get a copy of your data (Art. 15 GDPR),</li>
-        <li>have it corrected (Art. 16) or deleted (Art. 17),</li>
-        <li>restrict its processing (Art. 18),</li>
-        <li>receive it in a portable format (Art. 20),</li>
-        <li>object to processing based on legitimate interest (Art. 21),</li>
-        <li>withdraw your consent, for the future.</li>
-      </ul>
+      <h2>How long data is kept</h2>
       <p>
+        Account data stays until you delete it. You can delete matches and decks
+        in the app; to delete your whole account, email{" "}
+        <Fill value={OPERATOR.email} />{" "}and it&apos;s done within 30 days.
+        Waitlist emails go after the launch email, messages once answered.
+      </p>
+
+      <h2>Your rights</h2>
+      <p>
+        You can ask for a copy of your data, have it corrected or deleted, limit
+        or object to how it&apos;s used, take it elsewhere, or withdraw consent.
         Just email <Fill value={OPERATOR.email} />. You can also complain to a
-        data protection authority, for example{" "}
+        data protection authority, such as{" "}
         <Fill value={OPERATOR.supervisoryAuthority} />.
       </p>
 
+      <h2>Changes and contact</h2>
       <p>
-        See also the <Link href="/terms">Terms</Link> and the{" "}
-        <Link href="/impressum">Impressum</Link>.
+        If this policy changes, the date above changes too. Questions? Use the{" "}
+        <Link href="/contact">contact page</Link> or email{" "}
+        <Fill value={OPERATOR.email} />.
       </p>
     </LegalPage>
   );

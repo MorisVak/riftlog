@@ -3,13 +3,13 @@
  * with each email (`waitlist.privacy_version`) as a record of consent, so bump
  * it whenever the policy's text changes in a way that matters for the list.
  */
-export const PRIVACY_VERSION = "2026-10-15-draft2";
+export const PRIVACY_VERSION = "2026-10-15-draft3";
 
 /** Shown as "Last updated" on every legal page. */
 export const LEGAL_UPDATED = "15 October 2026";
 
 /**
- * The operator's details, used by /impressum, /privacy and /terms. Every value
+ * The operator's details, used by /legal-notice, /privacy and /terms. Every value
  * still in [[DOUBLE BRACKETS]] is a placeholder: it renders highlighted on the
  * page and is easy to find with `grep -rn "\[\[" apps/web/src`. Fill them here
  * — never invent them.

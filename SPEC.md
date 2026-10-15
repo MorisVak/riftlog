@@ -573,8 +573,8 @@ import step will follow the required one once deck import (Feature 4) exists.
 **Status:** built (`apps/web`). A marketing one-pager describing only what's
 built, with real app screenshots and a clearly labelled "Coming later"
 section; a waitlist backed by Supabase (`join_waitlist`, consent recorded,
-single opt-in); `/privacy`, `/terms` and `/impressum` (drafts pending the
-owner's legal review and details); both Riot statements in the footer. Any
+single opt-in); `/contact` (form → Supabase), `/privacy`, `/terms` and `/legal-notice`
+(Impressum; drafts pending the owner's review); both Riot statements in the footer. Any
 copy about stats stays strictly personal — never cross-player data.
 
 ---
