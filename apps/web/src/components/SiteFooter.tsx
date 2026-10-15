@@ -1,13 +1,6 @@
 import Link from "next/link";
 import { Wordmark } from "./Wordmark";
 
-const SITE_LINKS = [
-  { href: "/#scoreboard", label: "Features" },
-  { href: "/#decks", label: "Decks" },
-  { href: "/#coming-later", label: "Coming later" },
-  { href: "/#waitlist", label: "Waitlist" },
-];
-
 const LEGAL_LINKS = [
   { href: "/legal-notice", label: "Legal Notice" },
   { href: "/privacy", label: "Privacy Policy" },
@@ -22,26 +15,17 @@ export function SiteFooter() {
   return (
     <footer className="mt-auto border-t border-border/60">
       <div className="mx-auto w-full max-w-6xl px-5 py-14 sm:px-8">
-        <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" aria-label="Riftlog home">
             <Wordmark />
           </Link>
-          <div className="flex flex-col gap-4 sm:items-end">
-            <nav aria-label="Site" className="flex flex-wrap gap-x-8 gap-y-3">
-              {SITE_LINKS.map((link) => (
-                <Link key={link.href} href={link.href} className={linkClass}>
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-            <nav aria-label="Legal" className="flex flex-wrap gap-x-8 gap-y-3">
-              {LEGAL_LINKS.map((link) => (
-                <Link key={link.href} href={link.href} className={linkClass}>
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
+          <nav aria-label="Legal" className="flex flex-wrap gap-x-8 gap-y-3">
+            {LEGAL_LINKS.map((link) => (
+              <Link key={link.href} href={link.href} className={linkClass}>
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
 
         <div className="mt-10 space-y-3 border-t border-border/60 pt-8">
