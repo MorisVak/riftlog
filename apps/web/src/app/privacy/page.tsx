@@ -62,10 +62,11 @@ export default function PrivacyPage() {
 
       <h2>Service providers</h2>
       <p>
-        Riftlog uses Vercel (USA) to host this site and Supabase (USA) for
-        sign-in and the database, which is hosted in the EU (Stockholm){" "}
-        <Fill value="[[CHECK: Supabase DPA signed?]]" />. Both process data
-        only on my behalf. Nothing is shared with Riot Games.
+        Riftlog uses Vercel (USA) to host this site and Supabase (Singapore)
+        for sign-in and the database, which is hosted in the EU (Stockholm).
+        Both process data only on my behalf, under data processing agreements
+        that include the EU&apos;s standard safeguards. Nothing is shared with
+        Riot Games.
       </p>
 
       <h2>Cookies and similar storage</h2>
