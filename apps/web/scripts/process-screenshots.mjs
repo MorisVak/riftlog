@@ -7,6 +7,8 @@
 //        apps/web/public/screenshots/<name>@2x.webp  (2x)
 //        src/components/screenshots.generated.ts     (names + 1x sizes, so
 //        PhoneFrame can set width/height and the page never shifts)
+//        assets/og-board.png                         (the board as PNG for
+//        src/app/opengraph-image.tsx, which can't read WebP)
 //
 // The iOS status bar (time, battery, carrier, notification icons) is cropped
 // off the top; PhoneFrame draws its own island. Only names listed in SHOTS are
@@ -21,6 +23,7 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const RAW_DIR = path.join(ROOT, "screenshots-raw");
 const OUT_DIR = path.join(ROOT, "public", "screenshots");
 const MANIFEST = path.join(ROOT, "src", "components", "screenshots.generated.ts");
+const OG_BOARD = path.join(ROOT, "assets", "og-board.png");
 
 const OUT_WIDTH = 390;
 const QUALITY = 80;
@@ -99,6 +102,10 @@ async function main() {
         .resize({ width })
         .webp({ quality: QUALITY, effort: 6 })
         .toFile(path.join(OUT_DIR, `${name}${suffix}.webp`));
+    }
+
+    if (name === "board") {
+      await sharp(input).extract(cropped).resize({ width: 520 }).png().toFile(OG_BOARD);
     }
 
     manifest[name] = {

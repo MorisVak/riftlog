@@ -3,7 +3,8 @@ import { Fill, LegalPage } from "@/components/LegalPage";
 import { OPERATOR } from "@/lib/legal";
 
 export const metadata: Metadata = {
-  title: "Impressum — Riftlog",
+  title: "Impressum",
+  alternates: { canonical: "/impressum" },
   description: "Legal notice for riftlog.net under § 5 DDG.",
 };
 

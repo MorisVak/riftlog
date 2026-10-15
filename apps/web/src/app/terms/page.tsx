@@ -4,7 +4,8 @@ import { Fill, LegalPage } from "@/components/LegalPage";
 import { OPERATOR } from "@/lib/legal";
 
 export const metadata: Metadata = {
-  title: "Terms of Use — Riftlog",
+  title: "Terms of Use",
+  alternates: { canonical: "/terms" },
   description: "The terms for using the Riftlog app and riftlog.net.",
 };
 

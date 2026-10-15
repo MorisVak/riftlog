@@ -4,7 +4,8 @@ import { Fill, LegalPage } from "@/components/LegalPage";
 import { OPERATOR } from "@/lib/legal";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Riftlog",
+  title: "Privacy Policy",
+  alternates: { canonical: "/privacy" },
   description: "How Riftlog handles your data on riftlog.net and in the Riftlog app.",
 };
 
