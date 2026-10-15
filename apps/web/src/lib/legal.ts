@@ -15,15 +15,16 @@ export const LEGAL_UPDATED = "15 October 2026";
  * — never invent them.
  */
 export const OPERATOR = {
-  name: "[[LEGAL NAME]]",
-  street: "[[STREET AND NUMBER]]",
-  city: "[[POSTCODE AND CITY]]",
+  name: "Maurice Mecke",
+  street: "Kannenstr. 18",
+  city: "45891 Gelsenkirchen",
   country: "Germany",
-  email: "[[CONTACT EMAIL]]",
+  email: "moris.m.codes@gmail.com",
   /** §5 DDG wants a second fast way to reach you besides email. */
   secondContact: "[[PHONE NUMBER OR CONTACT FORM]]",
-  /** The data protection authority of your German state (Bundesland). */
-  supervisoryAuthority: "[[YOUR STATE'S DATA PROTECTION AUTHORITY]]",
+  /** Data protection authority for North Rhine-Westphalia (Gelsenkirchen). */
+  supervisoryAuthority:
+    "the Landesbeauftragte für Datenschutz und Informationsfreiheit Nordrhein-Westfalen (LDI NRW, ldi.nrw.de)",
 } as const;
 
 export function isPlaceholder(value: string): boolean {
