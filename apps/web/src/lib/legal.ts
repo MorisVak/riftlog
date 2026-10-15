@@ -20,8 +20,6 @@ export const OPERATOR = {
   city: "45891 Gelsenkirchen",
   country: "Germany",
   email: "moris.m.codes@gmail.com",
-  /** §5 DDG wants a second fast way to reach you besides email. */
-  secondContact: "[[PHONE NUMBER OR CONTACT FORM]]",
   /** Data protection authority for North Rhine-Westphalia (Gelsenkirchen). */
   supervisoryAuthority:
     "the Landesbeauftragte für Datenschutz und Informationsfreiheit Nordrhein-Westfalen (LDI NRW, ldi.nrw.de)",

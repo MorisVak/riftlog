@@ -12,6 +12,7 @@ const LEGAL_LINKS = [
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
   { href: "/impressum", label: "Impressum" },
+  { href: "/contact", label: "Contact" },
 ];
 
 const linkClass =

@@ -6,7 +6,8 @@ import { OPERATOR } from "@/lib/legal";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   alternates: { canonical: "/privacy" },
-  description: "How Riftlog handles your data on riftlog.net and in the Riftlog app.",
+  description:
+    "How Riftlog handles your data on riftlog.net and in the Riftlog app.",
 };
 
 export default function PrivacyPage() {
@@ -34,9 +35,9 @@ export default function PrivacyPage() {
       <p>
         The site is hosted by Vercel Inc. (USA). To deliver pages, Vercel
         briefly logs technical data such as your IP address, browser and the
-        page requested (legal basis: my legitimate interest in a working,
-        secure site, Art. 6(1)(f) GDPR). Vercel is certified under the EU-US
-        Data Privacy Framework. Fonts are served from riftlog.net itself.
+        page requested (legal basis: my legitimate interest in a working, secure
+        site, Art. 6(1)(f) GDPR). Vercel is certified under the EU-US Data
+        Privacy Framework. Fonts are served from riftlog.net itself.
       </p>
 
       <h2>3. The waitlist</h2>
@@ -45,10 +46,18 @@ export default function PrivacyPage() {
         version of this policy you agreed to. I use it for one email only: to
         tell you when Riftlog launches. Then I delete it (legal basis: your
         consent, Art. 6(1)(a) GDPR). Changed your mind before then? Email{" "}
-        <Fill value={OPERATOR.email} />{" "}and I&apos;ll delete your address.
+        <Fill value={OPERATOR.email} /> and I&apos;ll delete your address.
       </p>
 
-      <h2>4. The app</h2>
+      <h2>4. The contact form</h2>
+      <p>
+        If you use the <Link href="/contact">contact form</Link>, I store your
+        name, email address and message so I can answer you (legal basis: my
+        legitimate interest in replying to your request, Art. 6(1)(f) GDPR). I
+        delete it once your request is dealt with.
+      </p>
+
+      <h2>5. The app</h2>
       <p>
         Guest matches stay on your phone and aren&apos;t saved. With an account
         I store what&apos;s needed to run the app (legal basis: performing the
@@ -59,7 +68,8 @@ export default function PrivacyPage() {
           <strong>Sign-in:</strong> your email address and the account details
           your sign-in provider (Discord, Google or Apple) shares, such as your
           name. Email codes are sent by{" "}
-          <Fill value="[[EMAIL SENDER, e.g. Supabase or your SMTP provider]]" />.
+          <Fill value="[[EMAIL SENDER, e.g. Supabase or your SMTP provider]]" />
+          .
         </li>
         <li>
           <strong>Profile:</strong> your display name and @handle.
@@ -75,14 +85,15 @@ export default function PrivacyPage() {
       </ul>
       <p>Feedback you send from the app isn&apos;t linked to your account.</p>
 
-      <h2>5. Who processes your data</h2>
+      <h2>6. Who processes your data</h2>
       <ul>
         <li>
           <strong>Vercel Inc.</strong> (USA) hosts this website.
         </li>
         <li>
-          <strong>Supabase, Inc.</strong> (USA) runs the sign-in and database,
-          with the data stored in the EU (Stockholm, Sweden){" "}
+          <strong>Supabase, Inc.</strong> (USA) runs the sign-in and the
+          database behind the app, the waitlist and the contact form, with the
+          data stored in the EU (Stockholm, Sweden){" "}
           <Fill value="[[CHECK: Supabase DPA signed?]]" />.
         </li>
       </ul>
@@ -92,22 +103,25 @@ export default function PrivacyPage() {
         don&apos;t sell your data or share it with Riot Games.
       </p>
 
-      <h2>6. How long I keep it</h2>
+      <h2>7. How long I keep it</h2>
       <ul>
         <li>
           <strong>Account data:</strong> until you delete it. You can delete
           matches and decks in the app. To delete your whole account, email{" "}
-          <Fill value={OPERATOR.email} />{" "}and I&apos;ll do it within 30 days.
+          <Fill value={OPERATOR.email} /> and I&apos;ll do it within 30 days.
         </li>
         <li>
           <strong>Waitlist emails:</strong> deleted after the launch email.
+        </li>
+        <li>
+          <strong>Contact messages:</strong> deleted once dealt with.
         </li>
         <li>
           <strong>Server logs:</strong> kept briefly by Vercel, then deleted.
         </li>
       </ul>
 
-      <h2>7. Your rights</h2>
+      <h2>8. Your rights</h2>
       <p>You can, at any time:</p>
       <ul>
         <li>get a copy of your data (Art. 15 GDPR),</li>

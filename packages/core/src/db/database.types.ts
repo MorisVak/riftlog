@@ -42,6 +42,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      contact_attempts: {
+        Row: {
+          created_at: string
+        }
+        Insert: {
+          created_at?: string
+        }
+        Update: {
+          created_at?: string
+        }
+        Relationships: []
+      }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          read_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          read_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          read_at?: string | null
+        }
+        Relationships: []
+      }
       deck_versions: {
         Row: {
           created_at: string
@@ -420,6 +459,10 @@ export type Database = {
       }
       set_username: {
         Args: { p_uid: string; p_username: string }
+        Returns: string
+      }
+      submit_contact: {
+        Args: { p_email: string; p_message: string; p_name: string }
         Returns: string
       }
       submit_feedback: {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Fill, LegalPage } from "@/components/LegalPage";
 import { OPERATOR } from "@/lib/legal";
 
@@ -26,7 +27,7 @@ export default function ImpressumPage() {
       <p>
         E-Mail: <Fill value={OPERATOR.email} />
         <br />
-        <Fill value={OPERATOR.secondContact} />
+        Contact form: <Link href="/contact">riftlog.net/contact</Link>
       </p>
 
       <h2>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
