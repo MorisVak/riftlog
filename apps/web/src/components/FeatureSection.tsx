@@ -1,9 +1,14 @@
 import type { ReactNode } from "react";
 import { PhoneFrame } from "./PhoneFrame";
+import { Reveal } from "./Reveal";
 import type { ScreenshotName } from "./screenshots.generated";
 
 export type FeaturePoint = { title: string; body: ReactNode };
-export type FeatureShot = { shot: ScreenshotName; alt: string; caption: string };
+export type FeatureShot = {
+  shot: ScreenshotName;
+  alt: string;
+  caption: string;
+};
 
 /**
  * One feature area of the one-pager: heading + intro beside a list of points,
@@ -31,7 +36,7 @@ export function FeatureSection({
     <section id={id} className="scroll-mt-20 border-t border-border/60">
       <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-28">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[5fr_7fr] lg:gap-16">
-          <div>
+          <Reveal>
             <p className="font-display text-sm font-semibold uppercase tracking-widest text-accent-soft">
               {eyebrow}
             </p>
@@ -42,26 +47,38 @@ export function FeatureSection({
               {intro}
             </p>
             {footnote && <div className="mt-6">{footnote}</div>}
-          </div>
+          </Reveal>
 
           <dl className="grid grid-cols-1 gap-x-8 gap-y-7 sm:grid-cols-2">
-            {points.map((p) => (
-              <div key={p.title} className="border-l-2 border-accent/40 pl-4">
+            {points.map((p, i) => (
+              <Reveal
+                key={p.title}
+                delay={100 + i * 80}
+                className="border-l-2 border-accent/40 pl-4"
+              >
                 <dt className="font-display text-base font-semibold text-ink-primary">
                   {p.title}
                 </dt>
                 <dd className="mt-1.5 font-display text-[15px] leading-relaxed text-ink-secondary">
                   {p.body}
                 </dd>
-              </div>
+              </Reveal>
             ))}
           </dl>
         </div>
 
-        <div className="-mx-5 mt-14 snap-x snap-mandatory overflow-x-auto px-5 pb-4 sm:mx-0 sm:px-0">
+        <Reveal
+          group
+          className="-mx-5 mt-14 snap-x snap-mandatory overflow-x-auto px-5 pb-4 sm:mx-0 sm:px-0"
+        >
           <ul className="mx-auto flex w-max gap-6 sm:gap-8">
-            {shots.map(({ shot, alt, caption }) => (
-              <li key={shot} className="w-[240px] shrink-0 snap-center sm:w-[260px]">
+            {shots.map(({ shot, alt, caption }, i) => (
+              <li
+                key={shot}
+                data-reveal-child
+                style={{ transitionDelay: `${i * 140}ms` }}
+                className="w-[240px] shrink-0 snap-center sm:w-[260px]"
+              >
                 <PhoneFrame shot={shot} alt={alt} />
                 <p className="mt-4 text-center font-display text-sm text-ink-secondary">
                   {caption}
@@ -69,7 +86,7 @@ export function FeatureSection({
               </li>
             ))}
           </ul>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

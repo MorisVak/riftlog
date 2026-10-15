@@ -21,28 +21,41 @@ export function Hero() {
 
       <div className="relative mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-2 lg:gap-8 lg:py-24">
         <div className="flex flex-col items-start">
-          <span className="inline-flex items-center rounded-full border border-border bg-surface px-4 py-1.5 font-display text-xs font-medium uppercase tracking-widest text-accent-soft">
+          <span className="animate-rise inline-flex items-center rounded-full border border-border bg-surface px-4 py-1.5 font-display text-xs font-medium uppercase tracking-widest text-accent-soft">
             A free, fan-made companion for Riftbound
           </span>
 
-          <h1 className="mt-6 font-display text-4xl font-bold leading-[1.05] tracking-tight text-ink-primary sm:text-5xl lg:text-6xl">
+          <h1
+            style={{ animationDelay: "80ms" }}
+            className="animate-rise mt-6 font-display text-4xl font-bold leading-[1.05] tracking-tight text-ink-primary sm:text-5xl lg:text-6xl"
+          >
             Your Riftbound
             <br />
             match companion.
           </h1>
 
-          <p className="mt-6 max-w-xl font-display text-lg leading-relaxed text-ink-secondary">
+          <p
+            style={{ animationDelay: "160ms" }}
+            className="animate-rise mt-6 max-w-xl font-display text-lg leading-relaxed text-ink-secondary"
+          >
             Keep score at the table, then keep every match: the format, each
             game&apos;s score, how the points came in, and the exact deck you
             played.
           </p>
 
-          <div id="waitlist-hero" className="mt-9 w-full">
+          <div
+            id="waitlist-hero"
+            style={{ animationDelay: "240ms" }}
+            className="animate-rise mt-9 w-full"
+          >
             <WaitlistForm />
           </div>
         </div>
 
-        <div className="flex justify-center lg:justify-end">
+        <div
+          style={{ animationDelay: "200ms" }}
+          className="animate-rise flex justify-center lg:justify-end"
+        >
           <PhoneFrame
             shot="board"
             alt="Riftlog score board mid-game: 5 to 4, with a running match clock and Conquer, Hold and Special buttons for each player"

@@ -1,10 +1,11 @@
+import { Reveal } from "./Reveal";
 import { WaitlistForm } from "./WaitlistForm";
 
 export function WaitlistCta() {
   return (
     <section id="waitlist" className="scroll-mt-20 border-t border-border/60">
       <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
-        <div className="relative overflow-hidden rounded-3xl border border-border bg-surface px-6 py-14 shadow-accent-card sm:px-12">
+        <Reveal className="relative overflow-hidden rounded-3xl border border-border bg-surface px-6 py-14 shadow-accent-card sm:px-12">
           {/* Periwinkle glow wash inside the band. */}
           <div
             aria-hidden
@@ -20,7 +21,7 @@ export function WaitlistCta() {
             </p>
             <WaitlistForm className="mt-8 text-left" />
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

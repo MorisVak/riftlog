@@ -44,6 +44,11 @@ export function ScoreboardSection() {
       }
       shots={[
         {
+          shot: "setup",
+          alt: "New match sheet with Best of 3 selected, a 60 minute timed match, player names and a chosen deck",
+          caption: "Set up the format, clock and deck.",
+        },
+        {
           shot: "board",
           alt: "Riftlog score board mid-game: 5 to 4, a 59:41 match clock, and Conquer, Hold and Special buttons for each player",
           caption: "The board, mid-game, with the match clock.",
@@ -52,11 +57,6 @@ export function ScoreboardSection() {
           shot: "between-games",
           alt: "Between-games screen: You win game 1, 8 to 4, series 1–0, with an option to add a note and start game 2",
           caption: "Between games in a Bo3.",
-        },
-        {
-          shot: "setup",
-          alt: "New match sheet with Best of 3 selected, a 60 minute timed match, player names and a chosen deck",
-          caption: "Set up the format, clock and deck.",
         },
       ]}
     />

@@ -34,6 +34,12 @@ export default function RootLayout({
       lang="en"
       className={`${spaceGrotesk.variable} ${ibmPlexMono.variable} h-full`}
     >
+      <head>
+        {/* Without JS the scroll reveals never run, so show everything. */}
+        <noscript>
+          <style>{`[data-reveal],[data-reveal-child]{opacity:1!important;transform:none!important}`}</style>
+        </noscript>
+      </head>
       <body className="flex min-h-full flex-col bg-background text-ink-primary">
         {children}
       </body>
