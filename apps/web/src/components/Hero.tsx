@@ -39,9 +39,6 @@ export function Hero() {
 
           <div id="waitlist-hero" className="mt-9 w-full">
             <WaitlistForm />
-            <p className="mt-3 font-display text-sm text-ink-tertiary">
-              Join the waitlist for early access. No spam — just launch news.
-            </p>
           </div>
         </div>
 
