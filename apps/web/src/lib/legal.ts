@@ -19,7 +19,7 @@ export const OPERATOR = {
   street: "Kannenstr. 18",
   city: "45891 Gelsenkirchen",
   country: "Germany",
-  email: "moris.m.codes@gmail.com",
+  email: "support@riftlog.net",
   /** Data protection authority for North Rhine-Westphalia (Gelsenkirchen). */
   supervisoryAuthority:
     "the Landesbeauftragte für Datenschutz und Informationsfreiheit Nordrhein-Westfalen (LDI NRW, ldi.nrw.de)",
