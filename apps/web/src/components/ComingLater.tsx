@@ -7,20 +7,20 @@ import { Reveal } from "./Reveal";
  */
 const ITEMS: { title: string; body: string }[] = [
   {
-    title: "Stats for each deck",
-    body: "How each of your decks is doing, from your own matches only. Never other players' data.",
+    title: "Deck stats",
+    body: "Results for each of your decks, from your own matches.",
   },
   {
-    title: "More ways to import",
-    body: "Paste a Piltover Archive deck code instead of the text list.",
+    title: "Deck codes",
+    body: "Import a deck with a Piltover Archive deck code.",
   },
   {
-    title: "Card art in decklists",
-    body: "Waiting on approval of our Riot Games API key.",
+    title: "Card art",
+    body: "Card images in your decklists, once Riot approves our API key.",
   },
   {
-    title: "Shared matches by QR",
-    body: "Both players scan to get the match in their history, with your own head-to-head record against that player.",
+    title: "Shared matches",
+    body: "Scan a QR code so both players get the match, plus your head-to-head record.",
   },
   {
     title: "Change your @handle",
@@ -45,7 +45,7 @@ export function ComingLater() {
             </span>
           </div>
           <p className="mt-4 max-w-2xl font-display text-lg text-ink-secondary">
-            On the roadmap, in no fixed order. Plans can change.
+            On our roadmap. Plans may change.
           </p>
         </Reveal>
         <ul className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

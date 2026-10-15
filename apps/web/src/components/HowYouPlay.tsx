@@ -11,22 +11,22 @@ const CARDS: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: UserRound,
     title: "Try it as a guest",
-    body: "Run a full match without an account. Nothing is saved until you sign in.",
+    body: "Play a full match without an account. Guest matches aren't saved.",
   },
   {
     icon: CloudOff,
-    title: "Ready for bad signal",
-    body: "Finish a match offline and it uploads on its own when you're back online.",
+    title: "Works offline",
+    body: "Matches finished offline upload once you're back online.",
   },
   {
     icon: LogIn,
-    title: "Sign in your way",
-    body: "Discord, Google, Apple or a one-time email code. No passwords, and you pick your own @handle.",
+    title: "Easy sign-in",
+    body: "Discord, Google, Apple or an email code. No passwords.",
   },
   {
     icon: ShieldCheck,
-    title: "Your data, your stats",
-    body: "You only ever see your own matches. Riftlog shows no cross-player data: no win rates by deck, no matchup tables.",
+    title: "Only your data",
+    body: "You only see your own matches. No stats across other players.",
   },
 ];
 
@@ -36,7 +36,7 @@ export function HowYouPlay() {
       <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
         <Reveal>
           <h2 className="max-w-2xl font-display text-3xl font-bold tracking-tight text-ink-primary sm:text-4xl">
-            Works the way you play
+            The details
           </h2>
         </Reveal>
         <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">

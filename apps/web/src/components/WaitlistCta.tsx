@@ -16,8 +16,8 @@ export function WaitlistCta() {
               Be first on the Rift.
             </h2>
             <p className="mt-4 font-display text-lg text-ink-secondary">
-              Riftlog is in active development. Join the waitlist and we&apos;ll
-              let you know the moment early access opens.
+              Riftlog is in development. Join the waitlist to hear when it
+              launches.
             </p>
             <WaitlistForm className="mt-8 text-left" />
           </div>

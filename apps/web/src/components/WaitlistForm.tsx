@@ -79,8 +79,7 @@ export function WaitlistForm({ className = "" }: { className?: string }) {
           </span>
         ) : (
           <>
-            We&apos;ll only email you about Riftlog&apos;s launch. Unsubscribe
-            anytime. See our{" "}
+            Only launch news, unsubscribe anytime. See our{" "}
             <Link href="/privacy" className="underline hover:text-ink-primary">
               Privacy Policy
             </Link>

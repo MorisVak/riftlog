@@ -38,9 +38,14 @@ export function Hero() {
             style={{ animationDelay: "160ms" }}
             className="animate-rise mt-6 max-w-xl font-display text-lg leading-relaxed text-ink-secondary"
           >
-            Keep score at the table, then keep every match: the format, each
-            game&apos;s score, how the points came in, and the exact deck you
-            played.
+            <strong className="font-semibold text-ink-primary">
+              Keep score
+            </strong>{" "}
+            during your in-person games.{" "}
+            <strong className="font-semibold text-ink-primary">
+              Keep every match
+            </strong>{" "}
+            in your history, along with the deck you played.
           </p>
 
           <div
