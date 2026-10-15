@@ -117,8 +117,8 @@ way that matters for the list. Single opt-in for now. Schema in
 ## Legal pages
 
 `/privacy`, `/terms`, `/legal-notice` share `LegalPage` (a "Legal" label,
-title, one-sentence intro, "Last updated") and carry a "Draft, pending review"
-banner until the owner signs them off. **Keep them short and plain** like
+title, one-sentence intro, "Last updated"). They're final; the owner reviewed
+them. Any change to them needs the owner's sign-off. **Keep them short and plain** like
 riftatlas.com's: plain-English headings, no numbering, first person ("I"),
 legal bases described in words rather than article numbers — but every fact
 GDPR Art. 13 requires (who, what, why, processors, retention, rights,

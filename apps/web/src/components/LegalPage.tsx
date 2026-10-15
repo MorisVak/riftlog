@@ -35,12 +35,6 @@ export function LegalPage({
       <SiteHeader />
       <main className="flex-1">
         <article className="mx-auto w-full max-w-3xl px-5 py-14 sm:px-8 lg:py-20">
-          <p
-            role="note"
-            className="mb-8 rounded-xl border border-draw/50 bg-draw-deep px-4 py-3 font-display text-sm text-draw-text"
-          >
-            Draft, pending review. Highlighted fields still need filling in.
-          </p>
           <p className="font-display text-xs font-semibold uppercase tracking-widest text-ink-secondary">
             Legal
           </p>
