@@ -4,6 +4,7 @@ import * as Haptics from 'expo-haptics';
 import type { Match, Player, PlayerId } from '@riftlog/core';
 import { useAuth } from '@/contexts/authContext';
 import { useMatch } from '@/contexts/matchContext';
+import { winsLabel } from '@/lib/playerText';
 import NoteEditor from './match/noteEditor';
 import NoteRow from './match/noteRow';
 import React, { useState } from 'react';
@@ -78,7 +79,7 @@ const MatchOverview = () => {
         <Text className="mb-1 text-center font-display-bold text-2xl text-ink-primary">
           {match.winnerId === null
             ? 'Draw'
-            : `${nameOf(match.winnerId)} wins`}
+            : winsLabel(nameOf(match.winnerId))}
         </Text>
         <Text className="mb-8 text-center font-display text-sm text-ink-tertiary">
           Best of {match.bestOf}
