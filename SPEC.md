@@ -592,6 +592,19 @@ copy about stats stays strictly personal — never cross-player data.
 > device out and clearing local state. Do this before any App Store
 > submission, ahead of the steps below.
 
+> **URGENT TODO — custom SMTP for sign-in emails.** Blocks email sign-in
+> for real users: no email sender is configured, so Supabase Auth uses its
+> built-in service, which only delivers to members of the Supabase
+> organization and is capped at about 2 emails per hour (best effort, no
+> SLA). Email-OTP sign-in therefore fails for everyone else with "Email
+> address not authorized"; Discord, Google and Apple are unaffected. Needs:
+> a sending provider (e.g. Resend, Postmark or Brevo — Cloudflare Email
+> Routing only receives, it can't send), a verified sending domain on
+> riftlog.net, the SMTP settings in the dashboard (Authentication → SMTP),
+> the `{{ .Token }}` template check from `supabase/CLAUDE.md`, and the
+> provider added to "Service providers" in `/privacy`
+> (`apps/web/src/app/privacy/page.tsx`). Do this before launch.
+
 Each step should be a working, committed slice before the next begins —
 matching the incremental philosophy in `CLAUDE.md`.
 
