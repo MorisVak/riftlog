@@ -24,7 +24,11 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
 - `contexts/` — React context providers (`authContext`, `profileContext`,
   `matchContext`)
 - `hooks/` — shared hooks that aren't components (`useScreenIntro`)
-- `assets/` — icons, splash images
+- `assets/` — icons, splash images. The app icon, Android adaptive layers,
+  splash mark and web favicon are **generated** from the wordmark badge by
+  `pnpm --filter @riftlog/web icons` (`apps/web/scripts/generate-icons.mjs`) —
+  regenerate rather than editing the PNGs. A new icon or splash needs a new
+  native build to show on a device.
 
 ## Styling
 

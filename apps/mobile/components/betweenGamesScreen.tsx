@@ -9,6 +9,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { useMatch } from '@/contexts/matchContext';
 import { useAuth } from '@/contexts/authContext';
+import { winsLabel } from '@/lib/playerText';
 import MatchClock from './matchClock';
 import NoteEditor from './match/noteEditor';
 import Icon from './icon';
@@ -122,13 +123,13 @@ const BetweenGamesScreen = () => {
 
   const headline = isDraw
     ? `Game ${lastGameNumber} drawn`
-    : `${winnerName} wins game ${lastGameNumber}`;
+    : `${winsLabel(winnerName ?? '')} game ${lastGameNumber}`;
 
   // What ending the round now would record, from the current series standings.
   const w1 = p1?.gameWins ?? 0;
   const w2 = p2?.gameWins ?? 0;
   const seriesLeader = w1 > w2 ? p1 : w2 > w1 ? p2 : null;
-  const endOutcomeLabel = seriesLeader ? `${seriesLeader.name} wins` : 'a draw';
+  const endOutcomeLabel = seriesLeader ? winsLabel(seriesLeader.name) : 'a draw';
   const seriesLabel = `${w1}–${w2}`;
 
   const onNext = () => {

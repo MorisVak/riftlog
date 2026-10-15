@@ -3,9 +3,13 @@
 # @riftlog/web
 
 Next.js 16 app, App Router, React 19, Tailwind CSS v4, TypeScript strict.
-The companion web client for Riftlog (mobile is the primary client today). Right
-now this app is a **marketing one-pager** — a static landing/waitlist page. No
-product functionality (no auth, no match data) lives here yet.
+The riftlog.net website. Today it's a **marketing one-pager** with a working
+waitlist, plus `/contact`, `/privacy` (Privacy Policy), `/terms` (Terms of Service) and
+`/legal-notice` (Legal Notice = Impressum; `/impressum` redirects there). Copy stays
+short and plain. No product functionality
+(no auth, no match data) lives here. The page describes **only what the app
+actually does**; planned features go only in the "Coming later" section, and
+any stats wording stays strictly personal (Riot policy).
 
 Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, the
 publishable-vs-secret key boundary) apply. `@AGENTS.md` above is
@@ -14,13 +18,24 @@ older training data — check `node_modules/next/dist/docs/` when unsure.
 
 ## Project structure
 
-- `src/app/` — App Router routes. `layout.tsx` (root layout + fonts), `page.tsx`
-  (the one-pager, composed from section components), `globals.css` (Tailwind
-  entry + design tokens).
-- `src/components/` — landing-page section components (`SiteHeader`, `Hero`,
-  `Features`, `ScreenshotShowcase`, `WaitlistCta`, `SiteFooter`) plus shared
-  bits (`Wordmark`, `WaitlistForm`, `PhoneMock`). Mirrors mobile's `components/`.
-- `public/` — static assets.
+- `src/app/` — App Router routes. `layout.tsx` (root layout, fonts, site
+  metadata), `page.tsx` (the one-pager), `contact/`, `privacy/`, `terms/`,
+  `legal-notice/`, `actions/` (`waitlist.ts`, `contact.ts` Server Actions), `opengraph-image.tsx` (link preview,
+  rendered at build), `favicon.ico` / `icon.svg` / `apple-icon.png`
+  (generated), `globals.css` (Tailwind entry, tokens, reveal motion).
+- `src/components/` — sections (`Hero`, `Sections` → `FeatureSection`,
+  `HowYouPlay`, `ComingLater`, `WaitlistCta`), chrome (`SiteHeader`,
+  `SiteFooter`, `LegalPage`), and shared bits (`Wordmark`, `WaitlistForm`,
+  `ContactForm`, `PhoneFrame`, `Reveal`). `screenshots.generated.ts` is generated — don't edit.
+- `src/lib/legal.ts` — `OPERATOR` (the operator's legal details, used by all
+  three legal pages), `PRIVACY_VERSION`, `LEGAL_UPDATED`.
+- `src/lib/rpc.ts` — `callStatusRpc`, the one PostgREST call both Server
+  Actions use (publishable key; import only from `"use server"` files).
+- `scripts/` — `process-screenshots.mjs` and `generate-icons.mjs` (see below).
+- `assets/` — build-time inputs: Space Grotesk TTFs (+ OFL licence) and
+  `og-board.png` for the link preview.
+- `public/` — `screenshots/` (generated) and `riot.txt` (Riot developer
+  verification — **never change or move it**).
 - `next.config.ts`, `postcss.config.mjs`, `eslint.config.mjs` — tooling config.
 
 ## Monorepo integration
@@ -45,8 +60,10 @@ single source of design truth.** The "Archive Periwinkle" palette from
 block of `src/app/globals.css` (Tailwind v4 uses CSS-based config). Same token
 names, same hex — `bg-background`, `bg-surface`, `border-border`, `bg-accent`
 (+ `-strong`/`-soft`/`-deep`), `text-ink-primary`/`-secondary`/`-tertiary`, the
-`win`/`loss`/`draw` families, and the `shadow-accent-card`/`shadow-accent-btn`
-glows.
+`win`/`loss`/`draw`, `conquer`/`hold`/`special`, `added`/`cut` and
+`domain-*` families, and the `shadow-accent-card`/`shadow-accent-btn` glows.
+`ink-tertiary` fails contrast as body text on `background`; use
+`ink-secondary` for readable copy.
 
 Rules (inherited from mobile):
 - **No arbitrary hex.** Every color is a token; if you need a new one, add it to
@@ -57,15 +74,61 @@ Rules (inherited from mobile):
   Unlike mobile (separate per-weight family tokens), web uses the single
   `font-display` family + Tailwind weight utilities (`font-medium/semibold/bold`)
   — visually identical.
-- **Icons:** `lucide-react` (the web port of Feather, which mobile uses) as
-  placeholders until real assets/screenshots exist. `PhoneMock` and the hexagon
-  in `Wordmark` are placeholders, meant to be swapped for real imagery later.
+- **Icons:** `lucide-react` (the web port of Feather, which mobile uses). The
+  brand mark is the wordmark badge (accent rounded square + hexagon).
 - **Colorblind-safe:** if any win/loss/draw indicator is shown, pair the color
   with a W/L/D letter badge — never color alone.
 
-The **waitlist form (`WaitlistForm`) is intentionally logic-free** — `onSubmit`
-only calls `preventDefault()`. Don't wire it to a backend without a dedicated
-slice.
+### Motion
+
+Sections fade in and rise once as they scroll into view: wrap them in
+`Reveal` (`delay` staggers siblings). The hidden start state is CSS
+(`[data-reveal]` in `globals.css`), so there's no flash. A sideways-scrolling
+row uses `<Reveal group>` with `data-reveal-child` items, because an item
+that's off to the side never "intersects" on its own. The hero uses
+`.animate-rise` on load. Under `prefers-reduced-motion` nothing moves, and a
+`<noscript>` style in `layout.tsx` shows everything without JS.
+
+### Screenshots and icons
+
+- **Screenshots:** raw iPhone PNGs go in `screenshots-raw/` (gitignored —
+  real data), named per the `SHOTS` list in `scripts/process-screenshots.mjs`;
+  `pnpm --filter @riftlog/web screenshots` crops the status bar, **blurs other
+  people's names** (per-shot `blur` boxes in raw pixels), and writes 1x/2x
+  WebP plus the size manifest. Render them only through `PhoneFrame`. Never
+  show the deck Gallery view (placeholder tiles) or Riot card art.
+- **Icons:** `pnpm --filter @riftlog/web icons` renders the badge into the web
+  favicons **and** the mobile app icon, Android adaptive layers and splash
+  mark. A changed app icon only reaches a device with a new native build.
+
+## Waitlist and contact form
+
+`WaitlistForm` → `joinWaitlist` (`src/app/actions/waitlist.ts`) → the
+`join_waitlist` RPC, and `ContactForm` → `sendContact` (`contact.ts`) → the
+`submit_contact` RPC, both via `callStatusRpc` with the publishable key (no
+Supabase client dependency). Both forms have a hidden `company` honeypot.
+The contact form is the Impressum's second contact channel, so it must keep
+working. Waitlist details: Statuses: `ok | invalid_email | rate_limited | error`.
+A repeat address answers `ok` (no enumeration). Each signup stores
+`PRIVACY_VERSION` as the consent record — bump it when the policy changes in a
+way that matters for the list. Single opt-in for now. Schema in
+`../../supabase/CLAUDE.md`.
+
+## Legal pages
+
+`/privacy`, `/terms`, `/legal-notice` share `LegalPage` (a "Legal" label,
+title, one-sentence intro, "Last updated"). They're final; the owner reviewed
+them. Any change to them needs the owner's sign-off. **Keep them short and plain** like
+riftatlas.com's: plain-English headings, no numbering, first person ("I"),
+legal bases described in words rather than article numbers — but every fact
+GDPR Art. 13 requires (who, what, why, processors, retention, rights,
+complaint) must stay. Operator details live
+only in `OPERATOR` (`src/lib/legal.ts`); a value still in `[[BRACKETS]]` is a
+placeholder and renders highlighted (`Fill`). **Never invent the operator's
+name, address or contact details.** Find what's left with
+`grep -rn "\[\[" apps/web/src`. If the app starts processing new kinds of
+personal data, update `/privacy` in the same change. The footer carries the
+fan-made disclaimer **and** Riot's Legal Jibber Jabber statement, verbatim.
 
 ## Supabase & env
 
@@ -88,7 +151,7 @@ retain cross-user metagame aggregates (see the Riot policy section in
 
 ## Intentionally not built yet
 
-Only the marketing one-pager exists. Not built (don't add ahead of its slice):
-waitlist submission/backend, the Supabase client, auth/session wiring, any data
-reads/writes, additional routes (privacy/terms), real logo/screenshots/OG image
-(placeholders only for now), and analytics.
+Not built (don't add ahead of its slice): a Supabase JS client, auth/session
+wiring, any product data reads/writes, double opt-in for the waitlist, sending
+the launch email, and analytics or cookies (the privacy policy promises none —
+adding any means updating it first).

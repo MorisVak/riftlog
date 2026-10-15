@@ -1,10 +1,11 @@
+import { Reveal } from "./Reveal";
 import { WaitlistForm } from "./WaitlistForm";
 
 export function WaitlistCta() {
   return (
     <section id="waitlist" className="scroll-mt-20 border-t border-border/60">
       <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
-        <div className="relative overflow-hidden rounded-3xl border border-border bg-surface px-6 py-14 shadow-accent-card sm:px-12">
+        <Reveal className="relative overflow-hidden rounded-3xl border border-border bg-surface px-6 py-14 shadow-accent-card sm:px-12">
           {/* Periwinkle glow wash inside the band. */}
           <div
             aria-hidden
@@ -15,12 +16,12 @@ export function WaitlistCta() {
               Be first on the Rift.
             </h2>
             <p className="mt-4 font-display text-lg text-ink-secondary">
-              Riftlog is in active development. Join the waitlist and we&apos;ll
-              let you know the moment early access opens.
+              Riftlog is in development. Join the waitlist to hear when it
+              launches.
             </p>
-            <WaitlistForm className="mt-8 justify-center" />
+            <WaitlistForm className="mt-8 text-left" />
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

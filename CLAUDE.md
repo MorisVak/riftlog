@@ -3,9 +3,9 @@
 A companion app for the Riftbound TCG (Riot Games). Tracks scores, match
 history, deck imports.
 
-This repo is a pnpm monorepo. Mobile app at `apps/mobile`, shared types and
-parsers at `packages/core`, future Edge Functions and database migrations at
-`supabase/`.
+This repo is a pnpm monorepo. Mobile app at `apps/mobile`, the riftlog.net
+website at `apps/web`, shared types and parsers at `packages/core`, future Edge
+Functions and database migrations at `supabase/`.
 
 The full product spec and build order live in `SPEC.md`. `CLAUDE.md` files
 describe _how_ the project works; `SPEC.md` describes _what_ is being built.
@@ -80,7 +80,7 @@ Workspace packages are scoped as `@riftlog/*`:
 
 - `@riftlog/mobile` — Expo app
 - `@riftlog/core` — shared types, schemas, parsers
-- `@riftlog/web` — Next.js app (planned, not yet created)
+- `@riftlog/web` — Next.js marketing site for riftlog.net (waitlist + legal pages)
 
 Internal imports use the scoped name: `import { Match } from '@riftlog/core'`.
 
@@ -116,6 +116,10 @@ digital tools policy that we must comply with:
 - Must include disclaimer: "Riftlog is a fan-made application and is not
   affiliated with, endorsed by, or sponsored by Riot Games. All Riftbound
   imagery and trademarks are property of Riot Games."
+- Public web pages also carry Riot's Legal Jibber Jabber statement, verbatim:
+  "Riftlog was created under Riot Games' 'Legal Jibber Jabber' policy using
+  assets owned by Riot Games. Riot Games does not endorse or sponsor this
+  project."
 
 Source: https://developer.riotgames.com/docs/riftbound
 

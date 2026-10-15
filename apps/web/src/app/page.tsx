@@ -1,7 +1,8 @@
 import { SiteHeader } from "@/components/SiteHeader";
 import { Hero } from "@/components/Hero";
-import { Features } from "@/components/Features";
-import { ScreenshotShowcase } from "@/components/ScreenshotShowcase";
+import { DecksSection, HistorySection, ScoreboardSection } from "@/components/Sections";
+import { HowYouPlay } from "@/components/HowYouPlay";
+import { ComingLater } from "@/components/ComingLater";
 import { WaitlistCta } from "@/components/WaitlistCta";
 import { SiteFooter } from "@/components/SiteFooter";
 
@@ -11,8 +12,11 @@ export default function Home() {
       <SiteHeader />
       <main className="flex flex-1 flex-col">
         <Hero />
-        <Features />
-        <ScreenshotShowcase />
+        <ScoreboardSection />
+        <HistorySection />
+        <DecksSection />
+        <HowYouPlay />
+        <ComingLater />
         <WaitlistCta />
       </main>
       <SiteFooter />

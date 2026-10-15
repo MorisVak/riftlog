@@ -42,6 +42,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      contact_attempts: {
+        Row: {
+          created_at: string
+        }
+        Insert: {
+          created_at?: string
+        }
+        Update: {
+          created_at?: string
+        }
+        Relationships: []
+      }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          read_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          read_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          read_at?: string | null
+        }
+        Relationships: []
+      }
       deck_versions: {
         Row: {
           created_at: string
@@ -334,6 +373,36 @@ export type Database = {
         }
         Relationships: []
       }
+      waitlist: {
+        Row: {
+          created_at: string
+          email: string
+          privacy_version: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          privacy_version: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          privacy_version?: string
+        }
+        Relationships: []
+      }
+      waitlist_attempts: {
+        Row: {
+          created_at: string
+        }
+        Insert: {
+          created_at?: string
+        }
+        Update: {
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -365,6 +434,10 @@ export type Database = {
       is_feedback_admin: { Args: { p_uid: string }; Returns: boolean }
       is_name_reserved: { Args: { p_name: string }; Returns: boolean }
       is_username_available: { Args: { p_username: string }; Returns: string }
+      join_waitlist: {
+        Args: { p_email: string; p_privacy_version: string }
+        Returns: string
+      }
       list_feedback: {
         Args: never
         Returns: {
@@ -386,6 +459,10 @@ export type Database = {
       }
       set_username: {
         Args: { p_uid: string; p_username: string }
+        Returns: string
+      }
+      submit_contact: {
+        Args: { p_email: string; p_message: string; p_name: string }
         Returns: string
       }
       submit_feedback: {
