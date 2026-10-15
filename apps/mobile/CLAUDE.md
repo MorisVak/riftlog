@@ -392,6 +392,9 @@ Conventions:
   there's no upper bound and no win-at-target logic. Games and the match end
   only via explicit user action (with a confirm prompt), so stray or accidental
   taps never close anything.
+- **"{name} wins" goes through `winsLabel`** (`lib/playerText.ts`). A blank
+  name falls back to "You", and "You wins" isn't English — it returns
+  "You win". Use it for any new winner text.
 - **All score actions take a `PlayerId`, never a setter.** The old setter-
   passing pattern was removed in the refactor.
 - **Player identity within a match is `'p1' | 'p2'`.** This is independent

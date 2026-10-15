@@ -450,6 +450,13 @@ lands:
   set `SUPABASE_`-prefixed vars there — that prefix is reserved and
   auto-injected into the function runtime. See `functions/.env.example`.
 
+## Data processing agreement
+
+Supabase's DPA is incorporated into its Terms of Service; accepting them
+counts as signing the EU Standard Contractual Clauses. Nothing to sign. The
+contracting entity is **Supabase Pte. Ltd. (Singapore)**, which is how
+`/privacy` names it.
+
 ## Sensitive data
 
 - Never commit `.env`, `.env.local`, or any file containing keys. Both
@@ -480,8 +487,16 @@ offline outbox. Still ahead (later slices / features):
 - Remote provider configuration (manual dashboard steps, see Auth above)
 - The handle rename UI — `claim_username` supports it (30-day limit), no
   client calls it yet
-- Deck editing (`add_deck_version`), restoring a deleted deck, and attaching
-  deck versions to matches
+- Restoring a deleted deck (deck editing via `update_deck_list` and pinning
+  versions to matches are built)
+- **Custom SMTP (urgent, see `../SPEC.md`)** — no sender is configured, so
+  Auth uses Supabase's built-in email service: it only delivers to members of
+  the Supabase organization, ~2 emails/hour. Email-OTP sign-in fails for real
+  users until a provider (Resend / Postmark / Brevo) is set under
+  Authentication → SMTP, with a verified riftlog.net domain. Add the provider
+  to `/privacy` when it is.
+- **Account deletion (urgent, see `../SPEC.md`)** — needs a server-side path
+  that deletes the `auth.users` row; the FK cascades remove the rest.
 - The card catalog (`cards`), once the Riot API key exists
 - First Edge Function (none needed so far — text import parses on-device)
 
