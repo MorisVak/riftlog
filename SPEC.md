@@ -581,6 +581,17 @@ copy about stats stays strictly personal — never cross-player data.
 
 ## Roadmap (suggested build order)
 
+> **URGENT TODO — in-app account deletion.** Blocks App Store submission:
+> Apple Guideline 5.1.1(v) requires any app that lets you create an account
+> to let you delete it **from inside the app**. Not built yet. Today
+> `/privacy` on riftlog.net tells users to request deletion by email (handled
+> within 30 days). Needs: a "Delete account" action on Profile with a clear
+> confirmation, a server-side path that deletes the `auth.users` row (the
+> cascade removes profile, matches, games, decks, versions and feedback
+> rate-limit rows — feedback itself is unlinked by design), signing the
+> device out and clearing local state. Do this before any App Store
+> submission, ahead of the steps below.
+
 Each step should be a working, committed slice before the next begins —
 matching the incremental philosophy in `CLAUDE.md`.
 
