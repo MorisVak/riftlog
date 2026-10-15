@@ -70,3 +70,6 @@ supabase/.env
 .cache/
 .turbo/
 coverage/
+
+# Raw phone screenshots for the website (processed copies live in apps/web/public/screenshots)
+apps/web/screenshots-raw/
