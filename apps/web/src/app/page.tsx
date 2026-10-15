@@ -1,6 +1,7 @@
 import { SiteHeader } from "@/components/SiteHeader";
 import { Hero } from "@/components/Hero";
-import { HistoryShowcase, TableShowcase } from "@/components/Showcase";
+import { DecksSection, HistorySection, ScoreboardSection } from "@/components/Sections";
+import { HowYouPlay } from "@/components/HowYouPlay";
 import { ComingLater } from "@/components/ComingLater";
 import { WaitlistCta } from "@/components/WaitlistCta";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -11,8 +12,10 @@ export default function Home() {
       <SiteHeader />
       <main className="flex flex-1 flex-col">
         <Hero />
-        <TableShowcase />
-        <HistoryShowcase />
+        <ScoreboardSection />
+        <HistorySection />
+        <DecksSection />
+        <HowYouPlay />
         <ComingLater />
         <WaitlistCta />
       </main>

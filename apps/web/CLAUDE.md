@@ -5,10 +5,8 @@
 Next.js 16 app, App Router, React 19, Tailwind CSS v4, TypeScript strict.
 The riftlog.net website. Today it's a **marketing one-pager** with a working
 waitlist, plus `/contact`, `/privacy` (Privacy Policy), `/terms` (Terms of Service) and
-`/legal-notice` (Legal Notice = Impressum; `/impressum` redirects there). **Keep it
-simple** (riftatlas.com is the reference): a short hero, two feature blocks
-of one paragraph + screenshots each, a one-line roadmap, a slim waitlist band
-and a compact footer. Short, plain sentences; no lists of feature points. No product functionality
+`/legal-notice` (Legal Notice = Impressum; `/impressum` redirects there). Copy stays
+short and plain. No product functionality
 (no auth, no match data) lives here. The page describes **only what the app
 actually does**; planned features go only in the "Coming later" section, and
 any stats wording stays strictly personal (Riot policy).
@@ -25,8 +23,8 @@ older training data — check `node_modules/next/dist/docs/` when unsure.
   `legal-notice/`, `actions/` (`waitlist.ts`, `contact.ts` Server Actions), `opengraph-image.tsx` (link preview,
   rendered at build), `favicon.ico` / `icon.svg` / `apple-icon.png`
   (generated), `globals.css` (Tailwind entry, tokens, reveal motion).
-- `src/components/` — sections (`Hero`, `Showcase` → `TableShowcase` /
-  `HistoryShowcase`, `ComingLater`, `WaitlistCta`), chrome (`SiteHeader`,
+- `src/components/` — sections (`Hero`, `Sections` → `FeatureSection`,
+  `HowYouPlay`, `ComingLater`, `WaitlistCta`), chrome (`SiteHeader`,
   `SiteFooter`, `LegalPage`), and shared bits (`Wordmark`, `WaitlistForm`,
   `ContactForm`, `PhoneFrame`, `Reveal`). `screenshots.generated.ts` is generated — don't edit.
 - `src/lib/legal.ts` — `OPERATOR` (the operator's legal details, used by all

@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Wordmark } from "./Wordmark";
 
 const NAV_LINKS = [
-  { href: "/#table", label: "Scoring" },
-  { href: "/#history", label: "History" },
+  { href: "/#scoreboard", label: "Features" },
+  { href: "/#decks", label: "Decks" },
   { href: "/#coming-later", label: "Coming later" },
 ];
 
