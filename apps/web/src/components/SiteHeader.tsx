@@ -2,9 +2,9 @@ import Link from "next/link";
 import { Wordmark } from "./Wordmark";
 
 const NAV_LINKS = [
-  { href: "#features", label: "Features" },
-  { href: "#preview", label: "Preview" },
-  { href: "#waitlist", label: "Waitlist" },
+  { href: "#scoreboard", label: "Features" },
+  { href: "#decks", label: "Decks" },
+  { href: "#coming-later", label: "Coming later" },
 ];
 
 export function SiteHeader() {
@@ -31,7 +31,8 @@ export function SiteHeader() {
           href="#waitlist"
           className="rounded-full bg-accent px-5 py-2 font-display text-sm font-semibold text-background shadow-accent-btn transition-colors hover:bg-accent-soft active:bg-accent-strong"
         >
-          Join the waitlist
+          <span className="sm:hidden">Waitlist</span>
+          <span className="hidden sm:inline">Join the waitlist</span>
         </a>
       </div>
     </header>

@@ -1,8 +1,9 @@
 import { Wordmark } from "./Wordmark";
 
 const FOOTER_LINKS = [
-  { href: "#features", label: "Features" },
-  { href: "#preview", label: "Preview" },
+  { href: "#scoreboard", label: "Features" },
+  { href: "#decks", label: "Decks" },
+  { href: "#coming-later", label: "Coming later" },
   { href: "#waitlist", label: "Waitlist" },
 ];
 

@@ -18,7 +18,7 @@ export function WaitlistCta() {
               Riftlog is in active development. Join the waitlist and we&apos;ll
               let you know the moment early access opens.
             </p>
-            <WaitlistForm className="mt-8" />
+            <WaitlistForm className="mt-8 text-left" />
           </div>
         </div>
       </div>

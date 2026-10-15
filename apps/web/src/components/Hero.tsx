@@ -1,4 +1,4 @@
-import { PhoneMock } from "./PhoneMock";
+import { PhoneFrame } from "./PhoneFrame";
 import { WaitlistForm } from "./WaitlistForm";
 
 export function Hero() {
@@ -19,10 +19,10 @@ export function Hero() {
         className="pointer-events-none absolute right-[-2rem] top-48 h-[220px] w-[220px] rounded-full border border-accent/10"
       />
 
-      <div className="relative mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 px-5 py-20 sm:px-8 lg:grid-cols-2 lg:gap-8 lg:py-28">
+      <div className="relative mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-2 lg:gap-8 lg:py-24">
         <div className="flex flex-col items-start">
           <span className="inline-flex items-center rounded-full border border-border bg-surface px-4 py-1.5 font-display text-xs font-medium uppercase tracking-widest text-accent-soft">
-            The companion app for Riftbound TCG
+            A free, fan-made companion for Riftbound
           </span>
 
           <h1 className="mt-6 font-display text-4xl font-bold leading-[1.05] tracking-tight text-ink-primary sm:text-5xl lg:text-6xl">
@@ -32,9 +32,9 @@ export function Hero() {
           </h1>
 
           <p className="mt-6 max-w-xl font-display text-lg leading-relaxed text-ink-secondary">
-            Live score tracking and a durable, browsable history of every game
-            you play — with decks, formats, and scores recorded alongside each
-            match.
+            Keep score at the table, then keep every match: the format, each
+            game&apos;s score, how the points came in, and the exact deck you
+            played.
           </p>
 
           <div id="waitlist-hero" className="mt-9 w-full">
@@ -43,7 +43,13 @@ export function Hero() {
         </div>
 
         <div className="flex justify-center lg:justify-end">
-          <PhoneMock label="Score board" glow />
+          <PhoneFrame
+            shot="board"
+            alt="Riftlog score board mid-game: 5 to 4, with a running match clock and Conquer, Hold and Special buttons for each player"
+            glow
+            priority
+            className="max-w-[300px]"
+          />
         </div>
       </div>
     </section>

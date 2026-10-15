@@ -72,7 +72,7 @@ export function WaitlistForm({ className = "" }: { className?: string }) {
           {!pending && <ArrowRight size={18} strokeWidth={2.5} />}
         </button>
       </div>
-      <p id={noteId} className="mt-3 font-display text-sm text-ink-tertiary">
+      <p id={noteId} className="mt-3 font-display text-sm text-ink-secondary">
         {error ? (
           <span role="alert" className="text-loss-text">
             {error}
@@ -81,7 +81,7 @@ export function WaitlistForm({ className = "" }: { className?: string }) {
           <>
             We&apos;ll only email you about Riftlog&apos;s launch. Unsubscribe
             anytime. See our{" "}
-            <Link href="/privacy" className="underline hover:text-ink-secondary">
+            <Link href="/privacy" className="underline hover:text-ink-primary">
               Privacy Policy
             </Link>
             .

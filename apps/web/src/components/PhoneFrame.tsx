@@ -29,7 +29,7 @@ export function PhoneFrame({
 
   return (
     <div
-      className={`relative w-full max-w-[280px] rounded-[2.25rem] border border-border bg-surface p-2.5 ${
+      className={`relative w-full rounded-[2.25rem] border border-border bg-surface p-2.5 ${
         glow ? "shadow-accent-card" : ""
       } ${className}`}
     >
