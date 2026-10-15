@@ -36,10 +36,10 @@ export default function PrivacyPage() {
       <h2>The waitlist</h2>
       <p>
         If you join, we store your email address, when you signed up and which
-        version of this policy you agreed to. We only use it to tell you when
-        Riftlog launches, and delete it after that, or earlier if you ask
-        (legal basis: your consent, Art. 6(1)(a) GDPR). To unsubscribe, use
-        the link in our email or write to <Fill value={OPERATOR.email} />.
+        version of this policy you agreed to. We use it for one email only: to
+        tell you when Riftlog launches. Then we delete it (legal basis: your
+        consent, Art. 6(1)(a) GDPR). Changed your mind before then? Email{" "}
+        <Fill value={OPERATOR.email} /> and we&apos;ll delete your address.
       </p>
 
       <h2>The app</h2>

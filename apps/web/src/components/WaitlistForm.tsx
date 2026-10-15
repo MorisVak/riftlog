@@ -31,7 +31,7 @@ export function WaitlistForm({ className = "" }: { className?: string }) {
         className={`flex w-full max-w-md items-center gap-3 rounded-2xl border border-win/40 bg-win-deep px-5 py-4 font-display text-base text-ink-primary ${className}`}
       >
         <Check size={20} strokeWidth={2.5} className="shrink-0 text-win-text" />
-        You&apos;re on the list. We&apos;ll email you when Riftlog launches.
+        You&apos;re on the list. We&apos;ll email you once, when Riftlog launches.
       </p>
     );
   }
@@ -79,7 +79,8 @@ export function WaitlistForm({ className = "" }: { className?: string }) {
           </span>
         ) : (
           <>
-            Only launch news, unsubscribe anytime. See our{" "}
+            We&apos;ll only use your email to tell you when Riftlog launches.
+            See our{" "}
             <Link href="/privacy" className="underline hover:text-ink-primary">
               Privacy Policy
             </Link>
