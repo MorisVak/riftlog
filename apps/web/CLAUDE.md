@@ -17,16 +17,18 @@ older training data — check `node_modules/next/dist/docs/` when unsure.
 ## Project structure
 
 - `src/app/` — App Router routes. `layout.tsx` (root layout, fonts, site
-  metadata), `page.tsx` (the one-pager), `privacy/`, `terms/`, `impressum/`,
-  `actions/waitlist.ts` (Server Action), `opengraph-image.tsx` (link preview,
+  metadata), `page.tsx` (the one-pager), `contact/`, `privacy/`, `terms/`,
+  `impressum/`, `actions/` (`waitlist.ts`, `contact.ts` Server Actions), `opengraph-image.tsx` (link preview,
   rendered at build), `favicon.ico` / `icon.svg` / `apple-icon.png`
   (generated), `globals.css` (Tailwind entry, tokens, reveal motion).
 - `src/components/` — sections (`Hero`, `Sections` → `FeatureSection`,
   `HowYouPlay`, `ComingLater`, `WaitlistCta`), chrome (`SiteHeader`,
   `SiteFooter`, `LegalPage`), and shared bits (`Wordmark`, `WaitlistForm`,
-  `PhoneFrame`, `Reveal`). `screenshots.generated.ts` is generated — don't edit.
+  `ContactForm`, `PhoneFrame`, `Reveal`). `screenshots.generated.ts` is generated — don't edit.
 - `src/lib/legal.ts` — `OPERATOR` (the operator's legal details, used by all
   three legal pages), `PRIVACY_VERSION`, `LEGAL_UPDATED`.
+- `src/lib/rpc.ts` — `callStatusRpc`, the one PostgREST call both Server
+  Actions use (publishable key; import only from `"use server"` files).
 - `scripts/` — `process-screenshots.mjs` and `generate-icons.mjs` (see below).
 - `assets/` — build-time inputs: Space Grotesk TTFs (+ OFL licence) and
   `og-board.png` for the link preview.
@@ -97,11 +99,14 @@ that's off to the side never "intersects" on its own. The hero uses
   favicons **and** the mobile app icon, Android adaptive layers and splash
   mark. A changed app icon only reaches a device with a new native build.
 
-## Waitlist
+## Waitlist and contact form
 
-`WaitlistForm` → `joinWaitlist` Server Action (`src/app/actions/waitlist.ts`)
-→ the `join_waitlist` RPC over PostgREST with the publishable key (no Supabase
-client dependency). Statuses: `ok | invalid_email | rate_limited | error`.
+`WaitlistForm` → `joinWaitlist` (`src/app/actions/waitlist.ts`) → the
+`join_waitlist` RPC, and `ContactForm` → `sendContact` (`contact.ts`) → the
+`submit_contact` RPC, both via `callStatusRpc` with the publishable key (no
+Supabase client dependency). Both forms have a hidden `company` honeypot.
+The contact form is the Impressum's second contact channel, so it must keep
+working. Waitlist details: Statuses: `ok | invalid_email | rate_limited | error`.
 A repeat address answers `ok` (no enumeration). Each signup stores
 `PRIVACY_VERSION` as the consent record — bump it when the policy changes in a
 way that matters for the list. Single opt-in for now. Schema in
