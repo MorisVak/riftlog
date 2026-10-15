@@ -95,7 +95,9 @@ Internal imports use the scoped name: `import { Match } from '@riftlog/core'`.
 ## Identifiers and tokens
 
 - **iOS bundle identifier:** `com.m-mecke.riftlog`
-- **Android package:** `com.m-mecke.riftlog`
+- **Android package:** `com.m-mecke.riftlog` — **open question:**
+  `apps/mobile/app.json` currently says `com.mmecke.riftlog`. One of the two
+  is wrong; ask the owner before touching either (it's store identity).
 - **Expo project:** `@m_mecke/riftlog` (ID stored in `apps/mobile/app.json`)
 - **Apple Team:** Maurice Mecke individual account
 
@@ -138,6 +140,41 @@ For features and UI, use the game's actual terms:
 - Domains = card color identities (Fury, Chaos, Mind, Body, Order, Calm)
 
 Don't invent terminology that doesn't exist in Riftbound.
+
+## Before launch — urgent
+
+Two open items block a public launch. Both are written up at the top of the
+`SPEC.md` roadmap; raise them whenever release prep, the App Store, auth or
+email comes up:
+
+- **In-app account deletion** — not built; Apple Guideline 5.1.1(v)
+  requires it. Until then `/privacy` promises deletion by email within 30 days.
+- **Custom SMTP for sign-in emails** — none configured, so Supabase's
+  built-in sender is used, which only reaches members of the Supabase
+  organization (~2 emails/hour). Email-code sign-in fails for real users;
+  Discord / Google / Apple work.
+
+## Website and operations
+
+- **riftlog.net** is `apps/web`, deployed on **Vercel** from `main` (root
+  directory `apps/web`). Vercel forwards riftlog.net → **www.riftlog.net**.
+  Env vars there are the two `NEXT_PUBLIC_SUPABASE_*` values, saved as type
+  **Config** (not Secret — they're public by design; keep the prefix even
+  though Vercel warns). `NEXT_PUBLIC_*` is baked in at build: redeploy after
+  changing them.
+- **Contact address:** `support@riftlog.net`, a Cloudflare Email Routing
+  forward to the owner's inbox. Cloudflare only *receives* — it can't send
+  (see the SMTP item above).
+- **Operator:** Maurice Mecke, a solo developer. Public copy and legal pages
+  speak in the first person ("I"), never "we". Legal details live only in
+  `apps/web/src/lib/legal.ts`.
+- **Supabase DPA:** incorporated into Supabase's Terms of Service — no
+  separate signature. The contracting entity is **Supabase Pte. Ltd.
+  (Singapore)**; the project's data is hosted in the EU (Stockholm).
+- **Copy style:** short, plain sentences. The owner dislikes awkward or
+  "legal-talkish" text. Legal pages follow riftatlas.com's plain style; the
+  landing page keeps its full sections (an over-simplified version was
+  reverted).
 
 ## What's intentionally not built yet
 

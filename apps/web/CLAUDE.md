@@ -91,6 +91,19 @@ that's off to the side never "intersects" on its own. The hero uses
 
 ### Screenshots and icons
 
+**Taking the shots** (the iOS simulator with the owner's real data): set a
+clean status bar with
+`xcrun simctl status_bar booted override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3`,
+capture with `xcrun simctl io booted screenshot screenshots-raw/<name>.png`,
+and `xcrun simctl status_bar booted clear` afterwards. Mouse-wheel scrolling
+doesn't work in the simulator; drag slowly (mouse down, small moves, pause,
+release) to avoid flinging. For board / between-games shots, start a test
+match and leave with ✕ → "Exit and discard": an unfinished match is never
+saved. **Never finish a match or add notes** on the owner's account without
+asking — that writes to their history. Before processing, look at every raw
+shot and list other people's names for the owner to decide (blur them via
+`blur` boxes).
+
 - **Screenshots:** raw iPhone PNGs go in `screenshots-raw/` (gitignored —
   real data), named per the `SHOTS` list in `scripts/process-screenshots.mjs`;
   `pnpm --filter @riftlog/web screenshots` crops the status bar, **blurs other
@@ -107,9 +120,11 @@ that's off to the side never "intersects" on its own. The hero uses
 `join_waitlist` RPC, and `ContactForm` → `sendContact` (`contact.ts`) → the
 `submit_contact` RPC, both via `callStatusRpc` with the publishable key (no
 Supabase client dependency). Both forms have a hidden `company` honeypot.
-The contact form is the Impressum's second contact channel, so it must keep
-working. Waitlist details: Statuses: `ok | invalid_email | rate_limited | error`.
-A repeat address answers `ok` (no enumeration). Each signup stores
+The contact form is the Legal Notice's second contact channel, so it must
+keep working. Waitlist statuses: `ok | invalid_email | rate_limited | error`.
+A repeat address answers `ok` (no enumeration). The waitlist is **one launch
+email, not a subscription** — never call it "subscribe" / "unsubscribe" in
+copy. Each signup stores
 `PRIVACY_VERSION` as the consent record — bump it when the policy changes in a
 way that matters for the list. Single opt-in for now. Schema in
 `../../supabase/CLAUDE.md`.
@@ -129,6 +144,32 @@ name, address or contact details.** Find what's left with
 `grep -rn "\[\[" apps/web/src`. If the app starts processing new kinds of
 personal data, update `/privacy` in the same change. The footer carries the
 fan-made disclaimer **and** Riot's Legal Jibber Jabber statement, verbatim.
+
+### Gotchas
+
+- **Text right after a filled `<Fill />` loses its leading space** when
+  rendered (`…gmail.comand`). Always write an explicit `{" "}` after `<Fill />`
+  before text. Check with
+  `grep -nE '<Fill [^>]*/> [A-Za-z(&]' apps/web/src/app/*/page.tsx`.
+- **Renaming or moving a route** leaves `.next/types/validator.ts` pointing
+  at the old path, and `pnpm typecheck` fails until you `rm -rf .next/types`
+  and build again.
+
+## Deployment
+
+Vercel builds `main` (root directory `apps/web`); riftlog.net forwards to
+www.riftlog.net. `metadataBase` in `layout.tsx` is `https://riftlog.net`;
+switch it to www, or make the apex the primary domain in Vercel, if link
+previews should skip the forward. Env vars: the two `NEXT_PUBLIC_SUPABASE_*`
+values as type **Config**, in Production and Preview; redeploy after any
+change. Check a deploy with
+`gh api "repos/MorisVak/riftlog/deployments?sha=<sha>&environment=Production"`.
+
+**Testing the forms against the live database** writes real rows. Use an
+`@example.com` address, then delete the row and the matching
+`*_attempts` rows with the secret key from `../../supabase/.env`, via the CLI
+only (PostgREST `DELETE` with `apikey` + `Authorization: Bearer`). Never put
+the secret key in this app or in Vercel.
 
 ## Supabase & env
 
