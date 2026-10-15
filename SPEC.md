@@ -100,10 +100,11 @@ on purpose for the features below. Don't remove them. (`Match.notes` and
 
 ## Feature 1 — Live score tracking
 
-**Status:** partially built. The playboard renders two players with
-increment/decrement scoring (`PlayField` → `TrackingField` →
-`ScoringComponent`), backed by `matchContext`. Pre-match setup, the end-game
-prompt, match resolution, and Bo3 flow are not built. Timed mode is not built.
+**Status:** built. The pre-match setup sheet (format, names, deck, timed
+match), the full-screen board with Conquer / Hold / Special scoring and
+take-backs, the end-game prompt (win / loss / draw), match resolution, the Bo3
+between-games screen, the game-start "VS" intro, and timed mode (one clock,
+pause, overtime) are all built. Still open: track turns (Feature 10).
 
 **What it is.** The default screen. Two players, two scores, tap to count up
 as the game is played in person. The tab bar hides during an active match so
@@ -163,11 +164,10 @@ a grab handle, a **Format** segmented toggle (Best of 1 / Best of 3), a **Your
 deck** carousel, an **Opponent name** input, a **Scan QR** button shown with a
 "SOON" teaser state, a **Track turns** toggle, and a **Start match** button.
 
-v1 builds only **Format + player names + Start**. The design's single
-"Opponent" field assumes a logged-in "You"; until auth exists the model has two
-symmetric players, so v1 renders **two name inputs** (Player 1 / Player 2),
-styled like the design's input. The remaining elements are designed and
-recorded here so they slot onto this same sheet when their features land:
+Built: **Format, Timed match, your name + Your deck, Opponent name, Start**.
+The sheet renders a name input for each side (blank falls back to "You" /
+"Opponent"), styled like the design's input. The remaining designed elements
+are recorded here so they slot onto this same sheet when their features land:
 
 - **Your deck** carousel → deck selection (Feature 4). Built as a dropdown
   under the player's name rather than a carousel.
@@ -277,10 +277,11 @@ connection returns.
 
 ## Feature 4 — Deck import
 
-**Status:** plain-text import built (paste → live preview → save), plus a
-deck detail view and a bare "My decks" list on Profile. Piltover Archive deck
-**codes** are recognised but not decoded ("coming soon"). Riftmana, manual
-entry, and attaching decks to matches are not built.
+**Status:** plain-text import built (paste → live preview → save), the deck
+view (List / Gallery), editing a list, "My decks" on Profile (search, sort,
+multi-select delete), a default deck, and choosing a deck for a match (the
+match pins the exact version). Piltover Archive deck **codes** are recognised
+but not decoded ("coming soon"). Riftmana and manual entry are not built.
 
 **What it is.** Players import a deck into Riftlog so they can attach it to
 matches and review it later. Import sources, in priority order: **Piltover
@@ -345,8 +346,11 @@ deck deleted since.
 
 ## Feature 5 — Deck versioning & change snapshots
 
-**Status:** planned. The storage is ready: deck lists already live in
-immutable versions, with the deck pointing at its current one.
+**Status:** mostly built. Every list edit saves a new immutable version; the
+deck screen has a "Versions" history (earlier versions open read-only) and a
+"Show changes" toggle that marks added / cut cards against any earlier
+version (`diffDeckLists` in core). A match links to the version it was played
+with. Not built: a per-match diff snapshot shown in history.
 
 **What it is.** When a player edits a deck they've already used and plays a new
 game with the updated list, Riftlog records a new version. The history then
@@ -385,9 +389,10 @@ standard Riftbound sections: chosen Champion, Legend, 40-card main deck,
 
 ## Feature 7 — Profile
 
-**Status:** data model, first-login onboarding (handle claim), and a read-only
-profile screen are built. Handle rename UI, profile stats, and owned decks are
-the next slices.
+**Status:** data model, first-login onboarding (handle claim), and the
+profile screen (identity, default deck, "My decks", feedback) are built. Home
+shows your own wins / losses / win rate. Handle rename UI and per-deck stats
+are the next slices.
 
 **What it is.** A profile screen with the player's display name and `@handle`.
 From here the player imports decks and reviews their decklists. The profile is
@@ -419,10 +424,9 @@ identity provider.
 
 **Built:** the `profiles` table (owner-only access; handle changes via RPC
 only), the seeding trigger, onboarding (Feature 11), and a read-only profile
-screen (avatar, display name, `@handle`, sign out). **Not built:** the handle
-rename UI (the server side already supports it), profile stats. A bare
-"My decks" list sits under the header (Feature 4); its final placement is
-still to be decided.
+screen (avatar, display name, `@handle`, sign out, default deck, "My decks",
+feedback). **Not built:** the handle rename UI (the server side already
+supports it) and per-deck stats (strictly the owner's own matches).
 
 ---
 
@@ -564,6 +568,17 @@ import step will follow the required one once deck import (Feature 4) exists.
 
 ---
 
+## Website (riftlog.net)
+
+**Status:** built (`apps/web`). A marketing one-pager describing only what's
+built, with real app screenshots and a clearly labelled "Coming later"
+section; a waitlist backed by Supabase (`join_waitlist`, consent recorded,
+single opt-in); `/privacy`, `/terms` and `/impressum` (drafts pending the
+owner's legal review and details); both Riot statements in the footer. Any
+copy about stats stays strictly personal — never cross-player data.
+
+---
+
 ## Roadmap (suggested build order)
 
 Each step should be a working, committed slice before the next begins —
@@ -574,7 +589,7 @@ matching the incremental philosophy in `CLAUDE.md`.
 2. **Match lifecycle** — pre-match setup (format, names, timed-mode toggle),
    end-game prompt, game resolution, Bo3 advance, match end. Includes adding
    the timed-mode fields and using the resolution fields in the data model.
-   (Feature 1.) The keystone everything else needs.
+   (Feature 1.) The keystone everything else needs. _(Done.)_
 3. **Auth + cloud persistence** — `matches`/`games` tables with RLS; completed
    matches save to the cloud, with an offline outbox that flushes on reconnect.
    Pulled forward because history depends on it. (Feature 3.)
@@ -586,10 +601,10 @@ matching the incremental philosophy in `CLAUDE.md`.
    rate limit, first-login onboarding, default avatar. (Features 7 + 11.)
    _(Done.)_ Next: handle rename UI, stats; owned decks live here.
 7. **Deck import** — plain-text import, sectioned deck view, "My decks".
-   (Feature 4.) _(Text import done.)_ Next: Piltover deck-code decoding,
-   attaching decks to matches.
+   (Feature 4.) _(Done: text import, deck view, editing, choosing a deck for a
+   match.)_ Next: Piltover deck-code decoding.
 8. **Deck versioning & diffs** — version on edit, show change snapshots.
-   (Feature 5.)
+   (Feature 5.) _(Done except per-match diff snapshots in history.)_
 9. **Card art decklists** — once the Riot API key lands. (Feature 6.)
 10. **Match mode (QR)** — v2. (Feature 8.)
 11. **Turn tracking** — exploratory. (Feature 10.)

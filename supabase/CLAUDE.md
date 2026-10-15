@@ -48,7 +48,8 @@ supabase/
 │   ├── 20261008111758_deck_edit.sql
 │   ├── 20261009125510_profile_default_deck.sql
 │   ├── 20261012165614_feedback.sql
-│   └── 20261012170431_feedback_manage.sql
+│   ├── 20261012170431_feedback_manage.sql
+│   └── 20261015154509_waitlist.sql
 └── config.toml       Supabase CLI config (linked, anon auth OFF)
 
 ## Schema
@@ -296,6 +297,27 @@ RPCs (`authenticated` only, `require_account()`):
 
 (`mark_feedback_read()`, the first version's "everything read on open", was
 dropped in `20261012170431_feedback_manage.sql`.)
+
+### Waitlist
+
+The riftlog.net launch waitlist (`apps/web`). No account involved: the site
+calls the RPC as **`anon`** with the publishable key. Both tables have RLS on,
+**no policies and no client grants**:
+
+- **`waitlist`** — `email` (PK, stored trimmed + lowercase, format-checked,
+  ≤ 254), `created_at` (= when consent was given), `privacy_version` (which
+  privacy policy text they agreed to — the consent record).
+- **`waitlist_attempts`** — `created_at` only. A global burst log, **no email
+  and no IP** on purpose (there's no per-visitor identity, and storing IPs
+  would be more personal data than the list). Rows older than an hour are
+  purged on every call.
+
+**`join_waitlist(p_email, p_privacy_version)`** → `ok | invalid_email |
+rate_limited`, executable by `anon` and `authenticated`. Global limit: 30
+attempts per 10 minutes, serialised with one advisory lock. A repeat address
+answers `ok` (`on conflict do nothing`), so the form can't reveal who signed
+up. Read or delete entries with the secret key from the CLI only. The privacy
+policy promises the list is deleted after the launch email — honour that.
 
 ## Auth
 
