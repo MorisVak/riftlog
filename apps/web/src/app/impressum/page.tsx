@@ -36,7 +36,7 @@ export default function ImpressumPage() {
 
       <h2>Verbraucherstreitbeilegung</h2>
       <p>
-        We are neither willing nor obliged to take part in dispute resolution
+        I am neither willing nor obliged to take part in dispute resolution
         proceedings before a consumer arbitration board (§ 36 VSBG).
       </p>
 
