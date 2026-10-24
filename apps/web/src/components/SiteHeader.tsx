@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Wordmark } from "./Wordmark";
+import { CoffeeLink } from "./CoffeeLink";
 
 const NAV_LINKS = [
   { href: "/#scoreboard", label: "Features" },
@@ -27,13 +28,16 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <Link
-          href="/#waitlist"
-          className="rounded-full bg-accent px-5 py-2 font-display text-sm font-semibold text-background shadow-accent-btn transition-colors hover:bg-accent-soft active:bg-accent-strong"
-        >
-          <span className="sm:hidden">Waitlist</span>
-          <span className="hidden sm:inline">Join the waitlist</span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <CoffeeLink />
+          <Link
+            href="/#waitlist"
+            className="rounded-full bg-accent px-5 py-2 font-display text-sm font-semibold text-background shadow-accent-btn transition-colors hover:bg-accent-soft active:bg-accent-strong"
+          >
+            <span className="sm:hidden">Waitlist</span>
+            <span className="hidden sm:inline">Join the waitlist</span>
+          </Link>
+        </div>
       </div>
     </header>
   );
