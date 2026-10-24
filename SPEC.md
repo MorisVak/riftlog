@@ -568,11 +568,40 @@ import step will follow the required one once deck import (Feature 4) exists.
 
 ---
 
+## Feature 12 — Sideboard guide
+
+**Status:** concept. Not designed, not in the data model.
+
+**What it is.** A player writes down what they side in and out for each
+matchup: per deck, a list of matchups, each with cards in and cards out.
+It's the player's own plan, not data from other players.
+
+**Where it shows up.** Mainly on the between-games screen of a Bo3, so the
+player can check the guide for the current matchup while sideboarding
+(that break is on the match clock). Also viewable from the deck.
+
+**Open design:** how a matchup is identified (opponent legend? free text?),
+whether the guide belongs to a deck or to a deck version, and whether it
+links to the deck's actual sideboard so counts can be checked.
+
+---
+
+## Feature 13 — Stats
+
+**Status:** concept. Builds on the win / loss / win rate already on Home and
+the per-deck stats noted in Feature 7.
+
+**What it is.** A player's own results, broader than one deck: overall stats
+across all their decks, plus stats per deck. Strictly the player's own
+matches — never cross-player aggregates (Riot policy).
+
+---
+
 ## Website (riftlog.net)
 
 **Status:** built (`apps/web`). A marketing one-pager describing only what's
 built, with real app screenshots and a clearly labelled "Coming later"
-section; a waitlist backed by Supabase (`join_waitlist`, consent recorded,
+roadmap (Match mode → Sideboard guide → Stats, same order as below); a waitlist backed by Supabase (`join_waitlist`, consent recorded,
 single opt-in); `/contact` (form → Supabase), `/privacy`, `/terms` and `/legal-notice`
 (Impressum; drafts pending the owner's review); both Riot statements in the footer. Any
 copy about stats stays strictly personal — never cross-player data.
@@ -623,16 +652,18 @@ matching the incremental philosophy in `CLAUDE.md`.
    `profiles` table. (Feature 11 + Feature 7's data model.) _(Done.)_
 6. **Profile identity + onboarding** — claimed handles, reserved names, rename
    rate limit, first-login onboarding, default avatar. (Features 7 + 11.)
-   _(Done.)_ Next: handle rename UI, stats; owned decks live here.
+   _(Done.)_ Next: handle rename UI (stats are step 12); owned decks live here.
 7. **Deck import** — plain-text import, sectioned deck view, "My decks".
    (Feature 4.) _(Done: text import, deck view, editing, choosing a deck for a
    match.)_ Next: Piltover deck-code decoding.
 8. **Deck versioning & diffs** — version on edit, show change snapshots.
    (Feature 5.) _(Done except per-match diff snapshots in history.)_
 9. **Card art decklists** — once the Riot API key lands. (Feature 6.)
-10. **Match mode (QR)** — v2. (Feature 8.)
-11. **Turn tracking** — exploratory. (Feature 10.)
-12. **Friends** — exploratory. (Feature 9.)
+10. **Match mode (QR)** — first of the planned features. (Feature 8.)
+11. **Sideboard guide** — concept. (Feature 12.)
+12. **Stats** — concept. (Feature 13.)
+13. **Turn tracking** — exploratory. (Feature 10.)
+14. **Friends** — exploratory. (Feature 9.)
 
 ## Constraints
 
