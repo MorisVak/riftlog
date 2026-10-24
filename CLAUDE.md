@@ -143,12 +143,15 @@ Don't invent terminology that doesn't exist in Riftbound.
 
 ## Before launch — urgent
 
-Two open items block a public launch. Both are written up at the top of the
-`SPEC.md` roadmap; raise them whenever release prep, the App Store, auth or
-email comes up:
+Open items for a public launch, written up at the top of the `SPEC.md`
+roadmap; raise them whenever release prep, the App Store, auth or email comes
+up:
 
 - **In-app account deletion** — not built; Apple Guideline 5.1.1(v)
   requires it. Until then `/privacy` promises deletion by email within 30 days.
+- **"Buy me a coffee" in the app** — the website header links to
+  buymeacoffee.com/moriscodes; the app should too, likely on Profile. Not
+  built yet (hard todo).
 - **Custom SMTP for sign-in emails** — none configured, so Supabase's
   built-in sender is used, which only reaches members of the Supabase
   organization (~2 emails/hour). Email-code sign-in fails for real users;
