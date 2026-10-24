@@ -1,5 +1,6 @@
-import { PhoneFrame } from "./PhoneFrame";
+import { HeroPhone } from "./HeroPhone";
 import { WaitlistForm } from "./WaitlistForm";
+import { Platforms } from "./Platforms";
 
 export function Hero() {
   return (
@@ -51,19 +52,20 @@ export function Hero() {
           >
             <WaitlistForm />
           </div>
+
+          <div
+            style={{ animationDelay: "320ms" }}
+            className="animate-rise mt-7"
+          >
+            <Platforms />
+          </div>
         </div>
 
         <div
           style={{ animationDelay: "200ms" }}
           className="animate-rise flex justify-center lg:justify-end"
         >
-          <PhoneFrame
-            shot="board"
-            alt="Riftlog score board mid-game: 5 to 4, with a running match clock and Conquer, Hold and Special buttons for each player"
-            glow
-            priority
-            className="max-w-[300px]"
-          />
+          <HeroPhone />
         </div>
       </div>
     </section>

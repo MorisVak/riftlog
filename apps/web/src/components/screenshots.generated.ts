@@ -6,6 +6,10 @@ export const SCREENSHOTS = {
     "width": 390,
     "height": 796
   },
+  "board-landscape": {
+    "width": 796,
+    "height": 390
+  },
   "between-games": {
     "width": 390,
     "height": 800

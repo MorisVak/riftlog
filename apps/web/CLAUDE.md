@@ -108,7 +108,11 @@ shot and list other people's names for the owner to decide (blur them via
   real data), named per the `SHOTS` list in `scripts/process-screenshots.mjs`;
   `pnpm --filter @riftlog/web screenshots` crops the status bar, **blurs other
   people's names** (per-shot `blur` boxes in raw pixels), and writes 1x/2x
-  WebP plus the size manifest. Render them only through `PhoneFrame`. Never
+  WebP plus the size manifest. Render them only through `PhoneFrame`.
+  `board-landscape` is the board held sideways (Simulator cmd+→, captured with
+  the same `simctl` command): `rotate: 90` turns it after the status-bar crop,
+  and `PhoneFrame` draws the island band on the right for any shot wider than
+  tall. Only the hero shows it, via `HeroPhone`'s rotate button. Never
   show the deck Gallery view (placeholder tiles) or Riot card art.
 - **Icons:** `pnpm --filter @riftlog/web icons` renders the badge into the web
   favicons **and** the mobile app icon, Android adaptive layers and splash
