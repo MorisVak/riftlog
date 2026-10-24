@@ -621,6 +621,15 @@ copy about stats stays strictly personal — never cross-player data.
 > device out and clearing local state. Do this before any App Store
 > submission, ahead of the steps below.
 
+> **HARD TODO — "Buy me a coffee" link in the app.** The website's header
+> already links to https://buymeacoffee.com/moriscodes (a small cup, like
+> riftatlas.com). The app needs the same link, most likely on the Profile
+> screen (e.g. a "Support Riftlog" row that opens the page in the browser).
+> Not built yet. Keep it an optional tip, never a paid tier — the Riot policy
+> requires a free tier. Check Apple's rules on tipping links before an App
+> Store submission (Guideline 3.1.1 / 3.2.1): a link out to a donation page
+> may need to be framed as a personal donation, not payment for app content.
+
 > **URGENT TODO — custom SMTP for sign-in emails.** Blocks email sign-in
 > for real users: no email sender is configured, so Supabase Auth uses its
 > built-in service, which only delivers to members of the Supabase
