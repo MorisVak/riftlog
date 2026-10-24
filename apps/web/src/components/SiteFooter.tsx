@@ -40,6 +40,13 @@ export function SiteFooter() {
             Jabber&apos; policy using assets owned by Riot Games. Riot Games
             does not endorse or sponsor this project.
           </p>
+          {/* Required credit for the Android robot (CC BY 3.0), shown in the
+              hero's platform chips. */}
+          <p className="max-w-3xl font-display text-xs leading-relaxed text-ink-secondary">
+            The Android robot is reproduced or modified from work created and
+            shared by Google and used according to terms described in the
+            Creative Commons 3.0 Attribution License.
+          </p>
           <p className="pt-1 font-display text-xs text-ink-secondary">
             © {new Date().getFullYear()} Riftlog
           </p>

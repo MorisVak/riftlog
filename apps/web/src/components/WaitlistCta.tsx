@@ -13,7 +13,7 @@ export function WaitlistCta() {
           />
           <div className="relative mx-auto flex max-w-2xl flex-col items-center text-center">
             <h2 className="font-display text-3xl font-bold tracking-tight text-ink-primary sm:text-4xl">
-              Be first on the Rift.
+              Be the first!
             </h2>
             <p className="mt-4 font-display text-lg text-ink-secondary">
               Riftlog is in development. Join the waitlist to hear when it

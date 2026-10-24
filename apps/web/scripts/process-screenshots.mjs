@@ -11,7 +11,9 @@
 //        src/app/opengraph-image.tsx, which can't read WebP)
 //
 // The iOS status bar (time, battery, carrier, notification icons) is cropped
-// off the top; PhoneFrame draws its own island. Only names listed in SHOTS are
+// off the top; PhoneFrame draws its own island. A landscape shot is captured
+// the same way (simctl saves it portrait-oriented, island on top), so the same
+// crop removes the island before it's turned on its side. Only names listed in SHOTS are
 // processed, so a stray file in the raw folder never reaches the site.
 
 import { mkdir, readdir, writeFile } from "node:fs/promises";
@@ -26,6 +28,7 @@ const MANIFEST = path.join(ROOT, "src", "components", "screenshots.generated.ts"
 const OG_BOARD = path.join(ROOT, "assets", "og-board.png");
 
 const OUT_WIDTH = 390;
+const OUT_WIDTH_LANDSCAPE = 796;
 const QUALITY = 80;
 
 // iOS status bar height in points on Dynamic Island iPhones. Raw pixels are
@@ -36,11 +39,15 @@ const STATUS_BAR_PT = 54;
  * The shot list (see the plan). `cropTopPt` overrides the status-bar crop for
  * a screen whose content starts higher than the usual safe area. `blur` lists
  * boxes, in RAW pixels, to blur before anything else — other people's names.
+ * `rotate` turns a landscape shot upright (degrees clockwise) after cropping;
+ * its 1x width is then OUT_WIDTH_LANDSCAPE.
  * @typedef {{ left: number, top: number, width: number, height: number }} Box
- * @type {Record<string, { cropTopPt?: number, blur?: Box[] }>}
+ * @type {Record<string, { cropTopPt?: number, blur?: Box[], rotate?: number }>}
  */
 const SHOTS = {
   board: {},
+  // The board held sideways (cmd+→ in the Simulator: island on the right).
+  "board-landscape": { rotate: 90 },
   // The opponent's upside-down clock sits right under the status bar.
   "between-games": { cropTopPt: 50 },
   setup: {},
@@ -95,10 +102,17 @@ async function main() {
 
     const cropTop = Math.round((opts.cropTopPt ?? STATUS_BAR_PT) * deviceScale(meta.width));
     const cropped = { left: 0, top: cropTop, width: meta.width, height: meta.height - cropTop };
+    const rotate = opts.rotate ?? 0;
+    const outWidth = rotate ? OUT_WIDTH_LANDSCAPE : OUT_WIDTH;
+    // Upright size of the cropped image, after any quarter turn.
+    const [w, h] = rotate % 180 ? [cropped.height, cropped.width] : [cropped.width, cropped.height];
 
-    for (const [suffix, width] of [["", OUT_WIDTH], ["@2x", OUT_WIDTH * 2]]) {
-      await sharp(input)
-        .extract(cropped)
+    for (const [suffix, width] of [["", outWidth], ["@2x", outWidth * 2]]) {
+      // A fresh pipeline per extract: sharp applies rotate before extract
+      // within one chain, so the crop runs on its own buffer first.
+      const croppedBuf = await sharp(input).extract(cropped).toBuffer();
+      await sharp(croppedBuf)
+        .rotate(rotate)
         .resize({ width })
         .webp({ quality: QUALITY, effort: 6 })
         .toFile(path.join(OUT_DIR, `${name}${suffix}.webp`));
@@ -109,8 +123,8 @@ async function main() {
     }
 
     manifest[name] = {
-      width: OUT_WIDTH,
-      height: Math.round((cropped.height * OUT_WIDTH) / cropped.width),
+      width: outWidth,
+      height: Math.round((h * outWidth) / w),
     };
     console.log(`✓ ${name}  (${meta.width}×${meta.height}, cropped ${cropTop}px)`);
   }

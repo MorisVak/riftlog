@@ -249,7 +249,8 @@ A settled Bo3 can therefore have fewer than three games; nothing downstream
 Pre-match setup collects **format (Bo1/Bo3)**, **player names**, and the
 **timed-match toggle + round length** via the setup sheet
 (`components/matchSetup.tsx`), passed to `startMatch` as a `MatchConfig`; blank
-names fall back to "You"/"Opponent". The two slots are **not interchangeable**:
+names fall back to "You"/"Opponent". Signed in, your name field starts as your
+**display name** (`profile.displayName`), still editable. The two slots are **not interchangeable**:
 `p1` is always the device owner and `p2` the opponent (see the p1-perspective
 rule below). Signed in, the sheet also offers **Your deck**
 (`components/deck/deckPicker.tsx`, optional, "No deck" first — a field that
@@ -331,10 +332,28 @@ game counter, nothing taking board space from either player:
   + glow and greys the clock; there's deliberately no "PAUSED" label, which
   would grow the rotated capsule. Nothing else belongs here — the pass-turn
   control is still deferred.
+- **Screen on, and landscape on the board only** (`hooks/useInGameScreen.ts`,
+  called from the match flow in `(tabs)/index.tsx`). The screen is kept awake
+  (`expo-keep-awake`) while a game or the between-games break is up. The app
+  is portrait everywhere (`initialOrientation` in app.json) except those two
+  match screens, which unlock rotation (`expo-screen-orientation`); it re-locks
+  once the match is over. Never unlock it for menus. The between-games screen
+  puts the result and the actions side by side in landscape, with its two
+  clocks in opposite corners; the note editor's modal allows landscape so
+  opening it doesn't spin the screen. In landscape the players sit at the long sides: each half keeps the
+  numeral over its buttons (the numeral shrinks to 80px to fit), the name sits
+  in one corner and **each player gets their own clock** in the other corner
+  (END under yours) — a single clock on the divider only faces one of them, so
+  the rotated capsule is hidden in landscape and the divider keeps just the
+  hexagons, pause and ✕. Both halves use the wider side safe-area inset so they
+  stay mirror images, clear of the notch. Layout reads `useWindowDimensions`
+  (`width > height`), not the orientation API.
 - **Game-start intro** (`components/gameStartIntro.tsx`, over `PlayField`):
-  the design's "VS" transition — cards slide in, VS pops, "Match start" /
+  the design's "VS" transition — cards slide in (the **first letter of each
+  player's name** in the card, the full name under it — never the legend's), VS pops, "Match start" /
   "Game 2" / "Game 3" — ~2s, tap to skip. Laid out a quarter turn (-90°,
-  like the board clock) at the screen's landscape size, so both players read
+  like the board clock) at the screen's landscape size (no turn when the phone
+  is already landscape), so both players read
   it from the side and your card sits at your end. It plays once per game id and
   only for a game that *just* started (no events, `startedAt` < 3s ago), so a
   restored match never replays it.

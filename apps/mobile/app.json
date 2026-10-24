@@ -4,7 +4,7 @@
     "slug": "riftlog",
     "owner": "m_mecke",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "riftlog",
     "userInterfaceStyle": "automatic",
@@ -49,7 +49,13 @@
       ],
       "expo-font",
       "expo-secure-store",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "PORTRAIT_UP"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

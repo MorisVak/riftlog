@@ -5,10 +5,11 @@
 import { SCREENSHOTS, type ScreenshotName } from "./screenshots.generated";
 
 /**
- * Portrait phone frame around a real app screenshot. The status bar is cropped
- * off every shot, so the frame draws its own top band with the island — it
- * never covers app content. Width/height come from the generated manifest so
- * the page doesn't shift while images load.
+ * Phone frame around a real app screenshot. The status bar is cropped off every
+ * shot, so the frame draws its own band with the island — it never covers app
+ * content. A landscape shot (wider than tall) gets the band on the right, where
+ * the island sits when the phone is turned clockwise. Width/height come from
+ * the generated manifest so the page doesn't shift while images load.
  */
 export function PhoneFrame({
   shot,
@@ -26,17 +27,31 @@ export function PhoneFrame({
 }) {
   const { width, height } = SCREENSHOTS[shot];
   const src = `/screenshots/${shot}.webp`;
+  const landscape = width > height;
 
   return (
     <div
       className={`relative w-full rounded-[2.25rem] border border-border bg-surface p-2.5 ${
-        glow ? "shadow-accent-card" : ""
+        glow ? "phone-glow" : ""
       } ${className}`}
     >
-      <div className="overflow-hidden rounded-[1.75rem] bg-background">
+      <div
+        className={`overflow-hidden rounded-[1.75rem] bg-background ${
+          landscape ? "flex flex-row-reverse items-center" : ""
+        }`}
+      >
         {/* Status-bar band with the island */}
-        <div className="flex h-7 items-center justify-center" aria-hidden>
-          <span className="h-[18px] w-20 rounded-full bg-accent-deep ring-1 ring-border" />
+        <div
+          className={`flex shrink-0 items-center justify-center ${
+            landscape ? "w-7" : "h-7"
+          }`}
+          aria-hidden
+        >
+          <span
+            className={`rounded-full bg-accent-deep ring-1 ring-border ${
+              landscape ? "h-20 w-[18px]" : "h-[18px] w-20"
+            }`}
+          />
         </div>
         <img
           src={src}
@@ -47,7 +62,7 @@ export function PhoneFrame({
           loading={priority ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : "auto"}
           decoding="async"
-          className="block h-auto w-full"
+          className="block h-auto w-full min-w-0"
         />
       </div>
     </div>

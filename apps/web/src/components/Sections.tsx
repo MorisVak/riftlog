@@ -1,3 +1,4 @@
+import { ImageOff } from "lucide-react";
 import { FeatureSection } from "./FeatureSection";
 
 /** A labelled color dot, mirroring the app's legends. Color is never the only signal. */
@@ -109,7 +110,7 @@ export function DecksSection() {
     <FeatureSection
       id="decks"
       eyebrow="Your decks"
-      title="Your decks"
+      title="Every list, every version"
       intro="Import your lists and see how they change over time."
       points={[
         {
@@ -130,10 +131,21 @@ export function DecksSection() {
         },
       ]}
       footnote={
-        <div className="flex flex-wrap gap-2">
-          <Swatch className="bg-added" label="Added" />
-          <Swatch className="bg-cut" label="Cut" />
-        </div>
+        <>
+          <div className="flex flex-wrap gap-2">
+            <Swatch className="bg-added" label="Added" />
+            <Swatch className="bg-cut" label="Cut" />
+          </div>
+          <p className="mt-5 flex gap-3 font-display text-[15px] leading-relaxed text-ink-secondary">
+            <ImageOff
+              aria-hidden
+              size={18}
+              strokeWidth={2}
+              className="mt-0.5 shrink-0 text-accent-soft"
+            />
+            Decklists are text for now. Waiting on Riot&apos;s approval.
+          </p>
+        </>
       }
       shots={[
         {

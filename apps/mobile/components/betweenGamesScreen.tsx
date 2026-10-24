@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -87,6 +88,11 @@ const BetweenGamesScreen = () => {
   const { status } = useAuth();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  // Sideways the column is too tall for the screen, so the result and the
+  // actions sit side by side instead.
+  const landscape = width > height;
 
   const glow = useSharedValue(0);
   useEffect(() => {
@@ -148,16 +154,8 @@ const BetweenGamesScreen = () => {
     concludeMatch();
   };
 
-  return (
-    <View className="flex-1 items-center justify-center bg-background px-8">
-      {/* The clock does not stop for the break — sideboarding is played on the
-          same countdown — so it stays on screen here. Twice over: the rotated
-          copy up top reads right-way-up for the player across the table, the
-          lower one for the player holding the phone. Both render nothing when
-          the match is untimed. */}
-      <MatchClock variant="screen" className="absolute inset-x-0 top-16 rotate-180" />
-      <MatchClock variant="screen" className="absolute inset-x-0 bottom-10" />
-
+  const result = (
+    <View className="items-center">
       <Text className="font-display text-2xl uppercase tracking-widest text-ink-secondary">
         Game {lastGameNumber}
       </Text>
@@ -183,7 +181,11 @@ const BetweenGamesScreen = () => {
       <Text className="mt-2 text-sm text-ink-secondary">
         Series {p1?.gameWins ?? 0}–{p2?.gameWins ?? 0}
       </Text>
+    </View>
+  );
 
+  const actions = (
+    <View className="items-center">
       {/* Note the game while it's fresh. Signed-in only: a guest's match is
           never saved, so a note would go nowhere. */}
       {status === 'authed' && (
@@ -193,7 +195,9 @@ const BetweenGamesScreen = () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             setNoteOpen(true);
           }}
-          className="mt-6 max-w-full flex-row items-center gap-2 rounded-full border border-border bg-surface px-4 py-2.5 active:bg-elevated"
+          className={`max-w-full flex-row items-center gap-2 rounded-full border border-border bg-surface px-4 py-2.5 active:bg-elevated ${
+            landscape ? '' : 'mt-6'
+          }`}
         >
           <Icon
             name={lastGame?.notes ? 'file-text' : 'edit-3'}
@@ -217,7 +221,10 @@ const BetweenGamesScreen = () => {
           from the view's own filled, rounded box, so it needs the accent fill
           and the pill radius. The Pressable inside paints only the pressed
           state over it. */}
-      <Animated.View className="mt-12 rounded-full bg-accent" style={glowStyle}>
+      <Animated.View
+        className={`rounded-full bg-accent ${landscape ? 'mt-8' : 'mt-12'}`}
+        style={glowStyle}
+      >
         <Pressable
           onPress={onNext}
           className="rounded-full px-10 py-4 active:bg-accent-strong"
@@ -229,11 +236,58 @@ const BetweenGamesScreen = () => {
       </Animated.View>
 
       {/* Escape hatch: end the round on the current standing (e.g. out of time). */}
-      <Pressable onPress={onOpenConfirm} className="mt-5 px-6 py-2 active:opacity-70">
+      <Pressable
+        onPress={onOpenConfirm}
+        className="mt-5 px-6 py-2 active:opacity-70"
+      >
         <Text className="font-display-medium text-base text-ink-secondary">
           End round
         </Text>
       </Pressable>
+    </View>
+  );
+
+  // Clear of the notch, whichever side it's on; the same on both sides so the
+  // two clocks mirror each other.
+  const side = Math.max(insets.left, insets.right) + 20;
+
+  return (
+    <View
+      className={`flex-1 items-center justify-center bg-background ${
+        landscape ? 'flex-row gap-20' : 'px-8'
+      }`}
+    >
+      {/* The clock does not stop for the break — sideboarding is played on the
+          same countdown — so it stays on screen here. Twice over: the rotated
+          copy reads right-way-up for the player across the table, the other
+          for the player holding the phone. In landscape they move to opposite
+          corners so they don't sit over the result. Both render nothing when
+          the match is untimed. */}
+      {landscape ? (
+        <>
+          <MatchClock
+            variant="screen"
+            className="absolute top-4 rotate-180"
+            style={{ right: side }}
+          />
+          <MatchClock
+            variant="screen"
+            className="absolute bottom-4"
+            style={{ left: side }}
+          />
+        </>
+      ) : (
+        <>
+          <MatchClock
+            variant="screen"
+            className="absolute inset-x-0 top-16 rotate-180"
+          />
+          <MatchClock variant="screen" className="absolute inset-x-0 bottom-10" />
+        </>
+      )}
+
+      {result}
+      {actions}
 
       <NoteEditor
         visible={noteOpen}
