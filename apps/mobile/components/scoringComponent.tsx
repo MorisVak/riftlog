@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
   interpolate,
@@ -120,9 +120,13 @@ const ActionButton = ({
         onPress={press}
         accessibilityRole="button"
         accessibilityLabel={`${action.label} — score a point`}
-        className={`h-[62px] w-[78px] items-center justify-center rounded-2xl border-2 active:opacity-80 ${action.className}`}
+        className={`h-[67px] w-[83px] items-center justify-center rounded-2xl border-2 active:opacity-80 ${action.className}`}
       >
-        <Feather name={action.icon} size={22} color={ACTION_COLOR[action.key]} />
+        <Feather
+          name={action.icon}
+          size={22}
+          color={ACTION_COLOR[action.key]}
+        />
         {/* Labelled as well as colored — the icons alone don't carry the
             Riftbound meaning, and color is never the only signal. */}
         <Text
@@ -137,6 +141,11 @@ const ActionButton = ({
 
 const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
   const { match, incrementScore, decrementScore } = useMatch();
+
+  // Landscape halves are short, so the numeral shrinks to keep the buttons
+  // under it on screen.
+  const { width, height } = useWindowDimensions();
+  const landscape = width > height;
 
   const player = match?.players.find((p) => p.id === playerId);
   if (!player) return null;
@@ -163,12 +172,16 @@ const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
         accessibilityLabel={`Remove a point from ${player.name}`}
         className="active:opacity-80"
       >
-        <Text className="font-mono text-[150px] leading-none text-ink-primary">
+        <Text
+          className={`font-mono leading-none text-ink-primary ${
+            landscape ? 'text-[80px]' : 'text-[150px]'
+          }`}
+        >
           {player.gameScore}
         </Text>
       </Pressable>
 
-      <View className="mt-7 flex-row gap-3">
+      <View className={`flex-row gap-3 ${landscape ? 'mt-2' : 'mt-7'}`}>
         {ACTIONS.map((action) => (
           <ActionButton key={action.key} action={action} onScore={onScore} />
         ))}

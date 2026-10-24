@@ -29,6 +29,7 @@ import {
 } from '@/lib/matchPersistence';
 import { toHistoryRowVM, type HistoryRowVM } from '@/lib/historyView';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
+import { useInGameScreen } from '@/hooks/useInGameScreen';
 
 const BACKGROUND = '#0D1B2A'; // for Feather icons inside accent fills
 const ACCENT = '#8B93D9';
@@ -341,6 +342,7 @@ const Home = () => {
 
 const Index = () => {
   const { phase } = useMatch();
+  useInGameScreen(phase);
 
   if (phase === 'over') {
     return (

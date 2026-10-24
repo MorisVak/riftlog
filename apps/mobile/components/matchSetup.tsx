@@ -79,7 +79,10 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
   const { profile } = useProfile();
 
   const [bestOf, setBestOf] = useState<1 | 3>(1);
-  const [p1Name, setP1Name] = useState('');
+  // Signed in, your name starts as your display name; still editable.
+  const [p1Name, setP1Name] = useState(
+    signedIn ? (profile?.displayName ?? '') : '',
+  );
   const [p2Name, setP2Name] = useState('');
   const [timed, setTimed] = useState(false);
   const [choice, setChoice] = useState<TimeChoice>(TIME_PRESETS[0]);

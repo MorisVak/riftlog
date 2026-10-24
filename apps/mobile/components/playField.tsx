@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useMatch } from '@/contexts/matchContext';
@@ -96,6 +97,13 @@ const PlayField = () => {
   const { match, endMatch, pauseClock, resumeClock } = useMatch();
   const [promptOpen, setPromptOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
+  // Zero in portrait. In landscape the notch sits on one side, so the clock
+  // and exit move in by its width.
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  // In landscape each half carries its own clock (see TrackingField), so the
+  // divider keeps only the controls.
+  const landscape = width > height;
 
   if (!match) return null;
 
@@ -145,8 +153,8 @@ const PlayField = () => {
         style={{
           height: OVERLAY_H,
           marginTop: -OVERLAY_H / 2,
-          paddingLeft: 0,
-          paddingRight: 26,
+          paddingLeft: insets.left,
+          paddingRight: insets.right + 26,
         }}
         className="absolute inset-x-0 top-1/2 flex-row items-center justify-between"
       >
@@ -156,24 +164,32 @@ const PlayField = () => {
         {/* Nudged past the strip's left edge — the clock capsule is centered in
             a slot wider than itself, so this pulls the visible capsule and the
             pause button out to where they balance the exit on the right. */}
-        <View className="flex-row items-center gap-2" style={{ marginLeft: -4 }}>
-          <View pointerEvents="none" className="w-24 items-center justify-center">
+        <View
+          className="flex-row items-center gap-2"
+          style={{ marginLeft: -4 }}
+        >
+          {!landscape && (
             <View
-              style={[
-                { width: CLOCK_W, transform: [{ rotate: '-90deg' }] },
-                timed && paused ? CLOCK_GLOW : null,
-              ]}
-              className={
-                timed
-                  ? `items-center rounded-2xl border-2 bg-elevated px-3 py-2 ${
-                      paused ? 'border-accent' : 'border-ink-tertiary'
-                    }`
-                  : undefined
-              }
+              pointerEvents="none"
+              className="w-24 items-center justify-center"
             >
-              <MatchClock variant="board" />
+              <View
+                style={[
+                  { width: CLOCK_W, transform: [{ rotate: '-90deg' }] },
+                  timed && paused ? CLOCK_GLOW : null,
+                ]}
+                className={
+                  timed
+                    ? `items-center rounded-2xl border-2 bg-elevated px-3 py-2 ${
+                        paused ? 'border-accent' : 'border-ink-tertiary'
+                      }`
+                    : undefined
+                }
+              >
+                <MatchClock variant="board" />
+              </View>
             </View>
-          </View>
+          )}
 
           {/* Sits with the clock it controls, not with the exit: stop the clock
               for an interruption, resume when play restarts. */}

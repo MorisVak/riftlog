@@ -167,7 +167,8 @@ const IntroOverlay = ({
   }));
   const formatStyle = useAnimatedStyle(() => ({ opacity: fmt.value }));
   // Rotation is paint-only, so the content is laid out at the screen's
-  // landscape size (long side as width) before it's turned.
+  // landscape size (long side as width) before it's turned. A phone already
+  // held in landscape needs no turn.
   const { width, height } = useWindowDimensions();
 
   return (
@@ -183,11 +184,15 @@ const IntroOverlay = ({
         className="flex-1 items-center justify-center bg-background"
       >
         <View
-          style={{
-            width: height,
-            height: width,
-            transform: [{ rotate: '-90deg' }],
-          }}
+          style={
+            width > height
+              ? { width, height }
+              : {
+                  width: height,
+                  height: width,
+                  transform: [{ rotate: '-90deg' }],
+                }
+          }
           className="items-center justify-center"
         >
           <View className="mb-[44px] flex-row items-center gap-[34px]">
@@ -246,7 +251,6 @@ const GameStartIntro = () => {
   if (!match || !game || showingFor !== game.id) return null;
 
   const [p1, p2] = match.players;
-  const legend = p1?.deck?.list.legend?.name;
   const n = match.currentGameIndex + 1;
   const format =
     `Best of ${match.bestOf}` +
@@ -256,7 +260,7 @@ const GameStartIntro = () => {
 
   return (
     <IntroOverlay
-      youInitial={initialOf(legend ?? p1?.name)}
+      youInitial={initialOf(p1?.name)}
       youName={p1?.name ?? 'You'}
       oppInitial={initialOf(p2?.name)}
       oppName={p2?.name ?? 'Opponent'}

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { NOTE_MAX } from '@riftlog/core';
 
@@ -47,6 +48,10 @@ const NoteEditor = ({
   const [text, setText] = useState(initial ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Zero in portrait (the page sheet sits inside the safe area). In landscape
+  // the sheet goes full screen, so Cancel / Save would sit under the notch and
+  // the rounded corners without these.
+  const insets = useSafeAreaInsets();
 
   // Reopening starts from the current note, not the last draft.
   useEffect(() => {
@@ -83,9 +88,15 @@ const NoteEditor = ({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
+      // Opened from the between-games break, which can be in landscape; a
+      // portrait-only modal would spin the phone's screen around.
+      supportedOrientations={['portrait', 'landscape']}
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-background">
+      <View
+        style={{ paddingLeft: insets.left, paddingRight: insets.right }}
+        className="flex-1 bg-background"
+      >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           className="flex-1"

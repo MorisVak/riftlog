@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AppState, Text, View } from 'react-native';
+import { AppState, Text, View, type ViewStyle } from 'react-native';
 import { useMatch } from '@/contexts/matchContext';
 import { formatClock, remainingSeconds } from '@/lib/clock';
 
@@ -67,9 +67,11 @@ type Props = {
    * the text is laid out, so a rotated clock in a narrow slot truncates.
    */
   className?: string;
+  /** Placement that depends on runtime values, e.g. safe-area offsets. */
+  style?: ViewStyle;
 };
 
-const MatchClock = ({ variant = 'board', className = '' }: Props) => {
+const MatchClock = ({ variant = 'board', className = '', style }: Props) => {
   // Opt out of the React Compiler (app.json `experiments.reactCompiler`). This
   // component reads the wall clock during render; the compiler assumes renders
   // are pure and would cache `remainingSeconds(match, Date.now())` on `match`
@@ -94,7 +96,7 @@ const MatchClock = ({ variant = 'board', className = '' }: Props) => {
   const label = overtime && !paused ? 'OT' : null;
 
   return (
-    <View className={`items-center ${className}`}>
+    <View style={style} className={`items-center ${className}`}>
       <Text
         className={`font-mono ${v.time} ${
           paused ? 'text-accent' : overtime ? 'text-loss-text' : 'text-ink-primary'
