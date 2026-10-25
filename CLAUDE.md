@@ -202,6 +202,10 @@ up:
 - Match mode extras on the match detail — the opponent's deck, linked profile,
   head-to-head, their win rate (v1 shows your side only)
 - v2 QR co-recording feature (data model has placeholder fields)
+- The rest of the website roadmap, in order: Sideboard guide, Stats,
+  Playerboard customization (legend / custom board backgrounds), Teams &
+  friends (add friends, invite to a game, share decks; teams as a clan with
+  a shared deck pool — needs match mode first). Details in `SPEC.md`.
 
 See `SPEC.md` for the full feature detail and build order. When extending the
 app, check whether something is intentionally deferred before building it.

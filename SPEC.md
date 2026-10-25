@@ -453,13 +453,36 @@ v2 (see open questions).
 
 ---
 
-## Feature 9 — Friends
+## Feature 9 — Teams & friends
 
-**Status:** exploratory, far future.
+**Status:** concept, on the website roadmap. Not designed, not in the data
+model. **Needs match mode (Feature 8) first** — inviting a friend into a game
+is match mode with a known player instead of a QR scan.
 
-**What it is.** A "friends" tab of already-connected players, so match mode can
-pick a known buddy instead of scanning a QR each time. Noted for direction
-only; no design or model work yet.
+**Friends.** Players add each other by `@handle` (a request the other side
+accepts). A friends list then lets you:
+
+- **Invite a friend to a game** — pick them instead of scanning a QR each time;
+  the match lands in both histories, as in match mode.
+- **Share decks** — send a deck to a friend, or let friends see the decks you
+  choose to share.
+
+**Teams.** A named group of players, like a clan: members join (by invite),
+the team has a shared deck pool any member can add to and use, and the team
+is a home for the group in the app.
+
+**Rules that already apply:** reference players only by `profiles.id`, never
+by copied handle text. Everything stays opt-in and between the people
+involved. No cross-user aggregates (Riot policy) — a team page must not turn
+into win rates per deck across members.
+
+**Open design:** request/accept vs. follow; whether a shared deck is a copy or
+a live link to the owner's latest version (versions are immutable, so a copy
+of a version is easy); team roles (owner/admin/member) and size limits; what
+"clan" means beyond shared decks (a team name/tag on the profile? team match
+history?); whether team members may see each other's own stats (a per-member
+view of their own data is fine; a team-wide aggregate needs a Riot policy
+check — ask the owner).
 
 ---
 
@@ -597,11 +620,37 @@ matches — never cross-player aggregates (Riot policy).
 
 ---
 
+## Feature 14 — Playerboard customization
+
+**Status:** concept, on the website roadmap. Not designed, not in the data
+model.
+
+**What it is.** Players change the background of the live score board
+(playerboard). Options:
+
+- **The legend you're playing** — picked automatically from the deck chosen
+  for the match.
+- **Any legend** — pick one you like.
+- **Custom backgrounds** — maybe; a few of our own designs.
+
+**Riot policy:** legend art is Riot's asset, so legend backgrounds must stay
+free and need the Riot API key / asset access (as Feature 6). Only our own
+custom designs could ever be paid content (it must be transformative). The
+board must stay readable on top of any art (dim/blur overlay, scores
+unchanged), in both portrait and landscape.
+
+**Open design:** per-player backgrounds (each side shows its own legend) vs.
+one for the board; where the setting lives (setup sheet, Profile default, or
+both); whether the choice is saved to the account or kept on the device.
+
+---
+
 ## Website (riftlog.net)
 
 **Status:** built (`apps/web`). A marketing one-pager describing only what's
 built, with real app screenshots and a clearly labelled "Coming later"
-roadmap (Match mode → Sideboard guide → Stats, same order as below); a waitlist backed by Supabase (`join_waitlist`, consent recorded,
+roadmap (Match mode → Sideboard guide → Stats → Playerboard customization →
+Teams & friends, same order as below); a waitlist backed by Supabase (`join_waitlist`, consent recorded,
 single opt-in); `/contact` (form → Supabase), `/privacy`, `/terms` and `/legal-notice`
 (Impressum; drafts pending the owner's review); both Riot statements in the footer. Any
 copy about stats stays strictly personal — never cross-player data.
@@ -671,8 +720,10 @@ matching the incremental philosophy in `CLAUDE.md`.
 10. **Match mode (QR)** — first of the planned features. (Feature 8.)
 11. **Sideboard guide** — concept. (Feature 12.)
 12. **Stats** — concept. (Feature 13.)
-13. **Turn tracking** — exploratory. (Feature 10.)
-14. **Friends** — exploratory. (Feature 9.)
+13. **Playerboard customization** — concept; legend backgrounds need the
+    Riot API key. (Feature 14.)
+14. **Teams & friends** — concept; needs match mode. (Feature 9.)
+15. **Turn tracking** — exploratory. (Feature 10.)
 
 ## Constraints
 
