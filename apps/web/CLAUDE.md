@@ -198,5 +198,9 @@ retain cross-user metagame aggregates (see the Riot policy section in
 
 Not built (don't add ahead of its slice): a Supabase JS client, auth/session
 wiring, any product data reads/writes, double opt-in for the waitlist, sending
-the launch email, and analytics or cookies (the privacy policy promises none —
-adding any means updating it first).
+the launch email, and cookies (the privacy policy promises none — adding any
+means updating it first). Analytics is limited to **Vercel Web Analytics**
+(`<Analytics />` in `layout.tsx`, cookieless page-view counts, described in
+`/privacy`); enable it per project in the Vercel dashboard. Don't add custom
+events with personal data, or any other analytics, without updating
+`/privacy` first.

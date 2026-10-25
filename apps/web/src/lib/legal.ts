@@ -3,10 +3,10 @@
  * with each email (`waitlist.privacy_version`) as a record of consent, so bump
  * it whenever the policy's text changes in a way that matters for the list.
  */
-export const PRIVACY_VERSION = "2026-10-15";
+export const PRIVACY_VERSION = "2026-10-25";
 
 /** Shown as "Last updated" on every legal page. */
-export const LEGAL_UPDATED = "15 October 2026";
+export const LEGAL_UPDATED = "25 October 2026";
 
 /**
  * The operator's details, used by /legal-notice, /privacy and /terms. Every value

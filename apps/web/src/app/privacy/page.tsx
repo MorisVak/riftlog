@@ -19,7 +19,8 @@ export default function PrivacyPage() {
       <p>
         Riftlog is an unofficial fan project for Riftbound, run by{" "}
         <Fill value={OPERATOR.name} />. You can use much of it without an
-        account. There are no ads and no tracking, and your data is never sold.
+        account. There are no ads, no cookies and no tracking across other
+        sites, and your data is never sold.
       </p>
 
       <h2>Information Riftlog handles</h2>
@@ -27,6 +28,13 @@ export default function PrivacyPage() {
         <li>
           <strong>Visiting the site:</strong> the host logs technical data such
           as your IP address, browser and the pages you open.
+        </li>
+        <li>
+          <strong>Visit counts:</strong> Vercel Web Analytics counts which pages
+          are visited, the site you came from, and your country, browser,
+          system and device type. It uses no cookies, doesn&apos;t store your IP
+          address and can&apos;t tell who you are. A visit is only recognised
+          as the same visitor for 24 hours.
         </li>
         <li>
           <strong>Waitlist:</strong> your email address, when you signed up and
@@ -50,20 +58,22 @@ export default function PrivacyPage() {
       <h2>How information is used</h2>
       <ul>
         <li>to run and secure the site and the app,</li>
+        <li>to see how many people visit the site and which pages they read,</li>
         <li>to send one email when Riftlog launches,</li>
         <li>to answer your messages,</li>
         <li>to show you your own matches and decks. Nobody else sees them.</li>
       </ul>
       <p>
         The waitlist is based on your consent, the app on providing the service
-        you signed up for, and logs and replies on my interest in a working,
-        secure site.
+        you signed up for, and logs, visit counts and replies on my interest in
+        a working, secure site.
       </p>
 
       <h2>Service providers</h2>
       <p>
-        Riftlog uses Vercel (USA) to host this site and Supabase (Singapore)
-        for sign-in and the database, which is hosted in the EU (Stockholm).
+        Riftlog uses Vercel (USA) to host this site and count visits, and
+        Supabase (Singapore) for sign-in and the database, which is hosted in
+        the EU (Stockholm).
         Both process data only on my behalf, under data processing agreements
         that include the EU&apos;s standard safeguards. Nothing is shared with
         Riot Games.
