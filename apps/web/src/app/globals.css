@@ -127,8 +127,9 @@
       opacity 350ms ease 175ms;
   }
 
-  /* A slow breath in the accent glow around the hero phone, to draw the eye
-     without pulling at it. Static (the old shadow) under reduced motion. */
+  /* A slow breath in the accent glow around the hero phone and the waitlist
+     card, to draw the eye without pulling at it. Static (the old shadow)
+     under reduced motion. */
   .phone-glow {
     animation: phone-glow 3.2s ease-in-out infinite;
   }
