@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   ChartNoAxesColumn,
+  NotebookPen,
   Palette,
   QrCode,
   Users,
@@ -50,6 +51,18 @@ const ITEMS: {
     title: "Sideboard guide",
     body: "Plan what you side in and out for each matchup.",
     points: ["In and out, per matchup", "Check it between games in a Bo3"],
+  },
+  {
+    id: "quick-log",
+    phase: "planned",
+    icon: NotebookPen,
+    title: "Quick log",
+    body: "Note down a match without scoring it live.",
+    points: [
+      "Just enter who won and the final score",
+      "Bo1 or Bo3, with your deck",
+      "Saved to your history like any other match",
+    ],
   },
   {
     id: "stats",

@@ -645,15 +645,66 @@ both); whether the choice is saved to the account or kept on the device.
 
 ---
 
+## Feature 15 — Quick log
+
+**Status:** concept, on the website roadmap. Not designed. Working name —
+alternatives: "Log a match", "Quick record".
+
+**What it is.** A way to record a match after it's been played, for players
+who don't want to keep score live. Today the only way in is to start a match
+and tick each score up to the end. Quick log is one short form instead:
+
+- Format (Bo1 / Bo3) and opponent name, like the setup sheet.
+- Per game: the final score for each side (the winner follows from it), or
+  just who won.
+- Optionally the deck you played, like the setup sheet.
+
+**Why it matters.** More logged matches means better personal stats, so it
+comes **before Stats (Feature 13)** on the roadmap.
+
+**Data model.** Writes the same `matches` / `games` rows as a live match
+through the same write path and outbox — no second data path. The settling
+rules (Bo3 winner, draws) still come from `@riftlog/core`, not the DB. A flag
+such as `matches.source = 'live' | 'quick'` would let history show which is
+which and let time-based fields (duration, timed mode) stay empty.
+
+**Open design:** whether a score is required or "who won" is enough; whether
+the match date can be set to an earlier day; where the entry point lives
+(Home next to "Start match", History, or both); whether a guest can use it
+(guest mode saves nothing, so probably not).
+
+---
+
 ## Website (riftlog.net)
 
 **Status:** built (`apps/web`). A marketing one-pager describing only what's
 built, with real app screenshots and a clearly labelled "Coming later"
-roadmap (Match mode → Sideboard guide → Stats → Playerboard customization →
-Teams & friends, same order as below); a waitlist backed by Supabase (`join_waitlist`, consent recorded,
+roadmap (Match mode → Sideboard guide → Quick log → Stats → Playerboard
+customization → Teams & friends, same order as below); a waitlist backed by Supabase (`join_waitlist`, consent recorded,
 single opt-in); `/contact` (form → Supabase), `/privacy`, `/terms` and `/legal-notice`
 (Impressum; drafts pending the owner's review); both Riot statements in the footer. Any
 copy about stats stays strictly personal — never cross-player data.
+
+---
+
+## Roadmap ideas (not todos yet)
+
+Everything on the website's "Coming later" roadmap, in its order. These are
+ideas, not commitments — the owner decides when each one becomes a todo.
+Mark an item here when it does, then add it to the build order below.
+
+| # | Item | Phase on site | Spec | Depends on | Todo? |
+| - | ---- | ------------- | ---- | ---------- | ----- |
+| 1 | Match mode (QR) | Up next | Feature 8 | Accounts | Not yet |
+| 2 | Sideboard guide | Planned | Feature 12 | Decks | Not yet |
+| 3 | Quick log | Planned | Feature 15 | Match write path | Not yet |
+| 4 | Stats | Later | Feature 13 | Quick log helps | Not yet |
+| 5 | Playerboard customization | Later | Feature 14 | Riot API key (legend art) | Not yet |
+| 6 | Teams & friends | Later | Feature 9 | Match mode | Not yet |
+
+Not on the website but also open: turn tracking (Feature 10), Piltover
+Archive / Riftmana deck codes (Feature 4), card art decklists (Feature 6),
+handle rename UI (Feature 7).
 
 ---
 
@@ -710,7 +761,7 @@ matching the incremental philosophy in `CLAUDE.md`.
    `profiles` table. (Feature 11 + Feature 7's data model.) _(Done.)_
 6. **Profile identity + onboarding** — claimed handles, reserved names, rename
    rate limit, first-login onboarding, default avatar. (Features 7 + 11.)
-   _(Done.)_ Next: handle rename UI (stats are step 12); owned decks live here.
+   _(Done.)_ Next: handle rename UI (stats are step 13); owned decks live here.
 7. **Deck import** — plain-text import, sectioned deck view, "My decks".
    (Feature 4.) _(Done: text import, deck view, editing, choosing a deck for a
    match.)_ Next: Piltover deck-code decoding.
@@ -719,11 +770,13 @@ matching the incremental philosophy in `CLAUDE.md`.
 9. **Card art decklists** — once the Riot API key lands. (Feature 6.)
 10. **Match mode (QR)** — first of the planned features. (Feature 8.)
 11. **Sideboard guide** — concept. (Feature 12.)
-12. **Stats** — concept. (Feature 13.)
-13. **Playerboard customization** — concept; legend backgrounds need the
+12. **Quick log** — concept; log a finished match without live scoring.
+    (Feature 15.)
+13. **Stats** — concept. (Feature 13.)
+14. **Playerboard customization** — concept; legend backgrounds need the
     Riot API key. (Feature 14.)
-14. **Teams & friends** — concept; needs match mode. (Feature 9.)
-15. **Turn tracking** — exploratory. (Feature 10.)
+15. **Teams & friends** — concept; needs match mode. (Feature 9.)
+16. **Turn tracking** — exploratory. (Feature 10.)
 
 ## Constraints
 
