@@ -683,7 +683,8 @@ the match date can be set to an earlier day; where the entry point lives
 **Status:** built (`apps/web`). A marketing one-pager describing only what's
 built, with real app screenshots and a clearly labelled "Coming later"
 roadmap (Match mode → Sideboard guide → Quick log → Stats → Playerboard
-customization → Teams & friends, same order as below); a waitlist backed by Supabase (`join_waitlist`, consent recorded,
+customization → Teams & friends, same order as below), ending in a blurred
+"More to come" card whose "Suggest a feature" link goes to `/contact`; a waitlist backed by Supabase (`join_waitlist`, consent recorded,
 single opt-in); `/contact` (form → Supabase), `/privacy`, `/terms` and `/legal-notice`
 (Impressum; drafts pending the owner's review); both Riot statements in the footer. Any
 copy about stats stays strictly personal — never cross-player data.
