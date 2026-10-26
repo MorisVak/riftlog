@@ -658,6 +658,7 @@ and tick each score up to the end. Quick log is one short form instead:
 - Per game: the final score for each side (the winner follows from it), or
   just who won.
 - Optionally the deck you played, like the setup sheet.
+- Optional notes — a few lines on how it went.
 
 **Why it matters.** More logged matches means better personal stats, so it
 comes **before Stats (Feature 13)** on the roadmap.
@@ -666,7 +667,9 @@ comes **before Stats (Feature 13)** on the roadmap.
 through the same write path and outbox — no second data path. The settling
 rules (Bo3 winner, draws) still come from `@riftlog/core`, not the DB. A flag
 such as `matches.source = 'live' | 'quick'` would let history show which is
-which and let time-based fields (duration, timed mode) stay empty.
+which and let time-based fields (duration, timed mode) stay empty. Notes
+need a new nullable text column (e.g. `matches.notes`) — useful for live
+matches too.
 
 **Open design:** whether a score is required or "who won" is enough; whether
 the match date can be set to an earlier day; where the entry point lives
