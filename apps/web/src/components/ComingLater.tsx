@@ -1,11 +1,13 @@
 import {
   ArrowLeftRight,
   ChartNoAxesColumn,
+  NotebookPen,
   Palette,
   QrCode,
   Users,
   type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { Reveal } from "./Reveal";
 
 /**
@@ -52,6 +54,18 @@ const ITEMS: {
     points: ["In and out, per matchup", "Check it between games in a Bo3"],
   },
   {
+    id: "quick-log",
+    phase: "planned",
+    icon: NotebookPen,
+    title: "Quick log",
+    body: "Note down a match without scoring it live.",
+    points: [
+      "Just enter who won and the final score",
+      "Add your deck and a few notes",
+      "Saved to your history like any other match",
+    ],
+  },
+  {
     id: "stats",
     phase: "later",
     icon: ChartNoAxesColumn,
@@ -92,7 +106,7 @@ const ITEMS: {
 /** Cards per row on desktop. */
 const PER_ROW = 3;
 
-/** The blurred "More" card after the last item, so the rail runs into it. */
+/** The blurred "More to come" card after the last item, so the rail runs into it. */
 const MORE_INDEX = ITEMS.length;
 
 export function ComingLater() {
@@ -250,9 +264,21 @@ export function ComingLater() {
                   <span className="mt-6 block h-3 w-3/4 rounded bg-ink-tertiary/30" />
                   <span className="mt-3 block h-3 w-1/2 rounded bg-ink-tertiary/30" />
                 </div>
-                <h3 className="relative font-display text-2xl font-semibold text-ink-primary">
-                  More
-                </h3>
+                <div className="relative px-6 text-center">
+                  <h3 className="font-display text-2xl font-semibold text-ink-primary">
+                    More to come
+                  </h3>
+                  <p className="mt-2 font-display text-[15px] leading-relaxed text-ink-secondary">
+                    Have an idea?{" "}
+                    <Link
+                      href="/contact"
+                      className="text-accent-soft underline underline-offset-4 hover:text-ink-primary"
+                    >
+                      Suggest a feature
+                    </Link>
+                    .
+                  </p>
+                </div>
               </article>
             </Reveal>
           </ol>
