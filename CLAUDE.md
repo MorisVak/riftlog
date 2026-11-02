@@ -164,6 +164,10 @@ up:
 
 - **In-app account deletion** — not built; Apple Guideline 5.1.1(v)
   requires it. Until then `/privacy` promises deletion by email within 30 days.
+- **Refine the card screen and the look of the card surfaces** — hard
+  todo. The card sheet and how cards look across the app (deck view rows and
+  gallery, identity cards, import preview, the Unsorted section, flags) work
+  but are a first pass; polish them before launch.
 - **"Buy me a coffee" in the app** — the website header links to
   buymeacoffee.com/moriscodes; the app should too, likely on Profile. Not
   built yet (hard todo).

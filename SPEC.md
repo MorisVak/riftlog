@@ -758,6 +758,13 @@ and card art and text (Features 4 and 6) are built.
 > device out and clearing local state. Do this before any App Store
 > submission, ahead of the steps below.
 
+> **HARD TODO — refine the card screen and the look of the card
+> surfaces.** The card details sheet and how cards look everywhere in the
+> app — deck view rows and gallery tiles, the legend / champion identity
+> cards, the import preview, the "Unsorted" section and the problem flags —
+> work but are a first pass (Features 4 and 6). Polish the layout and visuals
+> before launch.
+
 > **HARD TODO — "Buy me a coffee" link in the app.** The website's header
 > already links to https://buymeacoffee.com/moriscodes (a small cup, like
 > riftatlas.com). The app needs the same link, most likely on the Profile
