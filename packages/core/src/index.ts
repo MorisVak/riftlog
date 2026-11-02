@@ -28,7 +28,20 @@ export {
   type DeckSectionDiff,
 } from './decks/diff';
 export { isDeckList } from './decks/validate';
-export { looksLikeDeckCode } from './decks/deckCode';
+export { deckCodeSetId, looksLikeDeckCode } from './decks/deckCode';
+export {
+  baseCardName,
+  cleanCardText,
+  normalizeCardName,
+  unescapeHtml,
+} from './catalog/names';
+export {
+  PRINTING_CODE,
+  collectorNumber,
+  formatPrintingCode,
+  parsePrintingCode,
+  type PrintingCodeParts,
+} from './catalog/printingCode';
 export {
   DECK_TARGETS,
   emptyDeckList,

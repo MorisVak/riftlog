@@ -13,6 +13,7 @@
     "typecheck": "pnpm -r typecheck",
     "db:push": "pnpm dlx supabase db push",
     "db:push:prod": "pnpm dlx supabase db push --remote",
+    "catalog:import": "pnpm --filter @riftlog/catalog-import run import",
     "db:types": "{ printf '%s\\n' '// GENERATED FILE — DO NOT EDIT.' '// Regenerate with: pnpm db:types (Supabase linked schema, see supabase/migrations).' ''; pnpm dlx supabase gen types typescript --linked; } > packages/core/src/db/database.types.ts",
     "clean": "pnpm -r exec rm -rf node_modules dist .expo .turbo && rm -rf node_modules",
     "test": "pnpm -r --if-present test"

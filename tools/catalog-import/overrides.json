@@ -1,0 +1,122 @@
+[
+  {
+    "riftcodex_id": "69bc5bf1d308c64675ca89f7",
+    "field": "code",
+    "value": "OPP-OGN-259m",
+    "note": "Yasuo - Unforgiven (Metal): Metal promo shares riftbound_id opp-259-298 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "69bc5bf2d308c64675ca89f8",
+    "field": "code",
+    "value": "OPP-OGN-261m",
+    "note": "Leona - Radiant Dawn (Metal): Metal promo shares riftbound_id opp-261-298 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "69bc5bf2d308c64675ca89fa",
+    "field": "code",
+    "value": "OPP-OGN-265m",
+    "note": "Viktor - Herald of the Arcane (Metal): Metal promo shares riftbound_id opp-265-298 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "69bc5bf2d308c64675ca89fb",
+    "field": "code",
+    "value": "OPP-OGN-267m",
+    "note": "Miss Fortune - Bounty Hunter (Metal): Metal promo shares riftbound_id opp-267-298 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "69bc5bf2d308c64675ca89f9",
+    "field": "code",
+    "value": "OPP-OGN-263m",
+    "note": "Teemo - Swift Scout (Metal): Metal promo shares riftbound_id opp-263-298 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "69bc5bf2d308c64675ca89fc",
+    "field": "code",
+    "value": "OPP-OGN-269m",
+    "note": "Sett - The Boss (Metal): Metal promo shares riftbound_id opp-269-298 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "69bc5bf1d308c64675ca89f5",
+    "field": "code",
+    "value": "OPP-OGN-255m",
+    "note": "Ahri - Nine-Tailed Fox (Metal): Metal promo shares riftbound_id opp-255-298 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "69bc5bf1d308c64675ca89f2",
+    "field": "code",
+    "value": "OPP-OGN-249m",
+    "note": "Volibear - Relentless Storm (Metal): Metal promo shares riftbound_id opp-249-298 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "69bc5bf1d308c64675ca89f1",
+    "field": "code",
+    "value": "OPP-OGN-247m",
+    "note": "Kai'Sa - Daughter of the Void (Metal): Metal promo shares riftbound_id opp-247-298 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "69bc5bf1d308c64675ca89f4",
+    "field": "code",
+    "value": "OPP-OGN-253m",
+    "note": "Darius - Hand of Noxus (Metal): Metal promo shares riftbound_id opp-253-298 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "69bc5bf1d308c64675ca89f3",
+    "field": "code",
+    "value": "OPP-OGN-251m",
+    "note": "Jinx - Loose Cannon (Metal): Metal promo shares riftbound_id opp-251-298 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "69bc5bf1d308c64675ca89f6",
+    "field": "code",
+    "value": "OPP-OGN-257m",
+    "note": "Lee Sin - Blind Monk (Metal): Metal promo shares riftbound_id opp-257-298 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "69bc5bf2d308c64675ca89fd",
+    "field": "code",
+    "value": "OPP-OGS-017m",
+    "note": "Annie - Dark Child (Metal): Metal promo shares riftbound_id opp-017-024 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "69bc5bf2d308c64675ca89fe",
+    "field": "code",
+    "value": "OPP-OGS-019m",
+    "note": "Master Yi - Wuju Bladesman (Metal): Metal promo shares riftbound_id opp-019-024 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "69bc5bf2d308c64675ca8a00",
+    "field": "code",
+    "value": "OPP-OGS-023m",
+    "note": "Garen - Might of Demacia (Metal): Metal promo shares riftbound_id opp-023-024 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "69bc5bf2d308c64675ca89ff",
+    "field": "code",
+    "value": "OPP-OGS-021m",
+    "note": "Lux - Lady of Luminosity (Metal): Metal promo shares riftbound_id opp-021-024 with the regular promo; m = Metal"
+  },
+  {
+    "riftcodex_id": "6a56ab96ff602fd324f4761e",
+    "field": "name",
+    "value": "Kennen - Heart of the Tempest",
+    "note": "ven-155: Riftcodex name is \"Yordle, Kennen - Heart of the Tempest\""
+  },
+  {
+    "riftcodex_id": "6a56ab96ff602fd324f4761d",
+    "field": "name",
+    "value": "Kennen - Heart of the Tempest (Overnumbered)",
+    "note": "ven-197: Riftcodex name is \"Yordle, Kennen - Heart of the Tempest (Overnumbered)\""
+  },
+  {
+    "riftcodex_id": "6a56aba0ff602fd324f47681",
+    "field": "name",
+    "value": "Jayce - Defender of Tomorrow (Overnumbered)",
+    "note": "ven-194: spoiler-only entry named \"Defender of Tomorrow\" without the champion; same text as VEN-149, numbered above the set size"
+  },
+  {
+    "riftcodex_id": "6a56aba0ff602fd324f47681",
+    "field": "overnumbered",
+    "value": true,
+    "note": "ven-194: numbered above the set size (166) but not flagged overnumbered by Riftcodex"
+  }
+]
