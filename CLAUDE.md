@@ -171,6 +171,11 @@ up:
 - **Operator:** Maurice Mecke, a solo developer. Public copy and legal pages
   speak in the first person ("I"), never "we". Legal details live only in
   `apps/web/src/lib/legal.ts`.
+- **TODO (Supabase Pro):** once the project moves to Pro, use Supabase
+  branching for migrations instead of pushing straight to production, and
+  set up a regular backup routine. Until then migrations go straight to the
+  live project — dry-run first. Local dumps go in `/backups/` (gitignored);
+  never commit or read anything there.
 - **Supabase DPA:** incorporated into Supabase's Terms of Service — no
   separate signature. The contracting entity is **Supabase Pte. Ltd.
   (Singapore)**; the project's data is hosted in the EU (Stockholm).

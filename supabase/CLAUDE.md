@@ -5,7 +5,7 @@ of truth** for match data.
 
 **Status:** the project is linked; `matches` + `games` (with
 `time_limit_seconds`), `profiles` (claimed handles + onboarding),
-`reserved_names`, and `decks` + `deck_versions` are migrated with RLS; the mobile client,
+`reserved_names`, `decks` + `deck_versions`, and the card catalog are migrated with RLS; the mobile client,
 the online write/read path, and the offline outbox are all built. Auth is
 account-only — **anonymous sign-in has been removed** (see Auth below).
 
@@ -50,7 +50,8 @@ supabase/
 │   ├── 20261012165614_feedback.sql
 │   ├── 20261012170431_feedback_manage.sql
 │   ├── 20261015154509_waitlist.sql
-│   └── 20261015163420_contact_messages.sql
+│   ├── 20261015163420_contact_messages.sql
+│   └── 20261102184149_card_catalog.sql
 └── config.toml       Supabase CLI config (linked, anon auth OFF)
 
 ## Schema
@@ -143,10 +144,8 @@ mirror the `@riftlog/core` domain terms (a **match** is the Bo1/Bo3 series, a
   Designed for, not built: attaching versions to matches (`Player.deck` in the
   `players` jsonb, or a `match_decks` table), `profiles.favorite_deck_id`, and
   an extra `select` policy on `deck_versions` letting an opponent read the one
-  version used in a shared match. **Card catalog (future):** a `cards` table
-  keyed by the full printing code (`SFD-149a`) with name / type / domains /
-  art, filled server-side once the Riot API key exists. Lists keep
-  `CardRef.code`; text imports (code null) resolve art by normalized name at
+  version used in a shared match. Deck lists join the card catalog (below)
+  by `CardRef.code`; text imports (code null) resolve by normalized name at
   read time, so no stored list ever needs migrating.
 
 `winner_id`/`ended_at` on `games` are nullable because an early
@@ -262,6 +261,54 @@ string: pass `''` for "none" — the function stores it as null.
 The client embeds the current version with
 `deck_versions!decks_current_version_fkey(...)`; the FK name is required
 because the two tables are related both ways.
+
+### Card catalog
+
+Every Riftbound card and printing, owned by us
+(`20261102184149_card_catalog.sql`). Postgres is the source of truth: an
+importer seeds and syncs it from Riftcodex (an open, unofficial API) with the
+secret key; when a Riot API key lands, a second importer writes
+`source = 'riot'`. **Clients never call Riftcodex** — they read these tables
+with the publishable key.
+
+- **`sets`** — `code` PK (`OGN`), `name`, `released_on`, `deck_code_set_id`
+  (the id deck codes use; **null = not deckable**: the promo sets OPP / PR /
+  JDG).
+- **`cards`** — gameplay identity, one row per card: `name`, `name_key`
+  (unique normalized match key, written with `@riftlog/core`'s normalizer so
+  importer and app agree), `type` (`card_type` enum), `supertype`, `domains`,
+  `energy` / `might` / `power`, `tags`, `current_text` (the base printing's
+  text).
+- **`card_printings`** — `code` PK = the deck-code printing code
+  `SET-NNN[variant]` (`SFD-149a`, `UNL-229*`, `VEN-R01`, `VEN-SP1`; `m` = a
+  Metal promo, e.g. `OPP-259m`). A check forces `code = set_code || '-' ||
+  collector_number || variant`. Also `card_id`, the `alt_art` / `overnumbered`
+  / `signed` / `promo` flags, `printed_text`, `image_url` or `storage_path`
+  (storage wins), `artist`, `rarity`, `orientation` (battlefields are
+  landscape), `riftcodex_id` (unique — Riftcodex's `riftbound_id` is not).
+- **`card_errata`** — `card_id`, previous / new text, `effective_on`,
+  `source_note`. **Empty; nothing writes it yet.**
+- Every row above has `source` (`riftcodex | manual | riot`),
+  `manually_edited` (**imports never overwrite a row where it's true**) and
+  `status` (`spoiler | released`).
+- **`catalog_overrides`** — `(riftcodex_id, field) → value` corrections the
+  importer re-applies on every run (a broken name, a code like the Metal
+  `m`, `skip`). Keyed on Riftcodex's own `id`. Admin-only, reads included.
+- **`catalog_meta`** — one row, `version`. Statement-level triggers bump it
+  once per statement that **really changed rows** (no-op updates and
+  zero-row statements don't; `updated_at` also only moves on a real change),
+  so dashboard edits bump it too. The app refetches the catalog only when
+  it moves.
+- **`catalog_admins`** — `user_id`, the same pattern as `feedback_admins`
+  (RLS on, no policies, no client grants), kept separate on purpose. Rows are
+  added by hand in the SQL editor. `is_catalog_admin()` (definer) reads it;
+  `authenticated` holds EXECUTE because the write policies call it as the
+  caller — it only answers for the caller.
+
+Access: anyone (`anon` and `authenticated`) may **read** sets, cards,
+printings, errata and `catalog_meta`; **writes** are admin-only by RLS. The
+**`card-images`** storage bucket is public-read (via public URL), admin-only
+write, 5 MB, png / jpeg / webp.
 
 ### Feedback
 
@@ -424,7 +471,10 @@ over the access token (no DB password needed); applying migrations does.
 
 - Created via `pnpm dlx supabase migration new <name>`
 - Append-only — **never edit a committed migration**; add a new one
-- Push to remote: `pnpm db:push` (= `supabase db push`). The DB password was
+- Push to remote: **`pnpm dlx supabase db push --remote`**. Since CLI 3.0
+  `db push` targets a *local* stack by default, so plain `pnpm db:push`
+  (= `supabase db push`) fails without Docker — always pass `--remote`, and
+  dry-run first (`--remote --dry-run`) to see what will apply. The DB password was
   cached in the macOS keychain when the project was linked, so this runs
   non-interactively. It prints a `failed to cache migrations catalog … Docker`
   warning — that's only the local catalog cache; the migration still applies.
@@ -497,7 +547,8 @@ offline outbox. Still ahead (later slices / features):
   to `/privacy` when it is.
 - **Account deletion (urgent, see `../SPEC.md`)** — needs a server-side path
   that deletes the `auth.users` row; the FK cascades remove the rest.
-- The card catalog (`cards`), once the Riot API key exists
+- The card catalog importer (Riftcodex → catalog, secret key), then the
+  app's catalog cache and card display — the schema is in place.
 - First Edge Function (none needed so far — text import parses on-device)
 
 Build incrementally. Verify each step before moving on.
