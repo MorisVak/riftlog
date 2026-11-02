@@ -12,7 +12,7 @@ import {
   type SetRow,
 } from './plan';
 import { parseCard, parseSet } from './riftcodex';
-import { transform, type Override } from './transform';
+import { richCardText, transform, type Override } from './transform';
 import overridesFile from '../overrides.json';
 
 const cards = sample.cards.map((c, i) => parseCard(c, `sample #${i}`));
@@ -161,6 +161,27 @@ describe('transform', () => {
     expect(printing(d, 'UNL-229*')?.overnumbered).toBe(false);
     // And the derived flag keeps it from being the card's base printing.
     expect(card(d, 'ezreal, prodigy')?.current_text).toBe(printing(d, 'VEN-SP5')?.printed_text);
+  });
+
+  it('takes line breaks from the rich text: <br>, paragraphs and list items', () => {
+    expect(richCardText('<p>[Deflect]<br />When you play me, draw 1.</p>')).toBe('[Deflect]\nWhen you play me, draw 1.');
+    expect(
+      richCardText('<p>[Reaction]<br />Choose one —</p><ul><li>Counter a spell.</li><li>Draw 1.</li></ul>'),
+    ).toBe('[Reaction]\nChoose one —\nCounter a spell.\nDraw 1.');
+    expect(richCardText('<p>One.</p><p></p><p>Two.</p>')).toBe('One.\nTwo.');
+    expect(richCardText('')).toBeNull();
+    expect(richCardText(null)).toBeNull();
+  });
+
+  it('uses the rich text, entities decoded, and the plain text only when there is none', () => {
+    const d = run();
+    const vi = printing(d, 'UNL-229');
+    expect(vi?.printed_text).not.toContain('<');
+    expect(vi?.printed_text).not.toContain('&gt;');
+    // Every printed text in the sample came through without tags.
+    expect(d.printings.every((p) => !/<[a-z/]/i.test(p.printed_text))).toBe(true);
+    // The rune has no rich text and an empty plain one.
+    expect(printing(d, 'VEN-R03')?.printed_text).toBe('');
   });
 
   it('lets an override set the overnumbered flag', () => {

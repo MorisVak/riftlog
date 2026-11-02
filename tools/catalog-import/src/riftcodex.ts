@@ -22,7 +22,8 @@ export type RiftcodexCard = {
     rarity: string | null;
     domain: string[];
   };
-  text: { plain: string | null };
+  /** `rich` is HTML (<p>, <br />, <ul>/<li>); `plain` is the same text with no line breaks. */
+  text: { plain: string | null; rich: string | null };
   set: { set_id: string };
   media: { image_url: string | null; artist: string | null };
   tags: string[];
@@ -110,7 +111,7 @@ export const parseCard = (raw: unknown, where = 'card'): RiftcodexCard => {
       rarity: strOrNull(classification, 'rarity', at),
       domain: strings(classification, 'domain', at),
     },
-    text: { plain: strOrNull(text, 'plain', at) },
+    text: { plain: strOrNull(text, 'plain', at), rich: strOrNull(text, 'rich', at) },
     set: { set_id: str(obj(raw, 'set', at), 'set_id', at) },
     media: {
       image_url: strOrNull(media, 'image_url', at),

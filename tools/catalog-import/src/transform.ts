@@ -136,6 +136,22 @@ const ref = (c: RiftcodexCard): SourceRef => ({
   name: c.name,
 });
 
+/**
+ * Card text from Riftcodex's rich (HTML) field, which keeps the line breaks
+ * its plain field drops: <br> and the end of a paragraph or list item become
+ * a newline, every other tag is removed. Entities are decoded later by
+ * cleanCardText. Null when there's no rich text (then the plain field is used).
+ */
+export function richCardText(rich: string | null): string | null {
+  if (rich == null || rich.trim() === '') return null;
+  return rich
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|li)\s*>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\n{2,}/g, '\n')
+    .replace(/^\n+|\n+$/g, '');
+}
+
 /** `2026-07-31T00:00:00` → `2026-07-31`. */
 const isoDate = (value: string | null): string | null =>
   value && /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : null;
@@ -245,7 +261,10 @@ export function transform(input: {
         ? (get('supertype')?.value as string | null)
         : original.classification.supertype;
     const domains = (get('domains')?.value as string[] | undefined) ?? original.classification.domain;
-    const text = get('text') !== undefined ? (get('text')?.value as string) : original.text.plain;
+    const text =
+      get('text') !== undefined
+        ? (get('text')?.value as string)
+        : (richCardText(original.text.rich) ?? original.text.plain);
     const imageUrl =
       get('image_url') !== undefined ? (get('image_url')?.value as string | null) : original.media.image_url;
     const orientation = (get('orientation')?.value as string | undefined) ?? original.orientation;
