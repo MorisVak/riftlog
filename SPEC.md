@@ -366,12 +366,13 @@ diff. The diff logic (`diffDecks`) is a pure function in `@riftlog/core`.
 
 ## Feature 6 — Decklists & card art
 
-**Status:** sectioned decklists built (text only, Feature 4); card art
-deferred — blocked on a Riot API key (not yet obtained).
+**Status:** sectioned decklists built (text only, Feature 4). **Card art and
+card text are the next todo** (see the Roadmap) — blocked on a Riot API key
+(not yet obtained).
 
-**What it is.** Viewing a decklist shows the actual card arts, broken into the
-standard Riftbound sections: chosen Champion, Legend, 40-card main deck,
-12 Runes, 3 Battlefields, sideboard.
+**What it is.** Viewing a decklist shows the actual card arts and card text,
+broken into the standard Riftbound sections: chosen Champion, Legend, 40-card
+main deck, 12 Runes, 3 Battlefields, sideboard.
 
 **Dependencies & notes:**
 
@@ -707,8 +708,8 @@ Mark an item here when it does, then add it to the build order below.
 | 6 | Teams & friends | Later | Feature 9 | Match mode | Not yet |
 
 Not on the website but also open: turn tracking (Feature 10), Piltover
-Archive / Riftmana deck codes (Feature 4), card art decklists (Feature 6),
-handle rename UI (Feature 7).
+Archive / Riftmana deck codes (Feature 4), handle rename UI (Feature 7). Card
+art and text (Feature 6) is a todo now — see below.
 
 ---
 
@@ -747,6 +748,16 @@ handle rename UI (Feature 7).
 > provider added to "Service providers" in `/privacy`
 > (`apps/web/src/app/privacy/page.tsx`). Do this before launch.
 
+> **TODO (next) — card art and card text in decklists.** The next thing
+> to build (Feature 6). Viewing a deck shows each card's art and its text
+> (cost, domain, type, rules text), not just name and count. Needs the card
+> data and images from Riot: a production API key from
+> developer.riotgames.com (a request to the content endpoint without one
+> currently returns 403 Forbidden). Then: a card catalog keyed by printing code,
+> name matching for text imports, art and text in the one card component,
+> and the fan-made disclaimer wherever the art appears. Must not migrate
+> existing deck data.
+
 Each step should be a working, committed slice before the next begins —
 matching the incremental philosophy in `CLAUDE.md`.
 
@@ -771,7 +782,8 @@ matching the incremental philosophy in `CLAUDE.md`.
    match.)_ Next: Piltover deck-code decoding.
 8. **Deck versioning & diffs** — version on edit, show change snapshots.
    (Feature 5.) _(Done except per-match diff snapshots in history.)_
-9. **Card art decklists** — once the Riot API key lands. (Feature 6.)
+9. **Card art and text in decklists** — the next todo; needs the Riot API
+   key. (Feature 6.)
 10. **Match mode (QR)** — first of the planned features. (Feature 8.)
 11. **Sideboard guide** — concept. (Feature 12.)
 12. **Quick log** — concept; log a finished match without live scoring.
