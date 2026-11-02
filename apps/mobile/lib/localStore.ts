@@ -3,8 +3,9 @@ import type { Match } from '@riftlog/core';
 
 /**
  * Bounded, self-clearing local store for offline tolerance. Postgres is the
- * single source of truth; the device persists EXACTLY two things and nothing
- * more — match history is never mirrored locally.
+ * single source of truth; the device persists EXACTLY two kinds of match data
+ * and nothing more — match history is never mirrored locally. (The card
+ * catalog cache in lib/catalog.ts is public reference data, not match data.)
  *
  *   1. the single in-progress match (so an interrupted round survives a
  *      kill/restart), and

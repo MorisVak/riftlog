@@ -1,3 +1,4 @@
+import { PRINTING_CODE } from '../catalog/printingCode';
 import type { CardRef, DeckList } from '../types/deck';
 import {
   DECK_TARGETS,
@@ -108,8 +109,13 @@ export function parseDeckText(input: string): ParsedDeck {
     sideboard: new Map(),
   };
 
+  // Cards under "Unsorted:" (deck-code cards the catalog didn't know, as
+  // formatDeckText writes them): named by printing code, which is kept.
+  const unsorted: Entry[] = [];
+  const seenUnsorted = new Map<string, Entry>();
+
   // `null` = before any header; `'skip'` = inside an unknown section.
-  let section: DeckSection | 'skip' | null = null;
+  let section: DeckSection | 'unsorted' | 'skip' | null = null;
 
   const lines = input.split(/\r\n|\r|\n/);
   lines.forEach((raw, index) => {
@@ -120,6 +126,10 @@ export function parseDeckText(input: string): ParsedDeck {
     const header = HEADERS[normalizeHeader(line)];
     if (header) {
       section = header;
+      return;
+    }
+    if (normalizeHeader(line) === 'unsorted') {
+      section = 'unsorted';
       return;
     }
 
@@ -141,7 +151,7 @@ export function parseDeckText(input: string): ParsedDeck {
       } else {
         diagnostics.push({
           line: lineNo,
-          section: section === 'skip' ? null : section,
+          section: section === 'skip' || section === 'unsorted' ? null : section,
           severity: 'error',
           code: 'unparseable_line',
           message: 'Expected a count and a card name, like "3 Gust".',
@@ -158,7 +168,7 @@ export function parseDeckText(input: string): ParsedDeck {
     if (count < 1) {
       diagnostics.push({
         line: lineNo,
-        section,
+        section: section === 'unsorted' ? null : section,
         severity: 'error',
         code: 'invalid_count',
         message: 'A card needs a count of at least 1.',
@@ -179,6 +189,18 @@ export function parseDeckText(input: string): ParsedDeck {
     }
 
     const key = cardKey(name);
+    if (section === 'unsorted') {
+      const prev = seenUnsorted.get(key);
+      if (prev) {
+        prev.card.count += count;
+        return;
+      }
+      const code = PRINTING_CODE.test(name) ? name : null;
+      const entry: Entry = { card: { name, code, count }, line: lineNo };
+      seenUnsorted.set(key, entry);
+      unsorted.push(entry);
+      return;
+    }
     const existing = seen[section].get(key);
     if (existing) {
       existing.card.count += count;
@@ -194,6 +216,7 @@ export function parseDeckText(input: string): ParsedDeck {
   list.battlefields = entries.battlefields.map((e) => e.card);
   list.runes = entries.runes.map((e) => e.card);
   list.sideboard = entries.sideboard.map((e) => e.card);
+  if (unsorted.length) list.unsorted = unsorted.map((e) => e.card);
 
   // Legend: the first is the deck's legend. More than one isn't part of the
   // game yet — keep them rather than silently dropping what was pasted.

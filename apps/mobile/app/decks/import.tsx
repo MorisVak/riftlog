@@ -12,10 +12,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import {
+  DeckCodeError,
+  decodeDeckCode,
+  deckListFromCode,
   formatDeckText,
   looksLikeDeckCode,
   parseDeckText,
   type DeckList,
+  type ParsedDeck,
 } from '@riftlog/core';
 import {
   createDeck,
@@ -26,6 +30,7 @@ import {
 } from '@/lib/decks';
 import ImportPreview from '@/components/deck/importPreview';
 import Icon from '@/components/icon';
+import { useCatalog } from '@/contexts/catalogContext';
 import { CTA_GLOW } from '@/components/ctaGlow';
 
 /**
@@ -48,19 +53,35 @@ const FORMAT_EXAMPLE: { header: string; hint?: string; lines: string[] }[] = [
 
 /**
  * "Kennen, Heart of the Tempest" → "Kennen". Riftbound card names read
- * "Champion, Title"; the champion part is what players call the deck.
+ * "Champion, Title" (the catalog writes "Champion - Title"); the champion part
+ * is what players call the deck.
  */
 const defaultDeckName = (legendName: string | undefined): string =>
-  (legendName ?? '').split(',')[0]?.trim().slice(0, DECK_NAME_MAX) ?? '';
+  (legendName ?? '').split(/,| - /)[0]?.trim().slice(0, DECK_NAME_MAX) ?? '';
+
+/** What a pasted deck code turned into. */
+type CodeResult =
+  | { kind: 'ok'; parsed: ParsedDeck }
+  | { kind: 'no_catalog' }
+  | { kind: 'error'; error: 'invalid' | 'newer_format' };
+
+const CODE_MESSAGES: Record<'no_catalog' | 'invalid' | 'newer_format', string> = {
+  no_catalog:
+    "The card catalog hasn't loaded yet, and it's needed to sort a deck code. Connect to the internet and try again.",
+  invalid: "This doesn't look like a valid deck code. Copy it again from Piltover Archive.",
+  newer_format: 'This code comes from a newer Piltover Archive format. Update Riftlog to import it.',
+};
 
 /**
  * Import a deck by pasting a plain-text decklist (Piltover Archive →
- * Export → Text). Parsing is live and local (`parseDeckText`); the one write
- * is `createDeck`, which saves the deck and its first immutable version.
+ * Export → Text) or a deck code. Parsing is live and local; the one write is
+ * `createDeck`, which saves the deck and its first immutable version.
  *
- * Deck codes are recognised but not decoded yet: the option is shown
- * disabled, and a pasted code gets a pointer to the text export instead of a
- * wall of parse errors.
+ * A deck code is recognised by its shape whichever tab is picked (the tabs
+ * only change the hints). It carries printings without sections, so it's
+ * sorted by the card catalog's types (`deckListFromCode`); printings the
+ * catalog doesn't know go to an "Unsorted" section. It's saved with
+ * import_source 'piltover_code' and the code itself.
  *
  * With a `deckId` param the same screen EDITS that deck's list: the box
  * starts with the current list as text (`formatDeckText`), so changing a
@@ -70,6 +91,9 @@ const defaultDeckName = (legendName: string | undefined): string =>
  * edited here; the deck screen renames.
  */
 const ImportDeck = () => {
+  // The preview checks cards against the catalog; make sure it's current.
+  const { refresh: refreshCatalog } = useCatalog();
+  useEffect(() => refreshCatalog(), [refreshCatalog]);
   const router = useRouter();
   const { deckId } = useLocalSearchParams<{ deckId?: string }>();
   const editing = typeof deckId === 'string' && deckId !== '';
@@ -80,6 +104,9 @@ const ImportDeck = () => {
   // name", which the field shows as its placeholder.
   const [nameInput, setNameInput] = useState('');
   const [saving, setSaving] = useState(false);
+  // Which hints to show; what the paste IS is decided by its shape.
+  const [mode, setMode] = useState<'text' | 'code'>('text');
+  const { index } = useCatalog();
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -105,9 +132,26 @@ const ImportDeck = () => {
     original !== null && original !== 'error' ? original : null;
 
   const isCode = looksLikeDeckCode(text);
+  const codeResult = useMemo((): CodeResult | null => {
+    if (!isCode) return null;
+    try {
+      const decoded = decodeDeckCode(text);
+      if (!index) return { kind: 'no_catalog' };
+      return { kind: 'ok', parsed: { list: deckListFromCode(decoded, index), diagnostics: [] } };
+    } catch (e) {
+      return { kind: 'error', error: e instanceof DeckCodeError ? e.kind : 'invalid' };
+    }
+  }, [isCode, text, index]);
   const parsed = useMemo(
-    () => (text.trim() === '' || isCode ? null : parseDeckText(text)),
-    [text, isCode],
+    () =>
+      text.trim() === ''
+        ? null
+        : isCode
+          ? codeResult?.kind === 'ok'
+            ? codeResult.parsed
+            : null
+          : parseDeckText(text),
+    [text, isCode, codeResult],
   );
   const sourceLines = useMemo(() => text.split(/\r\n|\r|\n/), [text]);
 
@@ -124,7 +168,8 @@ const ImportDeck = () => {
       parsed.list.main.length > 0 ||
       parsed.list.battlefields.length > 0 ||
       parsed.list.runes.length > 0 ||
-      parsed.list.sideboard.length > 0);
+      parsed.list.sideboard.length > 0 ||
+      (parsed.list.unsorted?.length ?? 0) > 0);
   // Warnings never block a save; errors (dropped lines) do, so nothing the
   // user pasted silently goes missing.
   // Edit mode: compared as formatted text, so extra spaces / blank lines or
@@ -170,7 +215,11 @@ const ImportDeck = () => {
         close();
         return;
       }
-      const id = await createDeck({ name: trimmedName, list: parsed.list });
+      const id = await createDeck({
+        name: trimmedName,
+        list: parsed.list,
+        ...(isCode ? { importSource: 'piltover_code' as const, sourceCode: text.trim() } : {}),
+      });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       // Leave the modal, then open the saved deck as a normal screen.
       if (router.canGoBack()) router.back();
@@ -219,37 +268,38 @@ const ImportDeck = () => {
             </Text>
           )}
 
-          {/* Source. Only text works today; the code option is shown so the
-              feature is discoverable, but it's inert. */}
+          {/* Which hints to show. A pasted code is recognised either way. */}
           {!editing && (
             <View className="mb-4 flex-row gap-2">
-              <View
-                accessible
-                accessibilityRole="button"
-                accessibilityState={{ selected: true }}
-                accessibilityLabel="Text"
-                className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-accent bg-accent/15 py-3"
-              >
-                <Icon name="file-text" size={15} className="text-accent" />
-                <Text className="font-display text-sm text-accent">Text</Text>
-              </View>
-              <View
-                accessible
-                accessibilityRole="button"
-                accessibilityState={{ disabled: true }}
-                accessibilityLabel="Deck code, coming soon"
-                className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-border bg-surface py-3"
-              >
-                <Icon name="hash" size={15} className="text-ink-tertiary" />
-                <Text className="font-display text-sm text-ink-tertiary">
-                  Deck code
-                </Text>
-                <View className="rounded-full bg-elevated px-1.5 py-0.5">
-                  <Text className="font-display text-[10px] uppercase tracking-wider text-ink-secondary">
-                    Coming soon
-                  </Text>
-                </View>
-              </View>
+              {(
+                [
+                  { key: 'text', icon: 'file-text', label: 'Text' },
+                  { key: 'code', icon: 'hash', label: 'Deck code' },
+                ] as const
+              ).map((o) => {
+                const on = mode === o.key;
+                return (
+                  <TouchableOpacity
+                    key={o.key}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={o.label}
+                    onPress={() => {
+                      if (on) return;
+                      Haptics.selectionAsync();
+                      setMode(o.key);
+                    }}
+                    className={`flex-1 flex-row items-center justify-center gap-2 rounded-xl border py-3 ${
+                      on ? 'border-accent bg-accent/15' : 'border-border bg-surface active:bg-elevated'
+                    }`}
+                  >
+                    <Icon name={o.icon} size={15} className={on ? 'text-accent' : 'text-ink-secondary'} />
+                    <Text className={`font-display text-sm ${on ? 'text-accent' : 'text-ink-secondary'}`}>
+                      {o.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
 
@@ -278,7 +328,7 @@ const ImportDeck = () => {
 
           <View className="mb-2 flex-row items-center justify-between">
             <Text className="font-display text-base text-ink-secondary">
-              Decklist
+              {mode === 'code' && !editing ? 'Deck code' : 'Decklist'}
             </Text>
             <View className="flex-row gap-3">
               {text !== '' && (
@@ -317,7 +367,11 @@ const ImportDeck = () => {
               setNotice(null);
             }}
             placeholder={
-              loadingOriginal ? 'Loading deck…' : 'Paste your decklist here'
+              loadingOriginal
+                ? 'Loading deck…'
+                : mode === 'code' && !editing
+                  ? 'Paste your deck code here'
+                  : 'Paste your decklist here'
             }
             editable={!loadingOriginal}
             multiline
@@ -329,7 +383,18 @@ const ImportDeck = () => {
             className="max-h-64 min-h-[160px] rounded-xl border border-border bg-elevated px-4 py-3 font-mono-medium text-[13px] leading-5 text-ink-primary placeholder:text-ink-tertiary"
           />
 
-          {text.trim() === '' && (
+          {text.trim() === '' && mode === 'code' && !editing && (
+            <View className="mt-4 flex-row gap-2.5 rounded-2xl border border-border bg-surface p-4">
+              <Icon name="info" size={16} className="mt-0.5 text-accent" />
+              <Text className="flex-1 text-[14px] leading-5 text-ink-primary">
+                In Piltover Archive, open the deck and use Export → Deck code,
+                then paste it here. Riftlog sorts the cards using its card
+                catalog.
+              </Text>
+            </View>
+          )}
+
+          {text.trim() === '' && (mode === 'text' || editing) && (
             <View className="mt-4 rounded-2xl border border-border bg-surface px-4 py-3.5">
               <Text className="mb-2.5 font-display text-base text-ink-secondary">
                 Expected format
@@ -361,12 +426,16 @@ const ImportDeck = () => {
             </View>
           )}
 
-          {isCode && (
-            <View className="mt-4 flex-row gap-2.5 rounded-2xl border border-border bg-surface p-4">
-              <Icon name="info" size={16} className="mt-0.5 text-accent" />
+          {codeResult !== null && codeResult.kind !== 'ok' && (
+            <View
+              accessible
+              className="mt-4 flex-row gap-2.5 rounded-2xl border border-border bg-surface p-4"
+            >
+              <Icon name="alert-circle" size={16} className="mt-0.5 text-ink-primary" />
               <Text className="flex-1 text-[14px] leading-5 text-ink-primary">
-                Deck codes are coming soon. In Piltover Archive, use Export →
-                Text and paste that instead.
+                {codeResult.kind === 'no_catalog'
+                  ? CODE_MESSAGES.no_catalog
+                  : CODE_MESSAGES[codeResult.error]}
               </Text>
             </View>
           )}

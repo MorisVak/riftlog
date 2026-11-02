@@ -21,6 +21,8 @@ export function formatDeckText(list: DeckList): string {
   block('Battlefields', list.battlefields);
   block('Runes', list.runes);
   block('Sideboard', list.sideboard);
+  // Named by printing code; the parser reads the code back from the name.
+  block('Unsorted', list.unsorted ?? []);
 
   return blocks.join('\n\n');
 }

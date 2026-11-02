@@ -31,6 +31,14 @@ export type DeckList = {
   runes: CardRef[];
   sideboard: CardRef[];
   additionalLegends: CardRef[];
+  /**
+   * Cards from a deck code whose printing the card catalog didn't know when
+   * it was imported, so their section (legend? rune?) couldn't be told —
+   * named by their code. Optional: older lists have none. Views move a card
+   * into its section on screen once the catalog knows its code
+   * (`resortUnsorted`); the stored list keeps it here.
+   */
+  unsorted?: CardRef[];
 };
 
 /** How a deck entered Riftlog. Mirrors `decks.import_source`. */

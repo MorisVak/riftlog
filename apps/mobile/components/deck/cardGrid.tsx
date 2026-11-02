@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Text, View } from 'react-native';
-import { deckCardKey, type CardRef, type DeckCardChange } from '@riftlog/core';
+import { Pressable, Text, View } from 'react-native';
+import { deckCardKey, type CardRef, type DeckCardChange, type ListSection } from '@riftlog/core';
 import CardArt from '@/components/deck/cardArt';
-import type { CardChange } from '@/components/deck/cardRow';
+import { issueLabel, type CardChange } from '@/components/deck/cardRow';
+import Icon from '@/components/icon';
+import { useCardSheet } from '@/contexts/cardSheetContext';
+import { useCardMatch } from '@/hooks/useCardMatch';
 
 const COLUMNS = 3;
 const GAP = 8;
@@ -24,11 +27,14 @@ const CardGrid = ({
   cards,
   lead = [],
   changes,
+  section,
 }: {
   cards: CardRef[];
   /** Tiles placed first, e.g. the chosen champion (tagged). */
   lead?: Tile[];
   changes?: DeckCardChange[];
+  /** To flag cards of the wrong type. */
+  section?: ListSection;
 }) => {
   const [width, setWidth] = useState(0);
   const tileW = width > 0 ? (width - GAP * (COLUMNS - 1)) / COLUMNS : 0;
@@ -57,14 +63,16 @@ const CardGrid = ({
     >
       {tileW > 0 &&
         tiles.map((t, i) => (
-          <CardTile key={`${t.card.name}-${i}`} tile={t} width={tileW} />
+          <CardTile key={`${t.card.name}-${i}`} tile={t} width={tileW} section={section} />
         ))}
     </View>
   );
 };
 
-const CardTile = ({ tile, width }: { tile: Tile; width: number }) => {
+const CardTile = ({ tile, width, section }: { tile: Tile; width: number; section?: ListSection }) => {
   const { card, tag, change } = tile;
+  const { issue } = useCardMatch(card, section);
+  const { openCard } = useCardSheet();
   const up = change !== undefined && change.after > change.before;
   const removed = change !== undefined && change.after === 0;
   const label = change
@@ -78,14 +86,26 @@ const CardTile = ({ tile, width }: { tile: Tile; width: number }) => {
     : null;
 
   return (
-    <View
-      accessible
+    <Pressable
+      accessibilityRole="button"
+      accessibilityHint="Shows the card's details"
+      onPress={() => openCard(card)}
       accessibilityLabel={`${card.count} ${card.name}${tag ? `, ${tag}` : ''}${
         label ? `, ${label.replace('−', 'minus ')}` : ''
-      }`}
+      }${issue ? `, ${issueLabel(issue)}` : ''}`}
       style={{ width, opacity: removed ? 0.55 : 1 }}
+      // self-start: keep the tile's own height in a wrapping row, so badges
+      // sit on a landscape (shorter) card rather than below it.
+      className="self-start active:opacity-70"
     >
       <CardArt card={card} variant="tile" width={width} />
+      {/* A problem card: icon + "Check", bottom-left; the label says what. */}
+      {issue && (
+        <View className="absolute bottom-1.5 left-1.5 flex-row items-center gap-0.5 rounded-md bg-background/85 px-1.5 py-0.5">
+          <Icon name="alert-triangle" size={10} className="text-ink-primary" />
+          <Text className="font-display text-[10px] text-ink-primary">Check</Text>
+        </View>
+      )}
       {/* ×n, bottom-right over the art, as on Piltover Archive. */}
       <View
         className={`absolute bottom-1.5 right-1.5 rounded-md px-1.5 py-0.5 ${
@@ -120,7 +140,7 @@ const CardTile = ({ tile, width }: { tile: Tile; width: number }) => {
           )}
         </View>
       )}
-    </View>
+    </Pressable>
   );
 };
 

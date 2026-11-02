@@ -16,6 +16,8 @@ import './global.css';
 import AuthProvider, { useAuth } from '@/contexts/authContext';
 import ProfileProvider, { useProfile } from '@/contexts/profileContext';
 import MatchProvider from '@/contexts/matchContext';
+import CatalogProvider from '@/contexts/catalogContext';
+import CardSheetProvider from '@/contexts/cardSheetContext';
 import MatchSync from '@/components/matchSync';
 
 /**
@@ -87,18 +89,25 @@ export default function RootLayout() {
   // AuthProvider sits ABOVE MatchProvider: MatchSync needs both (it suppresses
   // every write while signed out), and nothing in the match layer needs to be
   // mounted for auth to resolve. ProfileProvider sits between: it keys off the
-  // session and feeds the onboarding guard in RootStack.
+  // session and feeds the onboarding guard in RootStack. CatalogProvider is
+  // outside auth on purpose: the card catalog is public, cached on the device,
+  // and the same for everyone. CardSheetProvider hosts the one card details
+  // sheet every deck surface opens.
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <ProfileProvider>
-            <MatchProvider>
-              <MatchSync />
-              <RootStack />
-            </MatchProvider>
-          </ProfileProvider>
-        </AuthProvider>
+        <CatalogProvider>
+          <AuthProvider>
+            <ProfileProvider>
+              <MatchProvider>
+                <CardSheetProvider>
+                  <MatchSync />
+                  <RootStack />
+                </CardSheetProvider>
+              </MatchProvider>
+            </ProfileProvider>
+          </AuthProvider>
+        </CatalogProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

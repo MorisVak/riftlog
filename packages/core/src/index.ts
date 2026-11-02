@@ -28,7 +28,47 @@ export {
   type DeckSectionDiff,
 } from './decks/diff';
 export { isDeckList } from './decks/validate';
-export { looksLikeDeckCode } from './decks/deckCode';
+export {
+  DeckCodeError,
+  decodeDeckCode,
+  deckCodeCanCarry,
+  deckCodeSetId,
+  encodeDeckCode,
+  looksLikeDeckCode,
+  type DecodedDeck,
+  type DeckCodeCard,
+} from './decks/deckCode';
+export { deckCodeFromList, deckListFromCode, resortUnsorted } from './catalog/deckFromCode';
+export {
+  baseCardName,
+  cleanCardText,
+  normalizeCardName,
+  unescapeHtml,
+} from './catalog/names';
+export { pickBasePrinting, type BasePrintingCandidate } from './catalog/basePrinting';
+export {
+  buildCatalogIndex,
+  cardIssue,
+  checkDeckList,
+  fitsSection,
+  matchCard,
+  type CardIssue,
+  type CardMatch,
+  type Catalog,
+  type CatalogCard,
+  type CatalogIndex,
+  type CatalogPrinting,
+  type CatalogSet,
+  type DeckCheck,
+  type ListSection,
+} from './catalog/match';
+export {
+  PRINTING_CODE,
+  collectorNumber,
+  formatPrintingCode,
+  parsePrintingCode,
+  type PrintingCodeParts,
+} from './catalog/printingCode';
 export {
   DECK_TARGETS,
   emptyDeckList,

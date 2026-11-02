@@ -1,21 +1,27 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Icon from '@/components/icon';
 import {
   DECK_TARGETS,
   deckDomains,
+  resortUnsorted,
   sectionTotals,
   type CardRef,
   type DeckCardChange,
   type DeckList,
   type DeckSection as SectionName,
   type DeckSectionDiff,
+  type ListSection,
 } from '@riftlog/core';
 import CardArt from '@/components/deck/cardArt';
+import DeckCheckNote from '@/components/deck/deckCheckNote';
+import { useCardSheet } from '@/contexts/cardSheetContext';
+import { useCatalog } from '@/contexts/catalogContext';
+import { useCardMatch } from '@/hooks/useCardMatch';
 import CardGrid from '@/components/deck/cardGrid';
 import CardList from '@/components/deck/cardList';
-import CardRow from '@/components/deck/cardRow';
+import CardRow, { issueLabel } from '@/components/deck/cardRow';
 import DeckSection from '@/components/deck/deckSection';
 import { DomainChips, RuneBar, domainLabel } from '@/components/deck/domain';
 
@@ -36,7 +42,7 @@ export type DeckLayout = 'list' | 'gallery';
  */
 const DeckView = ({
   name,
-  list,
+  list: storedList,
   title,
   changes = null,
   layout = 'list',
@@ -53,20 +59,28 @@ const DeckView = ({
   onLayoutChange?: (layout: DeckLayout) => void;
 }) => {
   const gallery = layout === 'gallery';
+  // Unsorted cards (deck-code printings the catalog didn't know) move into
+  // their section on screen once it does; the stored list is unchanged.
+  const { index } = useCatalog();
+  const list = useMemo(
+    () => (index ? resortUnsorted(storedList, index) : storedList),
+    [index, storedList],
+  );
   // One section's cards in the current layout.
   const cardsOf = (
     cards: CardRef[],
     sectionChanges: DeckCardChange[] | undefined,
+    section: ListSection,
   ) =>
     gallery ? (
-      <CardGrid cards={cards} changes={sectionChanges} />
+      <CardGrid cards={cards} changes={sectionChanges} section={section} />
     ) : (
-      <CardList cards={cards} changes={sectionChanges} />
+      <CardList cards={cards} changes={sectionChanges} section={section} />
     );
   const totals = sectionTotals(list);
   const domains = deckDomains(list);
   // undefined (no annotation) unless Show changes is on.
-  const changesFor = (s: SectionName): DeckCardChange[] | undefined =>
+  const changesFor = (s: SectionName | 'unsorted'): DeckCardChange[] | undefined =>
     changes ? (changes.find((d) => d.section === s)?.changes ?? []) : undefined;
   const legendChanged = (changesFor('legend') ?? []).some(
     (c) => c.before === 0,
@@ -85,8 +99,8 @@ const DeckView = ({
       )}
 
       <View className="mt-4 flex-row gap-3">
-        <IdentityCard label="Legend" card={list.legend} isNew={legendChanged} />
-        <IdentityCard label="Chosen champion" card={list.champion} />
+        <IdentityCard label="Legend" card={list.legend} isNew={legendChanged} section="legend" />
+        <IdentityCard label="Chosen champion" card={list.champion} section="champion" />
       </View>
 
       {(domains || onLayoutChange) && (
@@ -106,7 +120,7 @@ const DeckView = ({
           title="Additional legends"
           count={list.additionalLegends.length}
         >
-          <CardList cards={list.additionalLegends} />
+          <CardList cards={list.additionalLegends} section="additionalLegends" />
         </DeckSection>
       )}
 
@@ -116,7 +130,7 @@ const DeckView = ({
         target={DECK_TARGETS.runes}
       >
         {changes || gallery ? (
-          cardsOf(list.runes, changesFor('runes'))
+          cardsOf(list.runes, changesFor('runes'), 'runes')
         ) : domains ? (
           <View className="gap-2.5 pb-3 pt-1.5">
             <Text className="font-mono-medium text-[14px] text-ink-primary">
@@ -129,7 +143,7 @@ const DeckView = ({
         ) : (
           // Rune names that don't read as "<Domain> Rune": list them as-is
           // rather than guess at domains.
-          <CardList cards={list.runes} />
+          <CardList cards={list.runes} section="runes" />
         )}
       </DeckSection>
 
@@ -138,7 +152,7 @@ const DeckView = ({
         count={totals.battlefields}
         target={DECK_TARGETS.battlefields}
       >
-        {cardsOf(list.battlefields, changesFor('battlefields'))}
+        {cardsOf(list.battlefields, changesFor('battlefields'), 'battlefields')}
       </DeckSection>
 
       <DeckSection
@@ -150,6 +164,7 @@ const DeckView = ({
           <CardGrid
             cards={list.main}
             changes={changesFor('main')}
+            section="main"
             lead={[
               ...(list.champion
                 ? [
@@ -177,6 +192,7 @@ const DeckView = ({
                 tag="Chosen"
                 divider={false}
                 change={championChange}
+                section="champion"
               />
             )}
             {/* A swapped-out chosen champion, struck through. */}
@@ -194,14 +210,31 @@ const DeckView = ({
               cards={list.main}
               firstDivider={list.champion !== null}
               changes={changesFor('main')}
+              section="main"
             />
           </>
         )}
       </DeckSection>
 
       <DeckSection title="Sideboard" count={totals.sideboard}>
-        {cardsOf(list.sideboard, changesFor('sideboard'))}
+        {cardsOf(list.sideboard, changesFor('sideboard'), 'sideboard')}
       </DeckSection>
+
+      {/* Deck-code printings the catalog doesn't know yet (e.g. a new set). */}
+      {(list.unsorted?.length ?? 0) > 0 && (
+        <DeckSection
+          title="Unsorted"
+          count={(list.unsorted ?? []).reduce((n, c) => n + c.count, 0)}
+        >
+          <Text className="pb-1.5 text-[12px] leading-4 text-ink-tertiary">
+            Riftlog doesn&apos;t know these cards yet. They move to their
+            section once it does.
+          </Text>
+          {cardsOf(list.unsorted ?? [], changesFor('unsorted'), 'unsorted')}
+        </DeckSection>
+      )}
+
+      <DeckCheckNote list={list} />
     </View>
   );
 };
@@ -257,17 +290,30 @@ const IdentityCard = ({
   label,
   card,
   isNew = false,
+  section,
 }: {
   label: string;
   card: CardRef | null;
   /** Show changes: this card replaced the previous version's. */
   isNew?: boolean;
+  section: SectionName;
 }) => {
   const [head, ...rest] = (card?.name ?? '').split(',');
   const title = rest.join(',').trim();
+  const { issue } = useCardMatch(card ?? { name: '', code: null }, card ? section : undefined);
+  const { openCard } = useCardSheet();
 
   return (
-    <View className="flex-1 flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-3">
+    <Pressable
+      disabled={!card}
+      onPress={() => card && openCard(card)}
+      accessibilityRole={card ? 'button' : undefined}
+      accessibilityLabel={
+        card ? `${label}: ${card.name}${issue ? `, ${issueLabel(issue)}` : ''}` : `${label}: none`
+      }
+      accessibilityHint={card ? "Shows the card's details" : undefined}
+      className="flex-1 flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-3 active:opacity-70"
+    >
       {card ? (
         <CardArt card={card} variant="feature" />
       ) : (
@@ -302,8 +348,16 @@ const IdentityCard = ({
         ) : (
           <Text className="mt-1 text-[13px] text-ink-tertiary">None</Text>
         )}
+        {issue && (
+          <View className="mt-1 flex-row items-center gap-1">
+            <Icon name="alert-triangle" size={11} className="text-ink-primary" />
+            <Text className="text-[11px] text-ink-primary" numberOfLines={2}>
+              {issueLabel(issue)}
+            </Text>
+          </View>
+        )}
       </View>
-    </View>
+    </Pressable>
   );
 };
 

@@ -148,12 +148,42 @@ anywhere (none stored, none read from the identity provider), so it has no
 image prop on purpose. Don't add one.
 
 **One place for card art.** Every card on every deck surface renders through
-`components/deck/cardRow.tsx` (list) or `components/deck/cardGrid.tsx`
-(gallery) → `components/deck/cardArt.tsx`, and
-`cardArt.tsx`'s `resolveArt(card)` is the single spot art is looked up (by
-`card.code` when present, else by name — text imports have no code). Today it
-resolves nothing: rows stay text-only and identity cards show a card-shaped
-placeholder. Don't render card images anywhere else.
+`components/deck/cardRow.tsx` (list), `components/deck/cardGrid.tsx`
+(gallery), the deck header or the card sheet → `components/deck/cardArt.tsx`,
+the single spot art is decided. Don't render card images anywhere else.
+
+- **Matching** (`@riftlog/core` `matchCard`, via `hooks/useCardMatch.ts`): by
+  `card.code` when present, else by normalized name to the card's base
+  printing (`pickBasePrinting`, the same rule the importer uses). Nothing is
+  written back to stored decks.
+- **The catalog** (`contexts/catalogContext.tsx` + `lib/catalog.ts`): cached
+  as one JSON file (`expo-file-system`, `Documents/catalog/catalog.json`) with
+  its version. On launch and when a deck screen opens (throttled to 5 min) the
+  app reads `catalog_meta.version` and refetches the whole catalog only if it
+  moved. No per-card requests. Offline or before the first download, decks
+  show as written (no types, no art, no flags).
+- **Images** go through `lib/cardImage.ts`: our bucket's `storage_path` wins
+  over `image_url`; Riot's CDN (a Sanity image CDN) gets `?w=<px>&fm=webp`
+  sized to the view (a 120 px thumbnail is ~6 KB vs. a 1.4 MB PNG), with the
+  plain URL as the fallback if the sized one fails. Battlefields are drawn
+  landscape (`orientation`).
+- **Art is behind `CARD_ART`** (`lib/featureFlags.ts`): always on in dev,
+  `EXPO_PUBLIC_CARD_ART=1` in the `preview` / `testflight` EAS profiles, off
+  in `production`. With it off, rows stay text-only and tiles / the sheet show
+  the named placeholder; types, text and flags still show.
+- **The Legal Jibber Jabber statement appears once, at the bottom of the
+  profile page** (`components/riotDisclaimer.tsx`: the fan-made disclaimer
+  and the Legal Jibber Jabber statement, verbatim). Small and unobtrusive, but
+  visible without opening anything, and always shown whatever the card art
+  flag says. Nowhere else in the app — not on deck screens, the card sheet or
+  the import preview.
+- **Flags, never color alone:** a card not in the catalog, a code that's a
+  different card than its name, or a card of the wrong type for its section
+  gets an icon + words on its row ("Not in the card catalog", "Unit in this
+  section") or a "Check" badge on its tile, and the deck gets a summary line.
+  Sections still come from the text export's headers; there's no "Unsorted"
+  section.
+- **Card art is mobile-only.** `apps/web` must not render it.
 
 **Colorblind-safe rule (non-negotiable):** result color is NEVER the only
 signal. Every win/loss/draw indicator pairs the color with (a) a `W`/`L`/`D`
@@ -525,6 +555,11 @@ The project is configured for EAS Build:
 - Apple credentials provisioned for `com.m-mecke.riftlog`
 - One iPhone UDID is registered
 
+Profiles: `development` (dev client), `preview` (internal), **`testflight`**
+(store distribution, card art on) and **`production`** (card art off). Only a
+`production` build may be submitted for App Store review — see "EAS profiles
+and card art" in the root `CLAUDE.md`.
+
 Don't run `eas init`, `eas build:configure`, or change identifiers without
 deliberate intent. The project on Expo's servers is `@m_mecke/riftlog`.
 
@@ -860,10 +895,12 @@ is explicitly started:
   and deck are built)
 - The match detail's opponent block (their deck, linked profile,
   head-to-head, win rate) — needs match mode
-- Deck **code** decoding (detected only), Riftmana import, restoring an old
-  version as current, and restoring deleted decks. Text import, the deck view,
-  renaming, editing the list (new version), (soft) delete, "My decks", and
-  choosing a deck for a match are built.
+- Riftmana import, restoring an old version as current, and restoring deleted
+  decks. Text and deck-code import (a code is sorted by catalog types; unknown
+  printings go to an "Unsorted" section that re-sorts on screen once the
+  catalog knows them), "Copy deck code", the deck view, renaming, editing the
+  list (new version), (soft) delete, "My decks", and choosing a deck for a
+  match are built.
 - The designed history UI / detail view (only a minimal read-only list exists)
 - Profile **editing** — the handle rename UI and stats. `claim_username`
   already enforces the rules (30-day limit); nothing calls it from the client
@@ -875,8 +912,10 @@ is explicitly started:
 Match **history is never mirrored locally** — read from Postgres on demand — so
 don't build a growing on-device history store. Local persistence is bounded to:
 the encrypted auth **session** (LargeSecureStore), the **offline match state**
-(in-progress match + outbox, `lib/localStore.ts`), and the one non-sensitive
-"last used sign-in method" key (`lib/authPrefs.ts`). Don't add more.
+(in-progress match + outbox, `lib/localStore.ts`), the one non-sensitive
+"last used sign-in method" key (`lib/authPrefs.ts`), and the **card catalog
+cache** (`lib/catalog.ts` — public reference data, one file, replaced
+wholesale when the catalog version moves). Don't add more.
 
 Also: don't add local persistence for **guest** matches. It looks like a
 kindness and it isn't — anything durable a guest produces has to be either

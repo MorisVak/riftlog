@@ -1,0 +1,1108 @@
+{
+ "sets": [
+  {
+   "id": "69bc5bf6e195be3e561d1eb1",
+   "name": "Origins",
+   "set_id": "OGN",
+   "card_count": 352,
+   "tcgplayer_id": "24344",
+   "cardmarket_id": "6286",
+   "published_on": "2025-10-31T00:00:00"
+  },
+  {
+   "id": "6a32e5e7189085654c4f249e",
+   "name": "Vendetta",
+   "set_id": "VEN",
+   "card_count": 358,
+   "tcgplayer_id": null,
+   "cardmarket_id": null,
+   "published_on": "2026-07-31T00:00:00"
+  },
+  {
+   "id": "69bc5bf6e195be3e561d1eb3",
+   "name": "Riftbound Organized Play Promotional Cards",
+   "set_id": "OPP",
+   "card_count": 133,
+   "tcgplayer_id": "24343",
+   "cardmarket_id": [
+    "6322",
+    "6483"
+   ],
+   "published_on": "2025-10-31T00:00:00"
+  },
+  {
+   "id": "69bc5bf6e195be3e561d1eaf",
+   "name": "Spiritforged",
+   "set_id": "SFD",
+   "card_count": 288,
+   "tcgplayer_id": "24519",
+   "cardmarket_id": "6399",
+   "published_on": "2026-02-13T00:00:00"
+  },
+  {
+   "id": "69bc5bf6e195be3e561d1eae",
+   "name": "Unleashed",
+   "set_id": "UNL",
+   "card_count": 280,
+   "tcgplayer_id": "24560",
+   "cardmarket_id": null,
+   "published_on": "2026-05-08T00:00:00"
+  },
+  {
+   "id": "69bc5bf6e195be3e561d1eb2",
+   "name": "Origins: Proving Grounds",
+   "set_id": "OGS",
+   "card_count": 24,
+   "tcgplayer_id": "24439",
+   "cardmarket_id": "6289",
+   "published_on": "2025-10-31T00:00:00"
+  },
+  {
+   "id": "69bc5bf6e195be3e561d1eb4",
+   "name": "Riftbound Promotional Cards",
+   "set_id": "PR",
+   "card_count": 13,
+   "tcgplayer_id": "24343",
+   "cardmarket_id": [
+    "6322",
+    "6483"
+   ],
+   "published_on": "2025-10-31T00:00:00"
+  },
+  {
+   "id": "69bc5bf6e195be3e561d1eb0",
+   "name": "Riftbound Judge Promotional Cards",
+   "set_id": "JDG",
+   "card_count": 3,
+   "tcgplayer_id": "24552",
+   "cardmarket_id": [
+    "6322",
+    "6483"
+   ],
+   "published_on": "2025-12-01T00:00:00"
+  }
+ ],
+ "cards": [
+  {
+   "id": "69c4407c9288b1e85d94de8a",
+   "name": "Vi - Piltover Enforcer (Signature)",
+   "riftbound_id": "unl-229*-219",
+   "tcgplayer_id": "685522",
+   "collector_number": 229,
+   "attributes": {
+    "energy": null,
+    "might": null,
+    "power": null
+   },
+   "classification": {
+    "type": "Legend",
+    "supertype": null,
+    "rarity": "Rare",
+    "domain": [
+     "Fury",
+     "Order"
+    ]
+   },
+   "text": {
+    "rich": "<p>When you conquer, if you assigned 3 or more excess damage, you may exhaust me to ready a unit.</p>",
+    "plain": "When you conquer, if you assigned 3 or more excess damage, you may exhaust me to ready a unit.",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "UNL",
+    "label": "Unleashed"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/0febae9c611339d9ed65c7ebe43237b5ec42c9a3-744x1039.png?accountingTag=RB",
+    "artist": "Jonathan Santoro",
+    "accessibility_text": "Riftbound Legend: Piltover Enforcer. When you conquer, if you assigned 3 or more excess damage, you may exhaust me to ready a unit."
+   },
+   "tags": [
+    "Vi"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": "Vi Piltover Enforcer Signature",
+    "updated_on": "2026-07-10T22:45:08.861364+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": true
+   },
+   "new": false
+  },
+  {
+   "id": "69c4407c9288b1e85d94de89",
+   "name": "Vi - Piltover Enforcer (Overnumbered)",
+   "riftbound_id": "unl-229-219",
+   "tcgplayer_id": "685521",
+   "collector_number": 229,
+   "attributes": {
+    "energy": null,
+    "might": null,
+    "power": null
+   },
+   "classification": {
+    "type": "Legend",
+    "supertype": null,
+    "rarity": "Rare",
+    "domain": [
+     "Fury",
+     "Order"
+    ]
+   },
+   "text": {
+    "rich": "<p>When you conquer, if you assigned 3 or more excess damage, you may exhaust me to ready a unit.</p>",
+    "plain": "When you conquer, if you assigned 3 or more excess damage, you may exhaust me to ready a unit.",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "UNL",
+    "label": "Unleashed"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/08c48ad82381bb5830a0b413d7a2f25dd2b20d76-744x1039.png?accountingTag=RB",
+    "artist": "Jonathan Santoro",
+    "accessibility_text": "Riftbound Legend: Piltover Enforcer. When you conquer, if you assigned 3 or more excess damage, you may exhaust me to ready a unit."
+   },
+   "tags": [
+    "Vi"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": "Vi Piltover Enforcer Overnumbered",
+    "updated_on": "2026-07-10T22:45:08.792663+00:00",
+    "alternate_art": false,
+    "overnumbered": true,
+    "signature": false
+   },
+   "new": false
+  },
+  {
+   "id": "6a56ab98ff602fd324f4763f",
+   "name": "Mind Rune",
+   "riftbound_id": "ven-r03",
+   "tcgplayer_id": "706067",
+   "collector_number": 3,
+   "attributes": {
+    "energy": null,
+    "might": null,
+    "power": null
+   },
+   "classification": {
+    "type": "Rune",
+    "supertype": "Basic",
+    "rarity": "Common",
+    "domain": [
+     "Mind"
+    ]
+   },
+   "text": {
+    "rich": "<p>[NO TEXT]</p>",
+    "plain": "[NO TEXT]",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "VEN",
+    "label": "Vendetta"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/33df1c56c6e76f9cb783c19161f16fcdbdc20f98-744x1039.png?accountingTag=RB",
+    "artist": "Greg Ghielmetti & Leah Chen",
+    "accessibility_text": "Riftbound Rune: Mind Rune. [NO TEXT]"
+   },
+   "tags": [],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": "Mind Rune",
+    "updated_on": "2026-07-14T21:35:20.334125+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": false
+  },
+  {
+   "id": "6a590ef00e5d4c92d5d1eff0",
+   "name": "Kennen, Storm of Shuriken",
+   "riftbound_id": "ven-113a-166",
+   "tcgplayer_id": null,
+   "collector_number": 113,
+   "attributes": {
+    "energy": 3,
+    "might": 4,
+    "power": 1
+   },
+   "classification": {
+    "type": "Unit",
+    "supertype": "Champion",
+    "rarity": "Epic",
+    "domain": [
+     "Chaos"
+    ]
+   },
+   "text": {
+    "rich": "<p>When you play me, [Burn 2].<br />When I conquer, give a spell in your trash [Flow] equal to its cost this turn.</p>",
+    "plain": "When you play me, [Burn 2].When I conquer, give a spell in your trash [Flow] equal to its cost this turn.",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "VEN",
+    "label": "Vendetta"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/000c73937c370cd3572facc9b313b4eb2d26eee8-744x1039.png?accountingTag=RB",
+    "artist": "Wild Rift Splash Team",
+    "accessibility_text": "Riftbound Unit: Kennen, Storm of Shuriken. When you play me, [Burn 2].\nWhen I conquer, give a spell in your trash [Flow] equal to its cost this turn."
+   },
+   "tags": [
+    "Yordle",
+    "Ionia",
+    "Kennen"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": null,
+    "updated_on": "2026-07-16T17:03:44.557908+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": true
+  },
+  {
+   "id": "6a517606ad64d2d80a4f03ad",
+   "name": "Mind Rune",
+   "riftbound_id": "ven-r03",
+   "tcgplayer_id": null,
+   "collector_number": 3,
+   "attributes": {
+    "energy": null,
+    "might": null,
+    "power": null
+   },
+   "classification": {
+    "type": "Rune",
+    "supertype": "Basic",
+    "rarity": "Common",
+    "domain": [
+     "Mind"
+    ]
+   },
+   "text": {
+    "rich": "<p>[NO TEXT]</p>",
+    "plain": "[NO TEXT]",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "VEN",
+    "label": "Vendetta"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/33df1c56c6e76f9cb783c19161f16fcdbdc20f98-744x1039.png?accountingTag=RB",
+    "artist": "Greg Ghielmetti & Leah Chen",
+    "accessibility_text": "Riftbound Rune: Mind Rune. [NO TEXT]"
+   },
+   "tags": [],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": null,
+    "updated_on": "2026-07-10T22:45:26.858734+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": true
+  },
+  {
+   "id": "6a517606ad64d2d80a4f03a0",
+   "name": "Kennen, Storm of Shuriken",
+   "riftbound_id": "ven-113-166",
+   "tcgplayer_id": null,
+   "collector_number": 113,
+   "attributes": {
+    "energy": 3,
+    "might": 4,
+    "power": 1
+   },
+   "classification": {
+    "type": "Unit",
+    "supertype": "Champion",
+    "rarity": "Epic",
+    "domain": [
+     "Chaos"
+    ]
+   },
+   "text": {
+    "rich": "<p>When you play me, [Burn 2]. (Put the top 2 cards of your Main Deck into your trash.)<br />When I conquer, give a spell in your trash [Flow] equal to its cost this turn. (You may play it from your trash for its Flow cost. Then banish it.)</p>",
+    "plain": "When you play me, [Burn 2]. (Put the top 2 cards of your Main Deck into your trash.)When I conquer, give a spell in your trash [Flow] equal to its cost this turn. (You may play it from your trash for its Flow cost. Then banish it.)",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "VEN",
+    "label": "Vendetta"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/2f27c99f3df2940940dddd65105e5e42bbeeab3d-744x1039.png?accountingTag=RB",
+    "artist": "Six More Vodka",
+    "accessibility_text": "Riftbound Unit: Kennen, Storm of Shuriken. When you play me, [Burn 2]. (Put the top 2 cards of your Main Deck into your trash.)\nWhen I conquer, give a spell in your trash [Flow] equal to its cost this turn. (You may play it from your trash for its Flow cost. Then banish it.)"
+   },
+   "tags": [
+    "Yordle",
+    "Kennen"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": null,
+    "updated_on": "2026-07-10T22:45:26.177881+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": true
+  },
+  {
+   "id": "6a517605ad64d2d80a4f0392",
+   "name": "Heart of the Tempest",
+   "riftbound_id": "ven-155-166",
+   "tcgplayer_id": null,
+   "collector_number": 155,
+   "attributes": {
+    "energy": null,
+    "might": null,
+    "power": null
+   },
+   "classification": {
+    "type": "Legend",
+    "supertype": null,
+    "rarity": "Rare",
+    "domain": [
+     "Order",
+     "Chaos"
+    ]
+   },
+   "text": {
+    "rich": "<p>When you play a card from anywhere other than your hand, empower me.<br />[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn. (+2 :rb_might: while it's an attacker.)</p>",
+    "plain": "When you play a card from anywhere other than your hand, empower me.[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn. (+2 :rb_might: while it's an attacker.)",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "VEN",
+    "label": "Vendetta"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/0eab83392b310417d2630d50a3bfee3dd02b31c4-744x1039.png?accountingTag=RB",
+    "artist": "Envar Studio",
+    "accessibility_text": "Riftbound Legend: Heart of the Tempest. When you play a card from anywhere other than your hand, empower me.\n[Action][>] Disempower me, [T]: Give a unit [Assault 2] this turn. (+2 [S] while it's an attacker.)"
+   },
+   "tags": [
+    "Yordle",
+    "Kennen"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": null,
+    "updated_on": "2026-07-10T22:45:25.419467+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": true
+  },
+  {
+   "id": "6a517605ad64d2d80a4f0391",
+   "name": "Heart of the Tempest",
+   "riftbound_id": "ven-197-166",
+   "tcgplayer_id": null,
+   "collector_number": 197,
+   "attributes": {
+    "energy": null,
+    "might": null,
+    "power": null
+   },
+   "classification": {
+    "type": "Legend",
+    "supertype": null,
+    "rarity": "Rare",
+    "domain": [
+     "Order",
+     "Chaos"
+    ]
+   },
+   "text": {
+    "rich": "<p>When you play a card from anywhere other than your hand, empower me.<br />[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn.</p>",
+    "plain": "When you play a card from anywhere other than your hand, empower me.[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn.",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "VEN",
+    "label": "Vendetta"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/f208ffb2ee76827cd4c608bcc8e1bcb9380bfa31-744x1039.png?accountingTag=RB",
+    "artist": "Shop Sun",
+    "accessibility_text": "Riftbound Legend: Heart of the Tempest. When you play a card from anywhere other than your hand, empower me.\n[Action][>] Disempower me, [T]: Give a unit [Assault 2] this turn."
+   },
+   "tags": [
+    "Yordle",
+    "Kennen"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": null,
+    "updated_on": "2026-07-10T22:45:25.370475+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": true
+  },
+  {
+   "id": "6a56ab96ff602fd324f4761e",
+   "name": "Yordle, Kennen - Heart of the Tempest",
+   "riftbound_id": "ven-155-166",
+   "tcgplayer_id": "706034",
+   "collector_number": 155,
+   "attributes": {
+    "energy": null,
+    "might": null,
+    "power": null
+   },
+   "classification": {
+    "type": "Legend",
+    "supertype": null,
+    "rarity": "Rare",
+    "domain": [
+     "Order",
+     "Chaos"
+    ]
+   },
+   "text": {
+    "rich": "<p>When you play a card from anywhere other than your hand, empower me.<br />[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn. (+2 :rb_might: while it's an attacker.)</p>",
+    "plain": "When you play a card from anywhere other than your hand, empower me.[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn. (+2 :rb_might: while it's an attacker.)",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "VEN",
+    "label": "Vendetta"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/0eab83392b310417d2630d50a3bfee3dd02b31c4-744x1039.png?accountingTag=RB",
+    "artist": "Envar Studio",
+    "accessibility_text": "Riftbound Legend: Heart of the Tempest. When you play a card from anywhere other than your hand, empower me.\n[Action][>] Disempower me, [T]: Give a unit [Assault 2] this turn. (+2 [S] while it's an attacker.)"
+   },
+   "tags": [
+    "Yordle",
+    "Kennen"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": "Yordle Kennen Heart of the Tempest",
+    "updated_on": "2026-07-14T21:35:18.510413+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": false
+  },
+  {
+   "id": "6a56ab96ff602fd324f4761d",
+   "name": "Yordle, Kennen - Heart of the Tempest (Overnumbered)",
+   "riftbound_id": "ven-197-166",
+   "tcgplayer_id": "706033",
+   "collector_number": 197,
+   "attributes": {
+    "energy": null,
+    "might": null,
+    "power": null
+   },
+   "classification": {
+    "type": "Legend",
+    "supertype": null,
+    "rarity": "Rare",
+    "domain": [
+     "Order",
+     "Chaos"
+    ]
+   },
+   "text": {
+    "rich": "<p>When you play a card from anywhere other than your hand, empower me.<br />[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn.</p>",
+    "plain": "When you play a card from anywhere other than your hand, empower me.[Action][&gt;] Disempower me, :rb_exhaust:: Give a unit [Assault 2] this turn.",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "VEN",
+    "label": "Vendetta"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/f208ffb2ee76827cd4c608bcc8e1bcb9380bfa31-744x1039.png?accountingTag=RB",
+    "artist": "Shop Sun",
+    "accessibility_text": "Riftbound Legend: Heart of the Tempest. When you play a card from anywhere other than your hand, empower me.\n[Action][>] Disempower me, [T]: Give a unit [Assault 2] this turn."
+   },
+   "tags": [
+    "Yordle",
+    "Kennen"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": "Yordle Kennen Heart of the Tempest Overnumbered",
+    "updated_on": "2026-07-14T21:35:18.455179+00:00",
+    "alternate_art": false,
+    "overnumbered": true,
+    "signature": false
+   },
+   "new": false
+  },
+  {
+   "id": "6a56ab96ff602fd324f47616",
+   "name": "Ezreal, Prodigy",
+   "riftbound_id": "ven-sp5-006",
+   "tcgplayer_id": "706026",
+   "collector_number": 5,
+   "attributes": {
+    "energy": 3,
+    "might": 3,
+    "power": 1
+   },
+   "classification": {
+    "type": "Unit",
+    "supertype": "Champion",
+    "rarity": "Epic",
+    "domain": [
+     "Chaos"
+    ]
+   },
+   "text": {
+    "rich": "<p>When you play me, discard 1, then draw 2.<br />Optional additional costs you pay cost :rb_energy_1: or :rb_rune_rainbow: less.</p>",
+    "plain": "When you play me, discard 1, then draw 2.Optional additional costs you pay cost :rb_energy_1: or :rb_rune_rainbow: less.",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "VEN",
+    "label": "Vendetta"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/fd4beecca19d4e84ead0852acce83d4c34ac1b4c-744x1039.png?accountingTag=RB",
+    "artist": "Wild Rift Splash Team",
+    "accessibility_text": "Riftbound Unit: Ezreal, Prodigy. When you play me, discard 1, then draw 2.\nOptional additional costs you pay cost [1] or [A] less."
+   },
+   "tags": [
+    "Ezreal",
+    "Piltover"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": "Ezreal Prodigy",
+    "updated_on": "2026-07-17T20:38:03.541938+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": false
+  },
+  {
+   "id": "6a518b2537f518eaadf8bb00",
+   "name": "Ezreal, Prodigy",
+   "riftbound_id": "ven-sp5-006",
+   "tcgplayer_id": null,
+   "collector_number": 5,
+   "attributes": {
+    "energy": 3,
+    "might": 3,
+    "power": 1
+   },
+   "classification": {
+    "type": "Unit",
+    "supertype": "Champion",
+    "rarity": "Epic",
+    "domain": [
+     "Chaos"
+    ]
+   },
+   "text": {
+    "rich": "<p>When you play me, discard 1, then draw 2.<br />Optional additional costs you pay cost :rb_energy_1: or :rb_rune_rainbow: less.</p>",
+    "plain": "When you play me, discard 1, then draw 2.Optional additional costs you pay cost :rb_energy_1: or :rb_rune_rainbow: less.",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "VEN",
+    "label": "Vendetta"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/fd4beecca19d4e84ead0852acce83d4c34ac1b4c-744x1039.png?accountingTag=RB",
+    "artist": "Wild Rift Splash Team",
+    "accessibility_text": "Riftbound Unit: Ezreal, Prodigy. When you play me, discard 1, then draw 2.\nOptional additional costs you pay cost [1] or [A] less."
+   },
+   "tags": [
+    "Ezreal",
+    "Piltover"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": null,
+    "updated_on": "2026-07-11T00:15:33.624786+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": true
+  },
+  {
+   "id": "69bc5bd7d308c64675ca87f7",
+   "name": "Zaun Warrens",
+   "riftbound_id": "ogn-298-298",
+   "tcgplayer_id": "653092",
+   "collector_number": 298,
+   "attributes": {
+    "energy": null,
+    "might": null,
+    "power": null
+   },
+   "classification": {
+    "type": "Battlefield",
+    "supertype": null,
+    "rarity": "Uncommon",
+    "domain": [
+     "Colorless"
+    ]
+   },
+   "text": {
+    "rich": "<p>When you conquer here, discard 1, then draw 1.</p>",
+    "plain": "When you conquer here, discard 1, then draw 1.",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "OGN",
+    "label": "Origins"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/458ee40086c77b43b98c2decbaf33a4aa2359bb9-1038x744.png?accountingTag=RB",
+    "artist": "Envar Studio",
+    "accessibility_text": "Riftbound Battlefield: Zaun Warrens. When you conquer here, discard 1, then draw 1."
+   },
+   "tags": [],
+   "orientation": "landscape",
+   "metadata": {
+    "clean_name": "Zaun Warrens",
+    "updated_on": "2026-07-10T22:44:40.373575+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": false
+  },
+  {
+   "id": "69bc5bd9d308c64675ca8820",
+   "name": "Flash",
+   "riftbound_id": "ogs-011-024",
+   "tcgplayer_id": "653146",
+   "collector_number": 11,
+   "attributes": {
+    "energy": 2,
+    "might": null,
+    "power": null
+   },
+   "classification": {
+    "type": "Spell",
+    "supertype": null,
+    "rarity": "Common",
+    "domain": [
+     "Chaos"
+    ]
+   },
+   "text": {
+    "rich": "<p>[Reaction] (Play any time, even before spells and abilities resolve.)<br />Move up to 2 friendly units to base.</p>",
+    "plain": "[Reaction] (Play any time, even before spells and abilities resolve.)Move up to 2 friendly units to base.",
+    "flavour": "It's not running away. It's strategic positioning."
+   },
+   "set": {
+    "set_id": "OGS",
+    "label": "Proving Grounds"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/4d9cc1c13b75933e509e642213f13359350cd3f9-744x1039.png?accountingTag=RB",
+    "artist": "Sugar Free",
+    "accessibility_text": "Riftbound Spell: Flash. [Reaction] (Play any time, even before spells and abilities resolve.)\nMove up to 2 friendly units to base."
+   },
+   "tags": [],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": "Flash",
+    "updated_on": "2026-07-10T22:44:42.676615+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": false
+  },
+  {
+   "id": "69bc5be5d308c64675ca890b",
+   "name": "Ezreal - Prodigy (Alternate Art)",
+   "riftbound_id": "sfd-149a-221",
+   "tcgplayer_id": "666826",
+   "collector_number": 149,
+   "attributes": {
+    "energy": 3,
+    "might": 3,
+    "power": 1
+   },
+   "classification": {
+    "type": "Unit",
+    "supertype": "Champion",
+    "rarity": "Showcase",
+    "domain": [
+     "Chaos"
+    ]
+   },
+   "text": {
+    "rich": "<p>When you play me, discard 1, then draw 2.<br />Optional additional costs you pay cost :rb_energy_1: or :rb_rune_rainbow: less.</p>",
+    "plain": "When you play me, discard 1, then draw 2.Optional additional costs you pay cost :rb_energy_1: or :rb_rune_rainbow: less.",
+    "flavour": "Who needs a map?"
+   },
+   "set": {
+    "set_id": "SFD",
+    "label": "Spiritforged"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/b371832f41cd8b15cd4f29828081dd030c48d7ac-744x1039.png?accountingTag=RB",
+    "artist": "League Splash Team",
+    "accessibility_text": "Riftbound Unit: Ezreal, Prodigy. When you play me, discard 1, then draw 2.\nOptional additional costs you pay cost [1] or [A] less."
+   },
+   "tags": [
+    "Ezreal",
+    "Piltover"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": "Ezreal Prodigy Alternate Art",
+    "updated_on": "2026-07-10T22:44:55.848175+00:00",
+    "alternate_art": true,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": false
+  },
+  {
+   "id": "69bc5be5d308c64675ca890a",
+   "name": "Ezreal - Prodigy",
+   "riftbound_id": "sfd-149-221",
+   "tcgplayer_id": "666825",
+   "collector_number": 149,
+   "attributes": {
+    "energy": 3,
+    "might": 3,
+    "power": 1
+   },
+   "classification": {
+    "type": "Unit",
+    "supertype": "Champion",
+    "rarity": "Epic",
+    "domain": [
+     "Chaos"
+    ]
+   },
+   "text": {
+    "rich": "<p>When you play me, discard 1, then draw 2.<br />Optional additional costs you pay cost :rb_energy_1: or :rb_rune_rainbow: less.</p>",
+    "plain": "When you play me, discard 1, then draw 2.Optional additional costs you pay cost :rb_energy_1: or :rb_rune_rainbow: less.",
+    "flavour": "Who needs a map?"
+   },
+   "set": {
+    "set_id": "SFD",
+    "label": "Spiritforged"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/b48d6242ceb84c3eae7109317d51efaf1e56c9c3-744x1039.png?accountingTag=RB",
+    "artist": "Six More Vodka",
+    "accessibility_text": "Riftbound Unit: Ezreal, Prodigy. When you play me, discard 1, then draw 2.\nOptional additional costs you pay cost [1] or [A] less."
+   },
+   "tags": [
+    "Ezreal",
+    "Piltover"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": "Ezreal Prodigy",
+    "updated_on": "2026-07-10T22:44:55.790030+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": false
+  },
+  {
+   "id": "6a517602ad64d2d80a4f0357",
+   "name": "Flash",
+   "riftbound_id": "opp-011-024",
+   "tcgplayer_id": "692371",
+   "collector_number": 11,
+   "attributes": {
+    "energy": 2,
+    "might": null,
+    "power": null
+   },
+   "classification": {
+    "type": "Spell",
+    "supertype": null,
+    "rarity": "Promo",
+    "domain": [
+     "Chaos"
+    ]
+   },
+   "text": {
+    "rich": "<p>[Reaction] (Play any time, even before spells and abilities resolve.)<br />Move up to 2 friendly units to base.</p>",
+    "plain": "[Reaction] (Play any time, even before spells and abilities resolve.)Move up to 2 friendly units to base.",
+    "flavour": "It's not running away. It's strategic positioning."
+   },
+   "set": {
+    "set_id": "OPP",
+    "label": "Riftbound Organized Play Promotional Cards"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/4d9cc1c13b75933e509e642213f13359350cd3f9-744x1039.png?accountingTag=RB",
+    "artist": "Sugar Free",
+    "accessibility_text": "Riftbound Spell: Flash. [Reaction] (Play any time, even before spells and abilities resolve.)\nMove up to 2 friendly units to base."
+   },
+   "tags": [],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": "Flash",
+    "updated_on": "2026-07-10T22:45:22.286279+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": false
+  },
+  {
+   "id": "69c700533fb41419ee7cebb2",
+   "name": "Gold // Buff",
+   "riftbound_id": "sfd-t03",
+   "tcgplayer_id": "678188",
+   "collector_number": 3,
+   "attributes": {
+    "energy": null,
+    "might": null,
+    "power": null
+   },
+   "classification": {
+    "type": "Gear",
+    "supertype": "Token",
+    "rarity": "Common",
+    "domain": [
+     "Colorless"
+    ]
+   },
+   "text": {
+    "rich": "<p>Kill this, :rb_exhaust:: [Reaction] — [Add] :rb_rune_rainbow:. (Abilities that add resources can't be reacted to.)</p>",
+    "plain": "Kill this, :rb_exhaust:: [Reaction] — [Add] :rb_rune_rainbow:. (Abilities that add resources can't be reacted to.)",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "SFD",
+    "label": "Spiritforged"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/e878c39b562a4e870e93b819c6d85cdf3fdc5238-744x1039.png?accountingTag=RB",
+    "artist": "Kudos Productions",
+    "accessibility_text": "Riftbound Gear: Gold. Kill this, [T]: [Reaction] — [Add] [A]. (Abilities that add resources can't be reacted to.)"
+   },
+   "tags": [],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": "Gold Buff",
+    "updated_on": "2026-07-10T22:44:59.606681+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": false
+  },
+  {
+   "id": "69bc5befd308c64675ca89cf",
+   "name": "Yasuo - Unforgiven",
+   "riftbound_id": "opp-259-298",
+   "tcgplayer_id": "662890",
+   "collector_number": 259,
+   "attributes": {
+    "energy": null,
+    "might": null,
+    "power": null
+   },
+   "classification": {
+    "type": "Legend",
+    "supertype": "Champion",
+    "rarity": "Promo",
+    "domain": [
+     "Calm",
+     "Chaos"
+    ]
+   },
+   "text": {
+    "rich": "<p>:rb_energy_2:, :rb_exhaust:: Move a friendly unit to or from its base.</p>",
+    "plain": ":rb_energy_2:, :rb_exhaust:: Move a friendly unit to or from its base.",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "OPP",
+    "label": "Riftbound Organized Play Promotional Cards"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/68e4d3230b785738ae9d86f780f7f5607ef11807-744x1040.png?accountingTag=RB",
+    "artist": "TSWCK逍",
+    "accessibility_text": "Riftbound Legend: Unforgiven. [2], [T]: Move a friendly unit to or from its base."
+   },
+   "tags": [
+    "Yasuo"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": "Yasuo Unforgiven",
+    "updated_on": "2026-07-10T22:45:17.166884+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": false
+  },
+  {
+   "id": "69bc5bf1d308c64675ca89f7",
+   "name": "Yasuo - Unforgiven (Metal)",
+   "riftbound_id": "opp-259-298",
+   "tcgplayer_id": "669257",
+   "collector_number": 259,
+   "attributes": {
+    "energy": null,
+    "might": null,
+    "power": null
+   },
+   "classification": {
+    "type": "Legend",
+    "supertype": "Champion",
+    "rarity": "Promo",
+    "domain": [
+     "Calm",
+     "Chaos"
+    ]
+   },
+   "text": {
+    "rich": "<p>:rb_energy_2:, :rb_exhaust:: Move a friendly unit to or from its base.</p>",
+    "plain": ":rb_energy_2:, :rb_exhaust:: Move a friendly unit to or from its base.",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "OPP",
+    "label": "Riftbound Organized Play Promotional Cards"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/68e4d3230b785738ae9d86f780f7f5607ef11807-744x1040.png?accountingTag=RB",
+    "artist": "TSWCK逍",
+    "accessibility_text": "Riftbound Legend: Unforgiven. [2], [T]: Move a friendly unit to or from its base."
+   },
+   "tags": [
+    "Yasuo"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": "Yasuo Unforgiven Metal",
+    "updated_on": "2026-07-10T22:45:19.090191+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": false
+  },
+  {
+   "id": "6a56ab97ff602fd324f4762f",
+   "name": "Kennen, Storm of Shuriken",
+   "riftbound_id": "ven-113-166",
+   "tcgplayer_id": "706051",
+   "collector_number": 113,
+   "attributes": {
+    "energy": 3,
+    "might": 4,
+    "power": 1
+   },
+   "classification": {
+    "type": "Unit",
+    "supertype": "Champion",
+    "rarity": "Epic",
+    "domain": [
+     "Chaos"
+    ]
+   },
+   "text": {
+    "rich": "<p>When you play me, [Burn 2]. (Put the top 2 cards of your Main Deck into your trash.)<br />When I conquer, give a spell in your trash [Flow] equal to its cost this turn. (You may play it from your trash for its Flow cost. Then banish it.)</p>",
+    "plain": "When you play me, [Burn 2]. (Put the top 2 cards of your Main Deck into your trash.)When I conquer, give a spell in your trash [Flow] equal to its cost this turn. (You may play it from your trash for its Flow cost. Then banish it.)",
+    "flavour": "Time to strike!"
+   },
+   "set": {
+    "set_id": "VEN",
+    "label": "Vendetta"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/2f27c99f3df2940940dddd65105e5e42bbeeab3d-744x1039.png?accountingTag=RB",
+    "artist": "Six More Vodka",
+    "accessibility_text": "Riftbound Unit: Kennen, Storm of Shuriken. When you play me, [Burn 2]. (Put the top 2 cards of your Main Deck into your trash.)\nWhen I conquer, give a spell in your trash [Flow] equal to its cost this turn. (You may play it from your trash for its Flow cost. Then banish it.)"
+   },
+   "tags": [
+    "Yordle",
+    "Kennen"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": "Kennen Storm of Shuriken",
+    "updated_on": "2026-07-14T21:35:19.417168+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": false
+  },
+  {
+   "id": "69bc5bead308c64675ca8967",
+   "name": "Vi - Piltover Enforcer",
+   "riftbound_id": "unl-187-219",
+   "tcgplayer_id": "684475",
+   "collector_number": 187,
+   "attributes": {
+    "energy": null,
+    "might": null,
+    "power": null
+   },
+   "classification": {
+    "type": "Legend",
+    "supertype": null,
+    "rarity": "Rare",
+    "domain": [
+     "Fury",
+     "Order"
+    ]
+   },
+   "text": {
+    "rich": "<p>When you conquer, if you assigned 3 or more excess damage, you may exhaust me to ready a unit.</p>",
+    "plain": "When you conquer, if you assigned 3 or more excess damage, you may exhaust me to ready a unit.",
+    "flavour": null
+   },
+   "set": {
+    "set_id": "UNL",
+    "label": "Unleashed"
+   },
+   "media": {
+    "image_url": "https://cmsassets.rgpub.io/sanity/images/dsfx7636/game_data_live/b52fca3d644599008c4b1a67ffd359a9f9c4d8d7-744x1039.png?accountingTag=RB",
+    "artist": "Pandart Studio",
+    "accessibility_text": "Riftbound Legend: Piltover Enforcer. When you conquer, if you assigned 3 or more excess damage, you may exhaust me to ready a unit."
+   },
+   "tags": [
+    "Vi"
+   ],
+   "orientation": "portrait",
+   "metadata": {
+    "clean_name": "Vi Piltover Enforcer",
+    "updated_on": "2026-07-10T22:45:01.211197+00:00",
+    "alternate_art": false,
+    "overnumbered": false,
+    "signature": false
+   },
+   "new": false
+  }
+ ]
+}

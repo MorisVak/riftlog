@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Text, View } from 'react-native';
 import {
   DECK_TARGETS,
+  resortUnsorted,
   sectionTotals,
   type DeckDiagnostic,
   type DeckSection as Section,
@@ -9,8 +10,10 @@ import {
 } from '@riftlog/core';
 import CardList from '@/components/deck/cardList';
 import CardRow from '@/components/deck/cardRow';
+import DeckCheckNote from '@/components/deck/deckCheckNote';
 import DeckSection from '@/components/deck/deckSection';
 import Icon from '@/components/icon';
+import { useCatalog } from '@/contexts/catalogContext';
 
 /**
  * Live preview of a pasted decklist: every section with its total, the parsed
@@ -30,7 +33,12 @@ const ImportPreview = ({
   /** The pasted text split into lines, so issues can quote their line. */
   sourceLines: string[];
 }) => {
-  const { list, diagnostics } = parsed;
+  const { diagnostics } = parsed;
+  const { index } = useCatalog();
+  const list = useMemo(
+    () => (index ? resortUnsorted(parsed.list, index) : parsed.list),
+    [index, parsed.list],
+  );
   const totals = sectionTotals(list);
   const issuesFor = (section: Section | null) =>
     diagnostics.filter((d) => d.section === section);
@@ -50,22 +58,20 @@ const ImportPreview = ({
 
       <DeckSection title="Legend" count={list.legend ? 1 : 0} target={1}>
         <Issues issues={issuesFor('legend')} sourceLines={sourceLines} />
-        <CardList
-          cards={[
-            ...(list.legend ? [list.legend] : []),
-            ...list.additionalLegends,
-          ]}
-        />
+        <CardList cards={list.legend ? [list.legend] : []} section="legend" />
+        {list.additionalLegends.length > 0 && (
+          <CardList cards={list.additionalLegends} firstDivider={list.legend !== null} section="additionalLegends" />
+        )}
       </DeckSection>
 
       <DeckSection title="Chosen champion" count={list.champion ? 1 : 0} target={1}>
         <Issues issues={issuesFor('champion')} sourceLines={sourceLines} />
-        <CardList cards={list.champion ? [list.champion] : []} />
+        <CardList cards={list.champion ? [list.champion] : []} section="champion" />
       </DeckSection>
 
       <DeckSection title="Runes" count={totals.runes} target={DECK_TARGETS.runes}>
         <Issues issues={issuesFor('runes')} sourceLines={sourceLines} />
-        <CardList cards={list.runes} />
+        <CardList cards={list.runes} section="runes" />
       </DeckSection>
 
       <DeckSection
@@ -74,21 +80,37 @@ const ImportPreview = ({
         target={DECK_TARGETS.battlefields}
       >
         <Issues issues={issuesFor('battlefields')} sourceLines={sourceLines} />
-        <CardList cards={list.battlefields} />
+        <CardList cards={list.battlefields} section="battlefields" />
       </DeckSection>
 
       <DeckSection title="Main deck" count={totals.main} target={DECK_TARGETS.main}>
         <Issues issues={issuesFor('main')} sourceLines={sourceLines} />
         {list.champion && (
-          <CardRow card={list.champion} tag="Chosen" divider={false} />
+          <CardRow card={list.champion} tag="Chosen" divider={false} section="champion" />
         )}
-        <CardList cards={list.main} firstDivider={list.champion !== null} />
+        <CardList cards={list.main} firstDivider={list.champion !== null} section="main" />
       </DeckSection>
 
       <DeckSection title="Sideboard" count={totals.sideboard}>
         <Issues issues={issuesFor('sideboard')} sourceLines={sourceLines} />
-        <CardList cards={list.sideboard} />
+        <CardList cards={list.sideboard} section="sideboard" />
       </DeckSection>
+
+      {(list.unsorted?.length ?? 0) > 0 && (
+        <DeckSection
+          title="Unsorted"
+          count={(list.unsorted ?? []).reduce((n, c) => n + c.count, 0)}
+        >
+          <Text className="pb-1.5 text-[12px] leading-4 text-ink-tertiary">
+            Riftlog doesn&apos;t know these cards yet, so it can&apos;t tell
+            their section. They&apos;re saved here and move into place once it
+            does.
+          </Text>
+          <CardList cards={list.unsorted ?? []} section="unsorted" />
+        </DeckSection>
+      )}
+
+      <DeckCheckNote list={list} />
     </View>
   );
 };

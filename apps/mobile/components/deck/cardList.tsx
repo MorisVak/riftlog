@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text } from 'react-native';
-import { deckCardKey, type CardRef, type DeckCardChange } from '@riftlog/core';
+import { deckCardKey, type CardRef, type DeckCardChange, type ListSection } from '@riftlog/core';
 import CardRow from '@/components/deck/cardRow';
 
 /**
@@ -15,10 +15,13 @@ const CardList = ({
   cards,
   firstDivider = false,
   changes,
+  section,
 }: {
   cards: CardRef[];
   firstDivider?: boolean;
   changes?: DeckCardChange[];
+  /** Passed to each row, to flag cards of the wrong type. */
+  section?: ListSection;
 }) => {
   const byKey = new Map((changes ?? []).map((c) => [deckCardKey(c.name), c]));
   const removed = (changes ?? []).filter((c) => c.after === 0);
@@ -40,6 +43,7 @@ const CardList = ({
           card={card}
           divider={i > 0 || firstDivider}
           change={change}
+          section={section}
         />
       ))}
     </>

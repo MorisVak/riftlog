@@ -12,22 +12,25 @@ export type DeckCardChange = {
 };
 
 export type DeckSectionDiff = {
-  section: DeckSection;
+  section: DeckSection | 'unsorted';
   changes: DeckCardChange[];
 };
 
 /** Sections compared, in display order. */
-const SECTIONS: readonly DeckSection[] = [
+const SECTIONS: readonly (DeckSection | 'unsorted')[] = [
   'legend',
   'champion',
   'main',
   'battlefields',
   'runes',
   'sideboard',
+  'unsorted',
 ];
 
-const cardsOf = (list: DeckList, section: DeckSection): CardRef[] => {
+const cardsOf = (list: DeckList, section: DeckSection | 'unsorted'): CardRef[] => {
   switch (section) {
+    case 'unsorted':
+      return list.unsorted ?? [];
     case 'legend':
       return [
         ...(list.legend ? [list.legend] : []),

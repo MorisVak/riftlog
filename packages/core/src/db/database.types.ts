@@ -42,6 +42,263 @@ export type Database = {
   }
   public: {
     Tables: {
+      card_errata: {
+        Row: {
+          card_id: string
+          created_at: string
+          effective_on: string | null
+          id: string
+          manually_edited: boolean
+          new_text: string
+          previous_text: string
+          source: Database["public"]["Enums"]["catalog_source"]
+          source_note: string | null
+          status: Database["public"]["Enums"]["catalog_status"]
+          updated_at: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          effective_on?: string | null
+          id?: string
+          manually_edited?: boolean
+          new_text: string
+          previous_text: string
+          source?: Database["public"]["Enums"]["catalog_source"]
+          source_note?: string | null
+          status?: Database["public"]["Enums"]["catalog_status"]
+          updated_at?: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          effective_on?: string | null
+          id?: string
+          manually_edited?: boolean
+          new_text?: string
+          previous_text?: string
+          source?: Database["public"]["Enums"]["catalog_source"]
+          source_note?: string | null
+          status?: Database["public"]["Enums"]["catalog_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_errata_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_printings: {
+        Row: {
+          alt_art: boolean
+          artist: string | null
+          card_id: string
+          code: string
+          collector_number: string
+          created_at: string
+          image_url: string | null
+          manually_edited: boolean
+          orientation: string
+          overnumbered: boolean
+          printed_text: string
+          promo: boolean
+          rarity: string | null
+          riftcodex_id: string | null
+          set_code: string
+          signed: boolean
+          source: Database["public"]["Enums"]["catalog_source"]
+          status: Database["public"]["Enums"]["catalog_status"]
+          storage_path: string | null
+          updated_at: string
+          variant: string
+        }
+        Insert: {
+          alt_art?: boolean
+          artist?: string | null
+          card_id: string
+          code: string
+          collector_number: string
+          created_at?: string
+          image_url?: string | null
+          manually_edited?: boolean
+          orientation?: string
+          overnumbered?: boolean
+          printed_text?: string
+          promo?: boolean
+          rarity?: string | null
+          riftcodex_id?: string | null
+          set_code: string
+          signed?: boolean
+          source?: Database["public"]["Enums"]["catalog_source"]
+          status?: Database["public"]["Enums"]["catalog_status"]
+          storage_path?: string | null
+          updated_at?: string
+          variant?: string
+        }
+        Update: {
+          alt_art?: boolean
+          artist?: string | null
+          card_id?: string
+          code?: string
+          collector_number?: string
+          created_at?: string
+          image_url?: string | null
+          manually_edited?: boolean
+          orientation?: string
+          overnumbered?: boolean
+          printed_text?: string
+          promo?: boolean
+          rarity?: string | null
+          riftcodex_id?: string | null
+          set_code?: string
+          signed?: boolean
+          source?: Database["public"]["Enums"]["catalog_source"]
+          status?: Database["public"]["Enums"]["catalog_status"]
+          storage_path?: string | null
+          updated_at?: string
+          variant?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_printings_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_printings_set_code_fkey"
+            columns: ["set_code"]
+            isOneToOne: false
+            referencedRelation: "sets"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      cards: {
+        Row: {
+          created_at: string
+          current_text: string
+          domains: string[]
+          energy: number | null
+          id: string
+          manually_edited: boolean
+          might: number | null
+          name: string
+          name_key: string
+          power: number | null
+          source: Database["public"]["Enums"]["catalog_source"]
+          status: Database["public"]["Enums"]["catalog_status"]
+          supertype: string | null
+          tags: string[]
+          type: Database["public"]["Enums"]["card_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_text?: string
+          domains?: string[]
+          energy?: number | null
+          id?: string
+          manually_edited?: boolean
+          might?: number | null
+          name: string
+          name_key: string
+          power?: number | null
+          source?: Database["public"]["Enums"]["catalog_source"]
+          status?: Database["public"]["Enums"]["catalog_status"]
+          supertype?: string | null
+          tags?: string[]
+          type: Database["public"]["Enums"]["card_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_text?: string
+          domains?: string[]
+          energy?: number | null
+          id?: string
+          manually_edited?: boolean
+          might?: number | null
+          name?: string
+          name_key?: string
+          power?: number | null
+          source?: Database["public"]["Enums"]["catalog_source"]
+          status?: Database["public"]["Enums"]["catalog_status"]
+          supertype?: string | null
+          tags?: string[]
+          type?: Database["public"]["Enums"]["card_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      catalog_admins: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      catalog_meta: {
+        Row: {
+          id: boolean
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          id?: boolean
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          id?: boolean
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      catalog_overrides: {
+        Row: {
+          created_at: string
+          field: string
+          id: string
+          note: string | null
+          riftcodex_id: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          field: string
+          id?: string
+          note?: string | null
+          riftcodex_id: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          created_at?: string
+          field?: string
+          id?: string
+          note?: string | null
+          riftcodex_id?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       contact_attempts: {
         Row: {
           created_at: string
@@ -373,6 +630,42 @@ export type Database = {
         }
         Relationships: []
       }
+      sets: {
+        Row: {
+          code: string
+          created_at: string
+          deck_code_set_id: number | null
+          manually_edited: boolean
+          name: string
+          released_on: string | null
+          source: Database["public"]["Enums"]["catalog_source"]
+          status: Database["public"]["Enums"]["catalog_status"]
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          deck_code_set_id?: number | null
+          manually_edited?: boolean
+          name: string
+          released_on?: string | null
+          source?: Database["public"]["Enums"]["catalog_source"]
+          status?: Database["public"]["Enums"]["catalog_status"]
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          deck_code_set_id?: number | null
+          manually_edited?: boolean
+          name?: string
+          released_on?: string | null
+          source?: Database["public"]["Enums"]["catalog_source"]
+          status?: Database["public"]["Enums"]["catalog_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       waitlist: {
         Row: {
           created_at: string
@@ -408,6 +701,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bump_catalog_version: { Args: never; Returns: undefined }
       claim_username: { Args: { p_username: string }; Returns: string }
       complete_onboarding: {
         Args: { p_display_name: string; p_username: string }
@@ -430,6 +724,7 @@ export type Database = {
         Args: { p_display_name: string; p_uid: string }
         Returns: undefined
       }
+      is_catalog_admin: { Args: never; Returns: boolean }
       is_deck_list: { Args: { p_list: Json }; Returns: boolean }
       is_feedback_admin: { Args: { p_uid: string }; Returns: boolean }
       is_name_reserved: { Args: { p_name: string }; Returns: boolean }
@@ -479,7 +774,9 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      card_type: "Legend" | "Unit" | "Spell" | "Gear" | "Battlefield" | "Rune"
+      catalog_source: "riftcodex" | "manual" | "riot"
+      catalog_status: "spoiler" | "released"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -609,6 +906,10 @@ export const Constants = {
     Enums: {},
   },
   public: {
-    Enums: {},
+    Enums: {
+      card_type: ["Legend", "Unit", "Spell", "Gear", "Battlefield", "Rune"],
+      catalog_source: ["riftcodex", "manual", "riot"],
+      catalog_status: ["spoiler", "released"],
+    },
   },
 } as const
