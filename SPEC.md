@@ -74,7 +74,11 @@ writing the logic that drives them. Things to know:
    `additionalLegends`, not in the game yet and hidden while empty) as
    `CardRef { name, code, count }`. `main` **excludes the chosen-champion
    copy**, matching the text export: 39 + the champion = 40. `code` is null for
-   text imports; later it holds the full printing code (e.g. `SFD-149a`).
+   text imports; a deck-code import holds the full printing code (e.g.
+   `SFD-149a`). An optional **`unsorted`** section holds deck-code printings
+   the card catalog didn't know at import (so their section couldn't be
+   told), named by their code; views move them into place once the catalog
+   knows the code. Older lists have no `unsorted`.
    `DeckSnapshot` carries a `DeckList` plus the `deckId` / `versionId` it was
    taken from, so a match can pin the exact immutable version played.
 
@@ -280,8 +284,8 @@ connection returns.
 **Status:** plain-text import built (paste → live preview → save), the deck
 view (List / Gallery), editing a list, "My decks" on Profile (search, sort,
 multi-select delete), a default deck, and choosing a deck for a match (the
-match pins the exact version). Piltover Archive deck **codes** are recognised
-but not decoded ("coming soon"). Riftmana and manual entry are not built.
+match pins the exact version), and Piltover Archive **deck codes** — import
+and "Copy deck code". Riftmana and manual entry are not built.
 
 **What it is.** Players import a deck into Riftlog so they can attach it to
 matches and review it later. Import sources, in priority order: **Piltover
@@ -304,16 +308,31 @@ next to the line it came from:
 
 The deck name defaults to the legend's champion ("Kennen") and is editable.
 
-**Deck codes (not built).** The import screen shows a disabled "Deck code —
-Coming soon" option. A pasted code gets a friendly note pointing to
-*Export → Text* instead of parse errors.
+**Deck codes (built).** The player pastes a Piltover Archive deck code (the
+"Deck code" tab only changes the hints; a code is recognised whichever tab is
+picked). A code carries printings without sections, so cards are sorted by
+the card catalog's types (Feature 6): legend, chosen champion (its copy taken
+out of the main deck), battlefields, runes, main deck, sideboard. Printings
+the catalog doesn't know yet (today: RAD cards) go to an **"Unsorted"**
+section, named by their code, and move into place once the catalog knows
+them. An invalid code, a code from a newer format ("update Riftlog") and a
+catalog that hasn't loaded yet each get a plain message. A code-imported
+deck keeps its exact printings (alt arts) and is saved with its code. The
+deck screen's **"Copy deck code"** writes any deck as a code — each card's
+own printing, or its catalog base printing for text imports.
+
+**Known issue (must fix before launch):** "Edit list" goes through the text
+format, which carries names only, so saving an edit drops the printings of a
+code-imported deck (alt arts fall back to base printings). Fix: a card whose
+name is still in the deck keeps its previous printing; only new cards get the
+base printing.
 
 **Deck view (built).** Laid out like Piltover Archive's: the legend and chosen
 champion side by side as the deck's identity with its domains (derived from
 rune names, e.g. "Chaos Rune" → Chaos; hidden if the names don't match), then
 runes (split + a proportion bar in domain colors, x/12), battlefields (x/3),
 the main deck (x/40, chosen champion first and tagged), and the sideboard
-(plain count). Text only until card art exists (Feature 6).
+(plain count). Cards show their type, art (Feature 6) and a details sheet.
 
 **Storage.** A deck is a named thing the player owns; its list lives in
 **immutable versions**. Saving creates the deck and its first version
@@ -366,25 +385,36 @@ diff. The diff logic (`diffDecks`) is a pure function in `@riftlog/core`.
 
 ## Feature 6 — Decklists & card art
 
-**Status:** sectioned decklists built (text only, Feature 4). **Card art and
-card text are the next todo** (see the Roadmap) — blocked on a Riot API key
-(not yet obtained).
+**Status:** built in the mobile app. Card art is behind a build flag (on in
+development / preview / TestFlight builds, off in production) until an
+approved Riot API key exists; card names, types and text show regardless.
+The website shows no card art.
 
 **What it is.** Viewing a decklist shows the actual card arts and card text,
 broken into the standard Riftbound sections: chosen Champion, Legend, 40-card
 main deck, 12 Runes, 3 Battlefields, sideboard.
 
-**Dependencies & notes:**
+**How it works:**
 
-- Requires a production API key from developer.riotgames.com for card data /
-  imagery.
-- Sections are modelled (Data model note 2) and render structurally today.
-- **Adding art must not migrate deck data.** A future card catalog keyed by
-  printing code supplies art; lists that have a code use it, text imports
-  (no code) match by card name. In the app, every card renders through one
-  component, so art arrives in one place.
-- Any use of Riftbound imagery carries the fan-made disclaimer (see Riot
-  policy in `CLAUDE.md`).
+- **A card catalog we own** (Postgres: sets, cards, printings) is filled
+  from Riftcodex, an open, unofficial card API, by a server-side importer;
+  the app never calls Riftcodex. Printings are keyed by printing code
+  (`SFD-149a`). A card's text comes from its base printing, with line
+  breaks. Corrections to the source are versioned in the importer.
+- **The app caches the catalog** on the device and refetches it only when it
+  changed. A card with a code shows that exact printing; a text-imported card
+  matches by name and shows its base printing. No deck data was migrated.
+- **Every card shows** its type and domains, and opens a sheet with the art,
+  stats and rules text. Cards not in the catalog, or of the wrong type for
+  their section, are flagged in words (never color alone), with a summary
+  under the deck.
+- **Riot's statements** (the fan-made disclaimer and the Legal Jibber Jabber
+  statement) appear once in the app, at the bottom of the profile page,
+  always.
+- **Known gap:** the newest set, RAD, isn't in Riftcodex yet, so its cards
+  aren't in the catalog (they show "Not in the card catalog"). Plan: sync
+  again once Riftcodex adds it; enter cards by hand only if that takes too
+  long.
 
 ---
 
@@ -635,8 +665,10 @@ model.
 - **Custom backgrounds** — maybe; a few of our own designs.
 
 **Riot policy:** legend art is Riot's asset, so legend backgrounds must stay
-free and need the Riot API key / asset access (as Feature 6). Only our own
-custom designs could ever be paid content (it must be transformative). The
+free. The art itself is already in the card catalog (Feature 6); like all
+card art, it can't ship in a public release before an approved Riot API key.
+Only our own custom designs could ever be paid content (it must be
+transformative). The
 board must stay readable on top of any art (dim/blur overlay, scores
 unchanged), in both portrait and landscape.
 
@@ -704,12 +736,12 @@ Mark an item here when it does, then add it to the build order below.
 | 2 | Sideboard guide | Planned | Feature 12 | Decks | Not yet |
 | 3 | Quick log | Planned | Feature 15 | Match write path | Not yet |
 | 4 | Stats | Later | Feature 13 | Quick log helps | Not yet |
-| 5 | Playerboard customization | Later | Feature 14 | Riot API key (legend art) | Not yet |
+| 5 | Playerboard customization | Later | Feature 14 | Card catalog (built); Riot API key for release | Not yet |
 | 6 | Teams & friends | Later | Feature 9 | Match mode | Not yet |
 
-Not on the website but also open: turn tracking (Feature 10), Piltover
-Archive / Riftmana deck codes (Feature 4), handle rename UI (Feature 7). Card
-art and text (Feature 6) is a todo now — see below.
+Not on the website but also open: turn tracking (Feature 10), Riftmana
+import (Feature 4), handle rename UI (Feature 7). Piltover Archive deck codes
+and card art and text (Features 4 and 6) are built.
 
 ---
 
@@ -748,15 +780,22 @@ art and text (Feature 6) is a todo now — see below.
 > provider added to "Service providers" in `/privacy`
 > (`apps/web/src/app/privacy/page.tsx`). Do this before launch.
 
-> **TODO (next) — card art and card text in decklists.** The next thing
-> to build (Feature 6). Viewing a deck shows each card's art and its text
-> (cost, domain, type, rules text), not just name and count. Needs the card
-> data and images from Riot: a production API key from
-> developer.riotgames.com (a request to the content endpoint without one
-> currently returns 403 Forbidden). Then: a card catalog keyed by printing code,
-> name matching for text imports, art and text in the one card component,
-> and the fan-made disclaimer wherever the art appears. Must not migrate
-> existing deck data.
+> **URGENT TODO — approved Riot API key before a public release.** A public
+> App Store / Google Play release requires an approved Riot API key (or a
+> written license), per Riot's Legal Jibber Jabber. The card art flag (off in
+> production builds) doesn't change that. The production key application is
+> still pending.
+
+> **MUST-FIX before launch — editing a code-imported deck drops its
+> printings.** "Edit list" goes through the text format, which carries names
+> only, so alt arts fall back to base printings on save. Fix: on save after a
+> text edit, a card whose name is still in the deck keeps its previous
+> printing; only new cards get the base printing. (Feature 4.)
+
+> **Riot's statements in the app.** The fan-made disclaimer and the Legal
+> Jibber Jabber statement appear once, at the bottom of the profile page,
+> small but visible without tapping anything ("clear and easy to find"), and
+> always, whatever the card art flag says. Not repeated on other screens.
 
 Each step should be a working, committed slice before the next begins —
 matching the incremental philosophy in `CLAUDE.md`.
@@ -779,18 +818,20 @@ matching the incremental philosophy in `CLAUDE.md`.
    _(Done.)_ Next: handle rename UI (stats are step 13); owned decks live here.
 7. **Deck import** — plain-text import, sectioned deck view, "My decks".
    (Feature 4.) _(Done: text import, deck view, editing, choosing a deck for a
-   match.)_ Next: Piltover deck-code decoding.
+   match, Piltover Archive deck-code import and "Copy deck code".)_ Next:
+   Riftmana; the must-fix above (edits keep printings).
 8. **Deck versioning & diffs** — version on edit, show change snapshots.
    (Feature 5.) _(Done except per-match diff snapshots in history.)_
-9. **Card art and text in decklists** — the next todo; needs the Riot API
-   key. (Feature 6.)
+9. **Card art and text in decklists** — _(Done in the app: card catalog from
+   Riftcodex, art behind a build flag, card details.)_ Shipping art publicly
+   needs the approved Riot API key. Known gap: RAD. (Feature 6.)
 10. **Match mode (QR)** — first of the planned features. (Feature 8.)
 11. **Sideboard guide** — concept. (Feature 12.)
 12. **Quick log** — concept; log a finished match without live scoring.
     (Feature 15.)
 13. **Stats** — concept. (Feature 13.)
-14. **Playerboard customization** — concept; legend backgrounds need the
-    Riot API key. (Feature 14.)
+14. **Playerboard customization** — concept; legend art is in the catalog,
+    but a public release needs the approved Riot API key. (Feature 14.)
 15. **Teams & friends** — concept; needs match mode. (Feature 9.)
 16. **Turn tracking** — exploratory. (Feature 10.)
 
@@ -798,8 +839,10 @@ matching the incremental philosophy in `CLAUDE.md`.
 
 - **Riot policy is binding** (full text in `CLAUDE.md`). Product implications:
   no cross-user metagame aggregation; a user's own stats only; free tier if
-  any monetization exists; paid content must be transformative; fan-made
-  disclaimer wherever Riftbound assets/trademarks appear.
+  any monetization exists; paid content must be transformative; the
+  fan-made disclaimer and the Legal Jibber Jabber statement on every public
+  web page, and once in the app (bottom of the profile page); an approved
+  Riot API key before any public app release.
 - **Cloud-backed history.** Postgres is the single source of truth. The live
   tracker works offline; a match recorded offline is queued in a small local
   outbox and uploaded automatically on reconnect. History itself is never
