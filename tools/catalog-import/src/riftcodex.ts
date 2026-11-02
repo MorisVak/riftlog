@@ -200,10 +200,18 @@ const getAllPages = async (path: string, opts: FetchOptions): Promise<unknown[]>
   return items;
 };
 
-export const fetchRiftcodex = async (
-  opts: FetchOptions,
-): Promise<{ cards: RiftcodexCard[]; sets: RiftcodexSet[] }> => {
-  const sets = (await getAllPages('/sets', opts)).map((s, i) => parseSet(s, `set #${i}`));
-  const cards = (await getAllPages('/cards', opts)).map((c, i) => parseCard(c, `card #${i}`));
-  return { cards, sets };
+/** The raw responses: every item of /sets and /cards, unparsed. */
+export type RiftcodexRaw = { sets: unknown[]; cards: unknown[] };
+
+/** Fetches everything. Raw, so a snapshot can keep exactly what came back. */
+export const fetchRiftcodexRaw = async (opts: FetchOptions): Promise<RiftcodexRaw> => {
+  const sets = await getAllPages('/sets', opts);
+  const cards = await getAllPages('/cards', opts);
+  return { sets, cards };
 };
+
+/** Shape-checks raw responses (live or from a snapshot) into typed entries. */
+export const parseRiftcodex = (raw: RiftcodexRaw): { cards: RiftcodexCard[]; sets: RiftcodexSet[] } => ({
+  sets: raw.sets.map((s, i) => parseSet(s, `set #${i}`)),
+  cards: raw.cards.map((c, i) => parseCard(c, `card #${i}`)),
+});

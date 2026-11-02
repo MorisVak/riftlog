@@ -1,5 +1,6 @@
 /** Human-readable dry-run / apply report. */
 import type { Plan, TablePlan } from './plan';
+import type { SourceInfo } from './snapshot';
 import type { TransformReport } from './transform';
 
 const SAMPLE = 8;
@@ -32,11 +33,20 @@ function table(name: string, t: Pick<TablePlan<Record<string, unknown>>, 'insert
   return out.join('\n');
 }
 
-export function formatReport(report: TransformReport, plan: Plan, mode: 'dry run' | 'apply'): string {
+export function formatReport(
+  report: TransformReport,
+  plan: Plan,
+  mode: 'dry run' | 'apply',
+  source: SourceInfo,
+): string {
   const lines: string[] = [];
   lines.push(`Catalog import — ${mode}`);
   lines.push('');
-  lines.push('Source (Riftcodex)');
+  lines.push(
+    source.kind === 'live'
+      ? `Source (Riftcodex, live fetch at ${source.fetchedAt})`
+      : `Source (Riftcodex snapshot fetched at ${source.fetchedAt}: ${source.path})`,
+  );
   lines.push(`  entries fetched           ${report.fetched}`);
   lines.push(`  spoiler twins dropped     ${report.droppedTwins.length}`);
   lines.push(`  skipped                   ${report.skipped.length}`);
