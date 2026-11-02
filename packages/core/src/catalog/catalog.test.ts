@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { deckCodeSetId } from '../decks/deckCode';
+import { pickBasePrinting, type BasePrintingCandidate } from './basePrinting';
 import { baseCardName, cleanCardText, normalizeCardName, unescapeHtml } from './names';
 import { collectorNumber, formatPrintingCode, parsePrintingCode } from './printingCode';
 
@@ -103,5 +104,47 @@ describe('deckCodeSetId', () => {
     expect(deckCodeSetId('VEN')).toBe(5);
     expect(deckCodeSetId('OPP')).toBeNull();
     expect(deckCodeSetId('constructor')).toBeNull();
+  });
+});
+
+describe('pickBasePrinting', () => {
+  const p = (code: string, extra: Partial<BasePrintingCandidate> = {}): BasePrintingCandidate => ({
+    code,
+    status: 'released',
+    promo: false,
+    set_code: code.split('-')[0] ?? '',
+    variant: '',
+    alt_art: false,
+    overnumbered: false,
+    signed: false,
+    setReleasedOn: { OGN: '2025-10-31', OGS: '2025-10-31', SFD: '2026-02-13', UNL: '2026-05-08', VEN: '2026-07-31' }[
+      code.split('-')[0] ?? ''
+    ] ?? null,
+    ...extra,
+  });
+
+  it('prefers a plain printing over alt art, overnumbered and signed ones', () => {
+    const base = p('UNL-187');
+    expect(
+      pickBasePrinting([p('UNL-229', { overnumbered: true }), p('UNL-229*', { variant: '*', signed: true }), base]),
+    ).toBe(base);
+    expect(pickBasePrinting([p('SFD-149a', { variant: 'a', alt_art: true }), p('SFD-149')])?.code).toBe('SFD-149');
+  });
+
+  it('prefers the newest main set, then OGS, then promos', () => {
+    expect(pickBasePrinting([p('SFD-149'), p('VEN-SP5')])?.code).toBe('VEN-SP5');
+    expect(pickBasePrinting([p('OPP-OGS-011', { promo: true }), p('OGS-011')])?.code).toBe('OGS-011');
+    // A newer overnumbered reprint doesn't beat the plain original.
+    expect(pickBasePrinting([p('VEN-176', { overnumbered: true }), p('OGN-117')])?.code).toBe('OGN-117');
+  });
+
+  it('never picks a spoiler when a released printing exists', () => {
+    expect(pickBasePrinting([p('VEN-155', { status: 'spoiler' }), p('OPP-OGN-001', { promo: true })])?.code).toBe(
+      'OPP-OGN-001',
+    );
+  });
+
+  it('returns null for no printings', () => {
+    expect(pickBasePrinting([])).toBeNull();
   });
 });

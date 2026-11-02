@@ -35,6 +35,7 @@ export {
   normalizeCardName,
   unescapeHtml,
 } from './catalog/names';
+export { pickBasePrinting, type BasePrintingCandidate } from './catalog/basePrinting';
 export {
   PRINTING_CODE,
   collectorNumber,

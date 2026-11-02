@@ -149,6 +149,20 @@ describe('transform', () => {
     expect(printing(d, 'SFD-149')?.status).toBe('spoiler');
   });
 
+  it('flags an unflagged printing numbered above its set size as overnumbered', () => {
+    const ezreal = cards.find((c) => c.riftbound_id === 'sfd-149-221');
+    if (!ezreal) throw new Error('fixture lacks sfd-149-221');
+    // Like VEN-176: above the set size (221), no flag from the source.
+    const above = { ...ezreal, id: 'above', riftbound_id: 'sfd-249-221' };
+    const d = transform({ cards: [...cards, above], sets, overrides, today: AFTER_VEN });
+    expect(printing(d, 'SFD-249')?.overnumbered).toBe(true);
+    expect(printing(d, 'SFD-149')?.overnumbered).toBe(false);
+    // Signed printings sit above the set size too, but aren't overnumbered.
+    expect(printing(d, 'UNL-229*')?.overnumbered).toBe(false);
+    // And the derived flag keeps it from being the card's base printing.
+    expect(card(d, 'ezreal, prodigy')?.current_text).toBe(printing(d, 'VEN-SP5')?.printed_text);
+  });
+
   it('lets an override set the overnumbered flag', () => {
     const vi = cards.find((c) => c.riftbound_id === 'unl-187-219');
     if (!vi) throw new Error('fixture lacks unl-187-219');

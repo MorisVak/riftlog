@@ -9,6 +9,7 @@ import {
   deckCodeSetId,
   normalizeCardName,
   parsePrintingCode,
+  pickBasePrinting,
   type Database,
 } from '@riftlog/core';
 import type { RiftcodexCard, RiftcodexSet } from './riftcodex';
@@ -146,8 +147,6 @@ const statusFor = (releasedOn: string | null, today: string): CatalogStatus =>
 type Mapped = {
   printing: DesiredPrinting;
   card: Omit<DesiredCard, 'name_key' | 'status'>;
-  /** Number within the printed set size (R / SP numbers always are). */
-  withinSize: boolean;
   setReleasedOn: string | null;
   source: RiftcodexCard;
 };
@@ -313,9 +312,14 @@ export function transform(input: {
 
     for (const o of overrides) report.overridesApplied.push(o);
 
+    // Riftcodex leaves some printings above the set size unflagged (most of
+    // VEN-167…194); a deck-code-set printing numbered above its printed set
+    // size, and not signed, is overnumbered. An override still wins.
     const size = /^\d+$/.test(ridParts[2] ?? '') ? Number(ridParts[2]) : null;
     const plainNumber = /^\d+$/.test(parts.number) ? Number(parts.number) : null;
-    const withinSize = plainNumber === null || size === null || plainNumber <= size;
+    const signed = original.metadata.signature || parts.variant === '*';
+    const aboveSize =
+      set.deck_code_set_id !== null && plainNumber !== null && size !== null && plainNumber > size && !signed;
     const name_key = normalizeCardName(name);
     const status =
       (get('status')?.value as CatalogStatus | undefined) ?? statusFor(set.released_on, input.today);
@@ -328,8 +332,9 @@ export function transform(input: {
         collector_number: collectorNumber(parts),
         variant: parts.variant,
         alt_art: original.metadata.alternate_art,
-        overnumbered: (get('overnumbered')?.value as boolean | undefined) ?? original.metadata.overnumbered,
-        signed: original.metadata.signature || parts.variant === '*',
+        overnumbered:
+          (get('overnumbered')?.value as boolean | undefined) ?? (original.metadata.overnumbered || aboveSize),
+        signed,
         promo: set.deck_code_set_id === null,
         printed_text: cleanCardText(text),
         image_url: imageUrl && imageUrl.startsWith('https://') ? imageUrl : null,
@@ -350,7 +355,6 @@ export function transform(input: {
         tags: original.tags,
         current_text: cleanCardText(text),
       },
-      withinSize,
       setReleasedOn: set.released_on,
       source: original,
     });
@@ -383,7 +387,8 @@ export function transform(input: {
   for (const [name_key, group] of byKey) {
     const types = [...new Set(group.map((m) => m.card.type))];
     if (types.length > 1) report.typeConflicts.push({ name_key, types });
-    const base = pickBasePrinting(group);
+    const base = pickBasePrinting(group.map((m) => ({ ...m.printing, setReleasedOn: m.setReleasedOn, m })))?.m;
+    if (!base) continue;
     cards.push({ name_key, ...base.card, status: base.printing.status });
   }
 
@@ -393,35 +398,4 @@ export function transform(input: {
     printings: mapped.map((m) => m.printing),
     report,
   };
-}
-
-/** Main sets rank first, then OGS (starter), then promo sets. */
-const tier = (m: Mapped): number => {
-  if (m.printing.promo) return 2;
-  return m.printing.set_code === 'OGS' ? 1 : 0;
-};
-
-const isPlainBase = (m: Mapped): boolean =>
-  m.printing.variant === '' &&
-  !m.printing.alt_art &&
-  !m.printing.overnumbered &&
-  !m.printing.signed &&
-  m.withinSize;
-
-/**
- * The printing a card takes its fields and text from: a released one over a
- * spoiler; then main set, OGS, promo; then a plain base printing (no variant,
- * not overnumbered); then the most recently released set (a reprint may carry
- * newer wording); then the lowest code, for a stable result.
- */
-function pickBasePrinting<T extends Mapped>(group: T[]): T {
-  const sorted = [...group].sort(
-    (a, b) =>
-      Number(a.printing.status !== 'released') - Number(b.printing.status !== 'released') ||
-      tier(a) - tier(b) ||
-      Number(!isPlainBase(a)) - Number(!isPlainBase(b)) ||
-      (b.setReleasedOn ?? '').localeCompare(a.setReleasedOn ?? '') ||
-      a.printing.code.localeCompare(b.printing.code),
-  );
-  return sorted[0] as T;
 }
