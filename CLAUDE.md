@@ -33,7 +33,9 @@ Offline-tolerant cloud persistence. **Postgres is the single source of truth**;
 the device keeps only (a) the in-progress match and (b) a small outbox of
 completed-but-unsynced matches that flushes on reconnect. Match **history is
 never mirrored locally** — it's read from Postgres on demand. Local footprint
-stays bounded and self-clearing.
+stays bounded and self-clearing. (Separately, the public **card catalog** is
+cached as one replaceable file — reference data, not match data; see
+`apps/mobile/CLAUDE.md`.)
 
 Build status: schema + RLS + generated types (`supabase/`), the write/read path,
 the offline outbox, account auth + `profiles`, and first-login onboarding
@@ -103,6 +105,14 @@ Internal imports use the scoped name: `import { Match } from '@riftlog/core'`.
 
 These are committed. Don't reconfigure EAS, don't run `eas init`, don't change
 identifiers without a deliberate reason.
+
+**EAS profiles and card art (store safety).** Card art is behind a build flag
+(`EXPO_PUBLIC_CARD_ART`, read in `apps/mobile/lib/featureFlags.ts`): on in
+`development`, `preview` and **`testflight`**, off in **`production`**.
+TestFlight and the App Store ship the *same* binary, so **only a
+`production`-profile build may ever be submitted for App Store review** —
+never a `testflight` one. A non-dev build with art on shows a small "Card art
+preview" label under Profile → About, so such a build is recognizable.
 
 ## Riot Games policy (binding)
 

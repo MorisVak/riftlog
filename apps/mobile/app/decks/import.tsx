@@ -26,6 +26,7 @@ import {
 } from '@/lib/decks';
 import ImportPreview from '@/components/deck/importPreview';
 import Icon from '@/components/icon';
+import { useCatalog } from '@/contexts/catalogContext';
 import { CTA_GLOW } from '@/components/ctaGlow';
 
 /**
@@ -70,6 +71,9 @@ const defaultDeckName = (legendName: string | undefined): string =>
  * edited here; the deck screen renames.
  */
 const ImportDeck = () => {
+  // The preview checks cards against the catalog; make sure it's current.
+  const { refresh: refreshCatalog } = useCatalog();
+  useEffect(() => refreshCatalog(), [refreshCatalog]);
   const router = useRouter();
   const { deckId } = useLocalSearchParams<{ deckId?: string }>();
   const editing = typeof deckId === 'string' && deckId !== '';

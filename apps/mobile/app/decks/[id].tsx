@@ -20,6 +20,7 @@ import ChangesToggle, {
 import DeckView, { type DeckLayout } from '@/components/deck/deckView';
 import DeckNameEditor from '@/components/deck/deckNameEditor';
 import Icon from '@/components/icon';
+import { useCatalog } from '@/contexts/catalogContext';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 type LoadState =
@@ -112,6 +113,9 @@ const DeckDetail = () => {
   }, [id, version, intro]);
 
   useFocusEffect(load);
+  // Pick up catalog changes (new cards, fixes) when the deck opens.
+  const { refresh: refreshCatalog } = useCatalog();
+  useFocusEffect(refreshCatalog);
 
   const rename = async (name: string) => {
     if (state.kind !== 'ready') return;

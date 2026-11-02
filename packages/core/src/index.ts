@@ -37,6 +37,22 @@ export {
 } from './catalog/names';
 export { pickBasePrinting, type BasePrintingCandidate } from './catalog/basePrinting';
 export {
+  buildCatalogIndex,
+  cardIssue,
+  checkDeckList,
+  fitsSection,
+  matchCard,
+  type CardIssue,
+  type CardMatch,
+  type Catalog,
+  type CatalogCard,
+  type CatalogIndex,
+  type CatalogPrinting,
+  type CatalogSet,
+  type DeckCheck,
+  type ListSection,
+} from './catalog/match';
+export {
   PRINTING_CODE,
   collectorNumber,
   formatPrintingCode,

@@ -6,7 +6,7 @@ import type { Domain, DomainCount } from '@riftlog/core';
  * Full class names per domain. NativeWind only compiles classes that appear
  * literally in source, so these can't be built as `bg-domain-${d}`.
  */
-const DOMAIN_CLASSES: Record<
+export const DOMAIN_CLASSES: Record<
   Domain,
   { solid: string; tint: string; text: string }
 > = {

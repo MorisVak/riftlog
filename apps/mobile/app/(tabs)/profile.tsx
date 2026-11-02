@@ -21,6 +21,8 @@ import { useProfile } from '@/contexts/profileContext';
 import AuthGate from '@/components/authGate';
 import Avatar from '@/components/avatar';
 import Icon from '@/components/icon';
+import RiotDisclaimer from '@/components/riotDisclaimer';
+import { CARD_ART_PREVIEW } from '@/lib/featureFlags';
 import DeckRow from '@/components/deck/deckRow';
 import DeckPicker from '@/components/deck/deckPicker';
 import { setDefaultDeck } from '@/lib/profile';
@@ -588,6 +590,22 @@ const Profile = () => {
         <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
           Tell us what you like and what to improve. It&apos;s sent anonymously.
         </Text>
+      </Animated.View>
+
+      {/* Always shown: card names and text are Riot content, art or not. */}
+      <Animated.View style={decksStyle} className="mt-8">
+        <Text className="mb-2 font-display text-base text-ink-secondary">About</Text>
+        <View className="gap-3 rounded-2xl border border-border bg-surface p-4">
+          <RiotDisclaimer className="text-[12px] text-ink-secondary" />
+          {/* A non-dev build with card art on (preview / testflight profile):
+              must never be the one submitted to the App Store. */}
+          {CARD_ART_PREVIEW && (
+            <View className="flex-row items-center gap-1.5">
+              <Icon name="image" size={12} className="text-ink-tertiary" />
+              <Text className="font-mono-medium text-[11px] text-ink-tertiary">Card art preview</Text>
+            </View>
+          )}
+        </View>
       </Animated.View>
 
       <FeedbackSheet
