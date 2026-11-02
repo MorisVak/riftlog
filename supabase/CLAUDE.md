@@ -52,7 +52,8 @@ supabase/
 │   ├── 20261015154509_waitlist.sql
 │   ├── 20261015163420_contact_messages.sql
 │   ├── 20261102184149_card_catalog.sql
-│   └── 20261102191647_promo_printing_codes.sql
+│   ├── 20261102191647_promo_printing_codes.sql
+│   └── 20261102193701_catalog_version_where.sql
 └── config.toml       Supabase CLI config (linked, anon auth OFF)
 
 ## Schema
@@ -487,6 +488,11 @@ over the access token (no DB password needed); applying migrations does.
   cached in the macOS keychain when the project was linked, so this runs
   non-interactively. It prints a `failed to cache migrations catalog … Docker`
   warning — that's only the local catalog cache; the migration still applies.
+- **Every UPDATE / DELETE needs a WHERE clause — even on a one-row table,
+  even inside a function or trigger.** Supabase loads `pg-safeupdate` for API
+  (PostgREST) sessions and refuses one without ("UPDATE requires a WHERE
+  clause"). The SQL editor doesn't load it, and neither does a local PGlite
+  test, so the failure only shows on the first API write.
 - **After every push, run `pnpm db:types`.** The generated `Database` type is
   what the client codes against; skipping it means the new column is invisible
   to TypeScript and the write silently omits it.
