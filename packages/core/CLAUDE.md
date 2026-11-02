@@ -11,7 +11,7 @@ Parent conventions in `../../CLAUDE.md` apply.
   `CardRef`, `DeckList`, `DeckSnapshot`, future `Card`, etc.)
 - Zod schemas for those types (when added)
 - Pure functions that operate on domain types (`parseDeckText`,
-  `sectionTotals`, `diffDeckLists`, handle rules; later a deck-code decoder)
+  `sectionTotals`, `diffDeckLists`, handle rules, deck codes, catalog matching)
 - Constants (Riftbound formats, deck-building rules)
 
 ## What does NOT belong here
@@ -41,10 +41,20 @@ So nothing here can assume a specific runtime. Pure TS only.
     │   ├── sections.ts       DeckSection, DECK_TARGETS, sectionTotals, emptyDeckList
     │   ├── domains.ts        DOMAINS, domainFromRuneName, deckDomains
     │   ├── diff.ts           diffDeckLists (per-section card changes), deckCardKey
-    │   ├── deckCode.ts       looksLikeDeckCode (detection only, no decoding)
+    │   ├── deckCode.ts       deck codes: decode / encode / DeckCodeError, deckCodeSetId,
+    │   │                     deckCodeCanCarry — the ONLY importer of
+    │   │                     @piltoverarchive/riftbound-deck-codes (pinned 1.5.0)
     │   ├── validate.ts       isDeckList (runtime guard for stored lists)
     │   ├── *.test.ts         Vitest
     │   └── __fixtures__/     kennen.txt (text export), kennen.code.txt (Piltover code)
+    ├── catalog/
+    │   ├── names.ts          normalizeCardName (match key), baseCardName, cleanCardText
+    │   ├── printingCode.ts   SET-NNN[variant] (+ promo parent) parse / format
+    │   ├── basePrinting.ts   pickBasePrinting — shared by importer and app
+    │   ├── match.ts          Catalog types, buildCatalogIndex, matchCard, checkDeckList
+    │   ├── deckFromCode.ts   deckListFromCode (sort by type, unknown → unsorted),
+    │   │                     resortUnsorted, deckCodeFromList
+    │   └── __fixtures__/     catalog-kennen.json (real catalog rows for the Kennen deck)
     ├── matches/
     │   ├── timeline.ts       netPoints, scoreSeries, pointShare, toPointEvents / isPointEvent
     │   └── notes.ts          NOTE_MAX, normalizeNote (trimmed; blank → null)
@@ -57,9 +67,9 @@ So nothing here can assume a specific runtime. Pure TS only.
 When adding:
 
 - Types → `src/types/<thing>.ts`, re-export from `src/index.ts`
-- Deck parsers / decoders → `src/decks/` (the Piltover deck-code decoder goes
-  here, tested against `__fixtures__/kennen.code.txt`, which is the same deck
-  as `kennen.txt`)
+- Deck parsers / decoders → `src/decks/`. Deck codes go through
+  `decks/deckCode.ts` only; the proof test (`catalog/deckFromCode.test.ts`)
+  checks that `kennen.code.txt` and `kennen.txt` resolve to the same deck.
 - Schemas → `src/schemas/<thing>.ts` (folder doesn't exist yet; create when needed)
 
 ## The deck model
@@ -75,6 +85,11 @@ A Riftbound decklist is a `DeckList`, by section: `legend`, `champion`,
   checked** (SPEC says 8; Piltover Archive shows decks with 10).
 - `CardRef.code` is null for text imports; later it holds the full printing
   code including the variant suffix (e.g. `SFD-149a`).
+- **`unsorted`** (optional; older lists have none) holds deck-code printings
+  the card catalog didn't know at import, so their section couldn't be told —
+  named by their code. `resortUnsorted` moves them into place for display
+  once the catalog knows the code; the text format writes them under
+  `Unsorted:` and the parser reads the codes back, so editing keeps them.
 - `additionalLegends` isn't in the game yet. It exists so an import with extra
   legend lines loses nothing; UIs hide it while empty.
 - Parser diagnostics carry a 1-based `line` (null for deck-level checks) and a
@@ -126,7 +141,6 @@ need one.
 ## What the package does not do yet
 
 - No Zod schemas (runtime checks so far are hand-written: `isDeckList`)
-- No deck-code decoder (Piltover Archive codes are detected, not decoded)
 - No Riftmana import, no win-rate utilities
 
 These are on the roadmap. Stubs and placeholders should be avoided — add real

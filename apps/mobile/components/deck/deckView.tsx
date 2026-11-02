@@ -1,20 +1,23 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Icon from '@/components/icon';
 import {
   DECK_TARGETS,
   deckDomains,
+  resortUnsorted,
   sectionTotals,
   type CardRef,
   type DeckCardChange,
   type DeckList,
   type DeckSection as SectionName,
   type DeckSectionDiff,
+  type ListSection,
 } from '@riftlog/core';
 import CardArt from '@/components/deck/cardArt';
 import DeckCheckNote from '@/components/deck/deckCheckNote';
 import { useCardSheet } from '@/contexts/cardSheetContext';
+import { useCatalog } from '@/contexts/catalogContext';
 import { useCardMatch } from '@/hooks/useCardMatch';
 import CardGrid from '@/components/deck/cardGrid';
 import CardList from '@/components/deck/cardList';
@@ -39,7 +42,7 @@ export type DeckLayout = 'list' | 'gallery';
  */
 const DeckView = ({
   name,
-  list,
+  list: storedList,
   title,
   changes = null,
   layout = 'list',
@@ -56,11 +59,18 @@ const DeckView = ({
   onLayoutChange?: (layout: DeckLayout) => void;
 }) => {
   const gallery = layout === 'gallery';
+  // Unsorted cards (deck-code printings the catalog didn't know) move into
+  // their section on screen once it does; the stored list is unchanged.
+  const { index } = useCatalog();
+  const list = useMemo(
+    () => (index ? resortUnsorted(storedList, index) : storedList),
+    [index, storedList],
+  );
   // One section's cards in the current layout.
   const cardsOf = (
     cards: CardRef[],
     sectionChanges: DeckCardChange[] | undefined,
-    section: SectionName,
+    section: ListSection,
   ) =>
     gallery ? (
       <CardGrid cards={cards} changes={sectionChanges} section={section} />
@@ -70,7 +80,7 @@ const DeckView = ({
   const totals = sectionTotals(list);
   const domains = deckDomains(list);
   // undefined (no annotation) unless Show changes is on.
-  const changesFor = (s: SectionName): DeckCardChange[] | undefined =>
+  const changesFor = (s: SectionName | 'unsorted'): DeckCardChange[] | undefined =>
     changes ? (changes.find((d) => d.section === s)?.changes ?? []) : undefined;
   const legendChanged = (changesFor('legend') ?? []).some(
     (c) => c.before === 0,
@@ -209,6 +219,20 @@ const DeckView = ({
       <DeckSection title="Sideboard" count={totals.sideboard}>
         {cardsOf(list.sideboard, changesFor('sideboard'), 'sideboard')}
       </DeckSection>
+
+      {/* Deck-code printings the catalog doesn't know yet (e.g. a new set). */}
+      {(list.unsorted?.length ?? 0) > 0 && (
+        <DeckSection
+          title="Unsorted"
+          count={(list.unsorted ?? []).reduce((n, c) => n + c.count, 0)}
+        >
+          <Text className="pb-1.5 text-[12px] leading-4 text-ink-tertiary">
+            Riftlog doesn&apos;t know these cards yet. They move to their
+            section once it does.
+          </Text>
+          {cardsOf(list.unsorted ?? [], changesFor('unsorted'), 'unsorted')}
+        </DeckSection>
+      )}
 
       <DeckCheckNote list={list} />
     </View>

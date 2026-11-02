@@ -113,7 +113,7 @@ export function matchCard(ref: Pick<CardRef, 'name' | 'code'>, index: CatalogInd
 }
 
 /** Every place a card can sit in a DeckList (additional legends included). */
-export type ListSection = DeckSection | 'additionalLegends';
+export type ListSection = DeckSection | 'additionalLegends' | 'unsorted';
 
 /** The card types each section holds. */
 const SECTION_TYPES: Record<ListSection, readonly string[]> = {
@@ -124,6 +124,8 @@ const SECTION_TYPES: Record<ListSection, readonly string[]> = {
   runes: ['Rune'],
   sideboard: ['Unit', 'Spell', 'Gear'],
   additionalLegends: ['Legend'],
+  // Anything: these are cards whose section couldn't be told.
+  unsorted: ['Legend', 'Unit', 'Spell', 'Gear', 'Battlefield', 'Rune'],
 };
 
 /** Whether a card of this type belongs in this section (a Unit under Battlefields doesn't). */
@@ -144,13 +146,22 @@ export function cardIssue(match: CardMatch, section: ListSection): CardIssue | n
 
 export type DeckCheck = { unknown: number; conflicts: number; misplaced: number };
 
-const SECTIONS: ListSection[] = ['legend', 'champion', 'main', 'battlefields', 'runes', 'sideboard', 'additionalLegends'];
+const SECTIONS: ListSection[] = [
+  'legend',
+  'champion',
+  'main',
+  'battlefields',
+  'runes',
+  'sideboard',
+  'additionalLegends',
+  'unsorted',
+];
 
 /** Counts of distinct problem cards in a deck, for the summary under it. */
 export function checkDeckList(list: DeckList, index: CatalogIndex): DeckCheck {
   const check: DeckCheck = { unknown: 0, conflicts: 0, misplaced: 0 };
   for (const section of SECTIONS) {
-    const value = list[section];
+    const value = section === 'unsorted' ? (list.unsorted ?? []) : list[section];
     const cards = Array.isArray(value) ? value : value ? [value] : [];
     for (const card of cards) {
       const issue = cardIssue(matchCard(card, index), section);

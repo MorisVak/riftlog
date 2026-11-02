@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Text, View } from 'react-native';
 import {
   DECK_TARGETS,
+  resortUnsorted,
   sectionTotals,
   type DeckDiagnostic,
   type DeckSection as Section,
@@ -12,6 +13,7 @@ import CardRow from '@/components/deck/cardRow';
 import DeckCheckNote from '@/components/deck/deckCheckNote';
 import DeckSection from '@/components/deck/deckSection';
 import Icon from '@/components/icon';
+import { useCatalog } from '@/contexts/catalogContext';
 
 /**
  * Live preview of a pasted decklist: every section with its total, the parsed
@@ -31,7 +33,12 @@ const ImportPreview = ({
   /** The pasted text split into lines, so issues can quote their line. */
   sourceLines: string[];
 }) => {
-  const { list, diagnostics } = parsed;
+  const { diagnostics } = parsed;
+  const { index } = useCatalog();
+  const list = useMemo(
+    () => (index ? resortUnsorted(parsed.list, index) : parsed.list),
+    [index, parsed.list],
+  );
   const totals = sectionTotals(list);
   const issuesFor = (section: Section | null) =>
     diagnostics.filter((d) => d.section === section);
@@ -88,6 +95,20 @@ const ImportPreview = ({
         <Issues issues={issuesFor('sideboard')} sourceLines={sourceLines} />
         <CardList cards={list.sideboard} section="sideboard" />
       </DeckSection>
+
+      {(list.unsorted?.length ?? 0) > 0 && (
+        <DeckSection
+          title="Unsorted"
+          count={(list.unsorted ?? []).reduce((n, c) => n + c.count, 0)}
+        >
+          <Text className="pb-1.5 text-[12px] leading-4 text-ink-tertiary">
+            Riftlog doesn&apos;t know these cards yet, so it can&apos;t tell
+            their section. They&apos;re saved here and move into place once it
+            does.
+          </Text>
+          <CardList cards={list.unsorted ?? []} section="unsorted" />
+        </DeckSection>
+      )}
 
       <DeckCheckNote list={list} />
     </View>

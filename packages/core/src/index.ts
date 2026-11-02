@@ -28,7 +28,17 @@ export {
   type DeckSectionDiff,
 } from './decks/diff';
 export { isDeckList } from './decks/validate';
-export { deckCodeSetId, looksLikeDeckCode } from './decks/deckCode';
+export {
+  DeckCodeError,
+  decodeDeckCode,
+  deckCodeCanCarry,
+  deckCodeSetId,
+  encodeDeckCode,
+  looksLikeDeckCode,
+  type DecodedDeck,
+  type DeckCodeCard,
+} from './decks/deckCode';
+export { deckCodeFromList, deckListFromCode, resortUnsorted } from './catalog/deckFromCode';
 export {
   baseCardName,
   cleanCardText,

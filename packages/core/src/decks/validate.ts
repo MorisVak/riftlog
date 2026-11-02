@@ -30,6 +30,7 @@ export function isDeckList(value: unknown): value is DeckList {
     isCardArray(l.battlefields) &&
     isCardArray(l.runes) &&
     isCardArray(l.sideboard) &&
-    isCardArray(l.additionalLegends)
+    isCardArray(l.additionalLegends) &&
+    (l.unsorted === undefined || isCardArray(l.unsorted))
   );
 }

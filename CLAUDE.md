@@ -209,8 +209,9 @@ up:
   `onboarded_at` is set so it can never block the gate.
 - Track-turns in pre-match setup — the setup sheet itself is built (Bo1/Bo3,
   player names, timed toggle + round length, optional deck)
-- Deck imports beyond plain text — Piltover Archive deck-code decoding, then
-  Riftmana. Plain-text import, editing a deck's list (each save is a new
+- Deck imports beyond text and deck codes — Riftmana. Plain-text and
+  deck-code import (Piltover Archive codes; unknown printings kept in an
+  "Unsorted" section), "Copy deck code", editing a deck's list (each save is a new
   immutable version), the sectioned deck view, a "My decks" list on
   Profile (with search and a recently updated / created sort), and choosing
   your deck for a match are built.

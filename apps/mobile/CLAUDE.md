@@ -893,10 +893,12 @@ is explicitly started:
   and deck are built)
 - The match detail's opponent block (their deck, linked profile,
   head-to-head, win rate) — needs match mode
-- Deck **code** decoding (detected only), Riftmana import, restoring an old
-  version as current, and restoring deleted decks. Text import, the deck view,
-  renaming, editing the list (new version), (soft) delete, "My decks", and
-  choosing a deck for a match are built.
+- Riftmana import, restoring an old version as current, and restoring deleted
+  decks. Text and deck-code import (a code is sorted by catalog types; unknown
+  printings go to an "Unsorted" section that re-sorts on screen once the
+  catalog knows them), "Copy deck code", the deck view, renaming, editing the
+  list (new version), (soft) delete, "My decks", and choosing a deck for a
+  match are built.
 - The designed history UI / detail view (only a minimal read-only list exists)
 - Profile **editing** — the handle rename UI and stats. `claim_username`
   already enforces the rules (30-day limit); nothing calls it from the client

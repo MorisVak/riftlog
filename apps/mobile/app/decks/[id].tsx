@@ -19,6 +19,7 @@ import ChangesToggle, {
 } from '@/components/deck/changesToggle';
 import DeckView, { type DeckLayout } from '@/components/deck/deckView';
 import DeckNameEditor from '@/components/deck/deckNameEditor';
+import CopyDeckCode from '@/components/deck/copyDeckCode';
 import Icon from '@/components/icon';
 import { useCatalog } from '@/contexts/catalogContext';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
@@ -267,6 +268,7 @@ const DeckDetail = () => {
                   : null
               }
             />
+            <CopyDeckCode list={state.played?.list ?? state.deck.list} />
             {/* Below the list, so the decklist itself stays clean. */}
             {previous && (
               <ChangesToggle
