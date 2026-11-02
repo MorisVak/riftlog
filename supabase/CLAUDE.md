@@ -51,7 +51,8 @@ supabase/
 │   ├── 20261012170431_feedback_manage.sql
 │   ├── 20261015154509_waitlist.sql
 │   ├── 20261015163420_contact_messages.sql
-│   └── 20261102184149_card_catalog.sql
+│   ├── 20261102184149_card_catalog.sql
+│   └── 20261102191647_promo_printing_codes.sql
 └── config.toml       Supabase CLI config (linked, anon auth OFF)
 
 ## Schema
@@ -280,9 +281,14 @@ with the publishable key.
   `energy` / `might` / `power`, `tags`, `current_text` (the base printing's
   text).
 - **`card_printings`** — `code` PK = the deck-code printing code
-  `SET-NNN[variant]` (`SFD-149a`, `UNL-229*`, `VEN-R01`, `VEN-SP1`; `m` = a
-  Metal promo, e.g. `OPP-259m`). A check forces `code = set_code || '-' ||
-  collector_number || variant`. Also `card_id`, the `alt_art` / `overnumbered`
+  `SET-NNN[variant]` (`SFD-149a`, `UNL-229*`, `VEN-R01`, `VEN-SP1`). **Promo
+  sets** (no `deck_code_set_id`) reuse the number of the card they reprint, so
+  their codes also name that parent set: `OPP-SFD-086`, `OPP-OGN-259m`
+  (`m` = Metal), `PR-OGN-246b`; the parent rides in `collector_number`
+  (`SFD-086`). A check forces `code = set_code || '-' || collector_number ||
+  variant`. The DB regex allows a parent for any set; the importer (and its
+  tests) keep it to promo sets, so deck-code codes stay exactly as deck codes
+  write them. Also `card_id`, the `alt_art` / `overnumbered`
   / `signed` / `promo` flags, `printed_text`, `image_url` or `storage_path`
   (storage wins), `artist`, `rarity`, `orientation` (battlefields are
   landscape), `riftcodex_id` (unique — Riftcodex's `riftbound_id` is not).
@@ -293,7 +299,9 @@ with the publishable key.
   `status` (`spoiler | released`).
 - **`catalog_overrides`** — `(riftcodex_id, field) → value` corrections the
   importer re-applies on every run (a broken name, a code like the Metal
-  `m`, `skip`). Keyed on Riftcodex's own `id`. Admin-only, reads included.
+  `m`, the `overnumbered` flag, `skip`). Keyed on Riftcodex's own `id`.
+  Admin-only, reads included. The versioned source is
+  `tools/catalog-import/overrides.json`; an `--apply` syncs it here.
 - **`catalog_meta`** — one row, `version`. Statement-level triggers bump it
   once per statement that **really changed rows** (no-op updates and
   zero-row statements don't; `updated_at` also only moves on a real change),
