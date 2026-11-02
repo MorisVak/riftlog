@@ -592,20 +592,18 @@ const Profile = () => {
         </Text>
       </Animated.View>
 
-      {/* Always shown: card names and text are Riot content, art or not. */}
-      <Animated.View style={decksStyle} className="mt-8">
-        <Text className="mb-2 font-display text-base text-ink-secondary">About</Text>
-        <View className="gap-3 rounded-2xl border border-border bg-surface p-4">
-          <RiotDisclaimer className="text-[12px] text-ink-secondary" />
-          {/* A non-dev build with card art on (preview / testflight profile):
-              must never be the one submitted to the App Store. */}
-          {CARD_ART_PREVIEW && (
-            <View className="flex-row items-center gap-1.5">
-              <Icon name="image" size={12} className="text-ink-tertiary" />
-              <Text className="font-mono-medium text-[11px] text-ink-tertiary">Card art preview</Text>
-            </View>
-          )}
-        </View>
+      {/* Riot's statements: the ONE place in the app they appear, always,
+          at the bottom of the page — small, but not behind a tap. */}
+      <Animated.View style={decksStyle} className="mt-10 gap-3 px-1">
+        <RiotDisclaimer />
+        {/* A non-dev build with card art on (preview / testflight profile):
+            must never be the one submitted to the App Store. */}
+        {CARD_ART_PREVIEW && (
+          <View className="flex-row items-center gap-1.5">
+            <Icon name="image" size={12} className="text-ink-tertiary" />
+            <Text className="font-mono-medium text-[11px] text-ink-tertiary">Card art preview</Text>
+          </View>
+        )}
       </Animated.View>
 
       <FeedbackSheet

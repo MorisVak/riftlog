@@ -2,11 +2,9 @@ import React from 'react';
 import { Modal, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import type { CardRef } from '@riftlog/core';
 import Icon from '@/components/icon';
-import RiotDisclaimer from '@/components/riotDisclaimer';
 import CardArt from '@/components/deck/cardArt';
 import CardText from '@/components/deck/cardText';
 import { useCardMatch } from '@/hooks/useCardMatch';
-import { CARD_ART } from '@/lib/featureFlags';
 
 /**
  * A card's details: art (with the flag on), name, type line, stats and the
@@ -53,7 +51,6 @@ const CardDetails = ({ card }: { card: CardRef }) => {
   }
 
   const { card: info, printing } = match;
-  const showsArt = CARD_ART && printing !== null && (printing.image_url !== null || printing.storage_path !== null);
   const typeLine = [info.type, info.supertype, info.domains.join(', ')].filter(Boolean).join(' · ');
   const stats = [
     info.energy !== null ? `Energy ${info.energy}` : null,
@@ -65,7 +62,6 @@ const CardDetails = ({ card }: { card: CardRef }) => {
     <ScrollView contentContainerClassName="px-4 pb-10 pt-6">
       <View className="items-center">
         <CardArt card={card} variant="sheet" width={artWidth} />
-        {showsArt && <RiotDisclaimer className="mt-2 text-center" />}
       </View>
       <Text className="mt-5 font-display-bold text-[22px] leading-7 text-ink-primary">{info.name}</Text>
       <Text className="mt-1 font-display text-[14px] text-ink-secondary">{typeLine}</Text>

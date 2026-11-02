@@ -171,10 +171,12 @@ the single spot art is decided. Don't render card images anywhere else.
   `EXPO_PUBLIC_CARD_ART=1` in the `preview` / `testflight` EAS profiles, off
   in `production`. With it off, rows stay text-only and tiles / the sheet show
   the named placeholder; types, text and flags still show.
-- **The Riot disclaimer** (`components/riotDisclaimer.tsx`, verbatim) shows
-  under a deck or import preview whenever art is on screen, under the art in
-  the card sheet, and **always** in Profile → About (card names and text are
-  Riot content too).
+- **The Legal Jibber Jabber statement appears once, at the bottom of the
+  profile page** (`components/riotDisclaimer.tsx`: the fan-made disclaimer
+  and the Legal Jibber Jabber statement, verbatim). Small and unobtrusive, but
+  visible without opening anything, and always shown whatever the card art
+  flag says. Nowhere else in the app — not on deck screens, the card sheet or
+  the import preview.
 - **Flags, never color alone:** a card not in the catalog, a code that's a
   different card than its name, or a card of the wrong type for its section
   gets an icon + words on its row ("Not in the card catalog", "Unit in this

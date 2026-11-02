@@ -112,7 +112,8 @@ identifiers without a deliberate reason.
 TestFlight and the App Store ship the *same* binary, so **only a
 `production`-profile build may ever be submitted for App Store review** —
 never a `testflight` one. A non-dev build with art on shows a small "Card art
-preview" label under Profile → About, so such a build is recognizable.
+preview" label at the bottom of the profile page, so such a build is
+recognizable.
 
 ## Riot Games policy (binding)
 
@@ -132,6 +133,10 @@ digital tools policy that we must comply with:
   "Riftlog was created under Riot Games' 'Legal Jibber Jabber' policy using
   assets owned by Riot Games. Riot Games does not endorse or sponsor this
   project."
+- **In the app, the Legal Jibber Jabber statement appears once, at the bottom
+  of the profile page** — together with the fan-made disclaimer above, both
+  verbatim, small but visible without tapping anything open ("clear and easy
+  to find"), whatever the card art flag says. Not repeated on other screens.
 
 Source: https://developer.riotgames.com/docs/riftbound
 
@@ -166,6 +171,127 @@ up:
   built-in sender is used, which only reaches members of the Supabase
   organization (~2 emails/hour). Email-code sign-in fails for real users;
   Discord / Google / Apple work.
+- **Approved Riot API key before a public release.** A public App Store /
+  Google Play release requires an approved Riot API key (or a written
+  license), per Riot's Legal Jibber Jabber. The card art flag doesn't change
+  that. The production key application is still pending.
+- **MUST-FIX: editing a code-imported deck drops its printings.** "Edit list"
+  goes through the text format, which carries names only, so after a save
+  every card in a section loses its printing code (an alt art falls back to
+  the base printing; only "Unsorted" cards keep theirs). Expected fix: on
+  save after a text edit, a card whose name is still in the deck keeps its
+  previous printing; only new cards get the base printing.
+
+## Card catalog
+
+Every Riftbound card and printing lives in our Postgres catalog (`sets`,
+`cards`, `card_printings`, …; schema in `supabase/CLAUDE.md`). It's filled
+from **Riftcodex** (an open, unofficial card API) by the importer in
+`tools/catalog-import`; the apps only ever read our tables, never Riftcodex.
+
+**Importer** (details in `tools/catalog-import/CLAUDE.md`):
+
+- `pnpm catalog:import` — **dry run** (the default): fetches Riftcodex, saves
+  the raw responses as a snapshot in `tools/catalog-import/.cache/`
+  (gitignored), compares with the database and prints what would change.
+  Writes nothing.
+- `--apply` writes exactly those changes; `--from-snapshot <file>` runs from a
+  saved snapshot instead of the network; `--report <file>` saves the full
+  plan as JSON. Always dry-run first and read the report.
+- **Key handling:** it reads only `SUPABASE_URL` and `SUPABASE_SECRET_KEY`
+  from `supabase/.env` (gitignored), refuses anything that isn't an
+  `sb_secret_…` key, and never prints it. The secret key is never referenced
+  from `apps/mobile` or `apps/web`.
+- **What it never does:** overwrite a row with `manually_edited = true` or a
+  row it didn't import (`source = 'manual'` / `'riot'` — reported as a
+  conflict), delete anything (rows gone from Riftcodex are only listed), or
+  apply past a safety stop (two entries mapping to one code, one name with
+  two card types, or Riftcodex returning >10% fewer printings than we hold).
+- **Corrections to Riftcodex data** (a wrong name, a code, a missing flag) go
+  in `tools/catalog-import/overrides.json` — versioned in git, re-applied on
+  every run, synced into `catalog_overrides` on `--apply`.
+- The catalog version (`catalog_meta.version`) bumps itself on any real
+  change; the app refetches only then.
+
+**Adding a spoiler card by hand** (Supabase dashboard → Table Editor, until
+there's an admin screen; you need a row in `catalog_admins` only for writes
+from the app, not for the dashboard):
+
+1. **Set** — if the set isn't in `sets` yet (e.g. RAD): add `code` (`RAD`),
+   `name`, `released_on` (leave empty or a future date while it's
+   unreleased), `deck_code_set_id` (from the deck-code library's set map:
+   OGN 0, OGS 1, ARC 2, SFD 3, UNL 4, VEN 5, RAD 6; empty for promo sets),
+   `source = manual`, `status = spoiler`.
+2. **Card** — in `cards`: `name`, `name_key` (the name lowercased, " - "
+   written as ", ", curly quotes straight, any trailing "(…)" tag dropped —
+   e.g. "Riven - The Exile" → `riven, the exile`; it must match how decks
+   spell the card), `type`, `supertype`, `domains`, `energy` / `might` /
+   `power`, `current_text` (line breaks as new lines), `source = manual`,
+   `status = spoiler`.
+3. **Printing** — in `card_printings`: `code` (`RAD-012`, plus `a` / `*` for
+   alt art / signed), `card_id` (the card from step 2), `set_code`,
+   `collector_number` (`012`), `variant`, the flags, `printed_text`,
+   `orientation` (`landscape` for battlefields), `source = manual`,
+   `status = spoiler`.
+4. **Image** — upload it to the `card-images` storage bucket (e.g.
+   `RAD/RAD-012.webp`, max 5 MB, png / jpeg / webp) and put that path in the
+   printing's `storage_path`.
+5. Nothing to bump: the version moves by itself. Check that
+   `catalog_meta.version` went up.
+
+When Riftcodex later carries the card, the importer reports the manual rows
+as conflicts and leaves them alone. To hand a card over to the importer, set
+its rows' `source` to `riftcodex` and run a dry run: it then updates them in
+place (the card id is kept).
+
+**Errata** (by hand, until there's an admin screen): update the card's
+`current_text`, set `manually_edited = true` so imports keep your wording,
+and add a `card_errata` row (`card_id`, `previous_text`, `new_text`,
+`effective_on`, `source_note`). The app doesn't show errata yet.
+
+**Editing any imported row by hand:** set `manually_edited = true` on it, or
+the next import puts Riftcodex's value back. Prefer `overrides.json` for
+corrections Riftcodex should keep getting.
+
+**TODO — admin entry screen.** Later: an in-app (or web-admin) screen for
+catalog admins to add and edit cards and printings, upload images to the
+bucket, enter errata, and switch spoiler / released. Saving sets
+`source = 'manual'` (new rows) or `manually_edited = true` (edited imported
+rows); the version bumps itself. Writes are already admin-only by RLS.
+
+**Card art is mobile-only for now.** Only `apps/mobile` renders card images
+(behind the `CARD_ART` flag, see "EAS profiles and card art" above).
+`apps/web` — riftlog.net, its screenshots and any future deck pages — must
+not show card art: no image components, no remote image domains for
+`cmsassets.rgpub.io` or the bucket. Don't retake website screenshots with
+card art on.
+
+### Known catalog gaps
+
+- **Radiance (RAD)** — RAD is in the deck-code library's set map (id 6), but
+  Riftcodex doesn't have it yet (its `/sets` lists 8 sets, no RAD), so none
+  of its cards are in the catalog. The 12 cards of the "Riven sloppin" deck
+  that show "Not in the card catalog" are most likely RAD: Riven, The Exile;
+  Riven, Broken Blade; Reckless Innovator; Blade of the Exile; Bedeviling
+  Stranger; Ki Burst; Life from Stone; Siren's Song; Hunter's Circle; Hunker
+  Down; Hush; An Offer You Can't Refuse. **Checked 2026-11-02, not
+  confirmed:** none of them is in any set Riftcodex has, but no source we
+  could read lists RAD's cards (Piltover Archive's search and the official
+  gallery render client-side), so their set is unverified. Plan: re-run a
+  live sync once Riftcodex adds RAD; enter cards by hand only if that takes
+  too long.
+
+### Open items
+
+- **Pending manual test (owner):** saving a code-imported deck.
+- **Pending fixture:** a Piltover Archive deck code containing an
+  overnumbered printing, to extend the proof test in
+  `packages/core/src/catalog/deckFromCode.test.ts`. Promos need none: they
+  can't appear in deck codes (OPP / PR / JDG aren't in the library's set map).
+- **The "newer format" deck-code message** is only unit-tested, not checked
+  on the simulator.
+- Must-fix before launch: printings lost on editing a code-imported deck
+  (see "Before launch — urgent").
 
 ## Website and operations
 

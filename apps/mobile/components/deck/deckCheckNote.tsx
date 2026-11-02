@@ -2,7 +2,6 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import type { DeckCheck, DeckList } from '@riftlog/core';
 import Icon from '@/components/icon';
-import RiotDisclaimer from '@/components/riotDisclaimer';
 import { useDeckCheck } from '@/hooks/useDeckCheck';
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -19,21 +18,20 @@ export const deckCheckSummary = (check: DeckCheck): string | null => {
 
 /**
  * Under a decklist: what the catalog check found (flagged cards are marked
- * where they sit), and the Riot disclaimer whenever card art is on screen.
+ * where they sit). Nothing when every card matched.
  */
 const DeckCheckNote = ({ list }: { list: DeckList }) => {
-  const { check, showsArt } = useDeckCheck(list);
+  const check = useDeckCheck(list);
   const summary = check ? deckCheckSummary(check) : null;
-  if (!summary && !showsArt) return null;
+  if (!summary) return null;
   return (
-    <View className="mt-4 gap-3 px-1">
-      {summary && (
-        <View className="flex-row items-start gap-2" accessible accessibilityLabel={`Check this deck: ${summary}`}>
-          <Icon name="alert-triangle" size={13} className="mt-0.5 text-ink-primary" />
-          <Text className="flex-1 text-[13px] leading-5 text-ink-primary">{summary}</Text>
-        </View>
-      )}
-      {showsArt && <RiotDisclaimer />}
+    <View
+      className="mt-4 flex-row items-start gap-2 px-1"
+      accessible
+      accessibilityLabel={`Check this deck: ${summary}`}
+    >
+      <Icon name="alert-triangle" size={13} className="mt-0.5 text-ink-primary" />
+      <Text className="flex-1 text-[13px] leading-5 text-ink-primary">{summary}</Text>
     </View>
   );
 };
