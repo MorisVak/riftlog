@@ -471,10 +471,11 @@ over the access token (no DB password needed); applying migrations does.
 
 - Created via `pnpm dlx supabase migration new <name>`
 - Append-only — **never edit a committed migration**; add a new one
-- Push to remote: **`pnpm dlx supabase db push --remote`**. Since CLI 3.0
-  `db push` targets a *local* stack by default, so plain `pnpm db:push`
-  (= `supabase db push`) fails without Docker — always pass `--remote`, and
-  dry-run first (`--remote --dry-run`) to see what will apply. The DB password was
+- Push to production: **`pnpm db:push:prod`** (= `supabase db push
+  --remote`), so a production push is always explicit. Dry-run it first with
+  `pnpm db:push:prod --dry-run` to see what will apply. Since CLI 3.0 plain
+  `db push` targets a *local* stack, so `pnpm db:push` fails without Docker
+  (kept for a future local stack). The DB password was
   cached in the macOS keychain when the project was linked, so this runs
   non-interactively. It prints a `failed to cache migrations catalog … Docker`
   warning — that's only the local catalog cache; the migration still applies.
