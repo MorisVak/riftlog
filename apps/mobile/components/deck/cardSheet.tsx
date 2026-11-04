@@ -1,9 +1,11 @@
 import React from 'react';
 import { Modal, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
-import type { CardRef } from '@riftlog/core';
+import type { CardRef, Domain } from '@riftlog/core';
 import Icon from '@/components/icon';
 import CardArt from '@/components/deck/cardArt';
 import CardText from '@/components/deck/cardText';
+import { DomainIcons, RuneIcon, asDomain, domainLabel } from '@/components/deck/domain';
+import RarityIcon from '@/components/deck/rarity';
 import { useCardMatch } from '@/hooks/useCardMatch';
 
 /**
@@ -52,11 +54,17 @@ const CardDetails = ({ card }: { card: CardRef }) => {
 
   const { card: info, printing } = match;
   const typeLine = [info.type, info.supertype, info.domains.join(', ')].filter(Boolean).join(' · ');
-  const stats = [
-    info.energy !== null ? `Energy ${info.energy}` : null,
-    info.might !== null ? `Might ${info.might}` : null,
-    info.power !== null ? `Power ${info.power}` : null,
-  ].filter(Boolean);
+  const domains = info.domains.map(asDomain).filter((d): d is Domain => d !== null);
+  const power = info.power ?? 0;
+  const hasCost = info.energy !== null || power > 0;
+  // Spoken: "Cost: 3 energy, 1 Calm or Chaos rune".
+  const runeWords = domains.length > 0 ? domains.map(domainLabel).join(' or ') : 'any';
+  const costLabel = [
+    info.energy !== null ? `${info.energy} energy` : null,
+    power > 0 ? `${power} ${runeWords} rune${power === 1 ? '' : 's'}` : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
 
   return (
     <ScrollView contentContainerClassName="px-4 pb-10 pt-6">
@@ -64,9 +72,34 @@ const CardDetails = ({ card }: { card: CardRef }) => {
         <CardArt card={card} variant="sheet" width={artWidth} />
       </View>
       <Text className="mt-5 font-display-bold text-[22px] leading-7 text-ink-primary">{info.name}</Text>
-      <Text className="mt-1 font-display text-[14px] text-ink-secondary">{typeLine}</Text>
-      {stats.length > 0 && (
-        <Text className="mt-1 font-mono-medium text-[13px] text-ink-secondary">{stats.join(' · ')}</Text>
+      <View className="mt-1 flex-row items-center gap-1.5">
+        <DomainIcons domains={info.domains} size={16} />
+        <Text className="flex-1 font-display text-[14px] text-ink-secondary">{typeLine}</Text>
+      </View>
+      {(hasCost || info.might !== null) && (
+        <View className="mt-4 flex-row gap-8">
+          {hasCost && (
+            <View accessible accessibilityLabel={`Cost: ${costLabel}`} className="items-start">
+              <View className="h-7 flex-row items-center gap-1.5">
+                {info.energy !== null && (
+                  <Text className="font-display-bold text-[24px] text-ink-primary">{info.energy}</Text>
+                )}
+                {Array.from({ length: power }, (_, i) => (
+                  <RuneIcon key={i} domains={domains} size={22} />
+                ))}
+              </View>
+              <Text className="mt-0.5 text-[12px] text-ink-tertiary">Cost</Text>
+            </View>
+          )}
+          {info.might !== null && (
+            <View accessible accessibilityLabel={`Might: ${info.might}`} className="items-start">
+              <View className="h-7 justify-center">
+                <Text className="font-display-bold text-[24px] text-ink-primary">{info.might}</Text>
+              </View>
+              <Text className="mt-0.5 text-[12px] text-ink-tertiary">Might</Text>
+            </View>
+          )}
+        </View>
       )}
       {match.kind === 'conflict' && (
         <View className="mt-3 flex-row items-start gap-2 rounded-xl bg-surface p-3">
@@ -80,9 +113,12 @@ const CardDetails = ({ card }: { card: CardRef }) => {
         <CardText text={info.current_text} />
       </View>
       {printing && (
-        <Text className="mt-3 text-[12px] text-ink-tertiary">
-          {[printing.code, printing.artist ? `Art: ${printing.artist}` : null].filter(Boolean).join(' · ')}
-        </Text>
+        <View className="mt-3 flex-row items-center gap-1.5">
+          <RarityIcon rarity={printing.rarity} size={14} />
+          <Text className="flex-1 text-[12px] text-ink-tertiary">
+            {[printing.code, printing.artist ? `Art: ${printing.artist}` : null].filter(Boolean).join(' · ')}
+          </Text>
+        </View>
       )}
     </ScrollView>
   );

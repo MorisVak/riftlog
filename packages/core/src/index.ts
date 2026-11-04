@@ -27,6 +27,7 @@ export {
   type DeckCardChange,
   type DeckSectionDiff,
 } from './decks/diff';
+export { printingsKey, withPrintingsFrom } from './decks/printings';
 export { isDeckList } from './decks/validate';
 export {
   DeckCodeError,
@@ -43,9 +44,11 @@ export {
   baseCardName,
   cleanCardText,
   normalizeCardName,
+  splitCardName,
   unescapeHtml,
 } from './catalog/names';
 export { pickBasePrinting, type BasePrintingCandidate } from './catalog/basePrinting';
+export { SMALL_CARD_IMAGE_PX, cardImagePath, smallCardImagePath } from './catalog/imagePaths';
 export {
   buildCatalogIndex,
   cardIssue,

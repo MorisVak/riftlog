@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,7 +18,10 @@ import {
   deckListFromCode,
   formatDeckText,
   looksLikeDeckCode,
+  normalizeCardName,
   parseDeckText,
+  printingsKey,
+  withPrintingsFrom,
   type DeckList,
   type ParsedDeck,
 } from '@riftlog/core';
@@ -59,6 +63,10 @@ const FORMAT_EXAMPLE: { header: string; hint?: string; lines: string[] }[] = [
 const defaultDeckName = (legendName: string | undefined): string =>
   (legendName ?? '').split(/,| - /)[0]?.trim().slice(0, DECK_NAME_MAX) ?? '';
 
+/** The legend as a match key, so "Riven - The Exile" and "Riven, The Exile" agree. */
+const legendKey = (list: DeckList): string | null =>
+  list.legend ? normalizeCardName(list.legend.name) : null;
+
 /** What a pasted deck code turned into. */
 type CodeResult =
   | { kind: 'ok'; parsed: ParsedDeck }
@@ -88,7 +96,14 @@ const CODE_MESSAGES: Record<'no_catalog' | 'invalid' | 'newer_format', string> =
  * couple of cards is editing a line, and a whole new list is Clear + paste.
  * Saving goes through `updateDeckList`, which adds a new immutable version —
  * matches already played keep the list they were played with. The name isn't
- * edited here; the deck screen renames.
+ * edited here; the deck screen renames. There are no tabs: "Import deck code"
+ * opens a code field above the list; a good code (typed, pasted, or pasted
+ * into the list box) fills the box with the list it stands for, and the code
+ * stays visible. Text carries names only, so on save every card gets its
+ * printing back (`withPrintingsFrom`): from the pasted code first, else from
+ * the deck as it was — a text edit no longer drops alt arts; only new cards
+ * get the base printing. A list with the same cards but other printings counts
+ * as a change. If the legend changes, Save asks first.
  */
 const ImportDeck = () => {
   // The preview checks cards against the catalog; make sure it's current.
@@ -100,6 +115,14 @@ const ImportDeck = () => {
   // Edit mode: the list being edited, once loaded ('error' if it couldn't be).
   const [original, setOriginal] = useState<DeckList | 'error' | null>(null);
   const [text, setText] = useState('');
+  // Edit mode: the list from the last deck code put in the box, whose
+  // printings win on save.
+  const [codeList, setCodeList] = useState<DeckList | null>(null);
+  // Edit mode's "Import deck code" panel: open?, the code, and how it went.
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [codeInput, setCodeInput] = useState('');
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [codeApplied, setCodeApplied] = useState(false);
   // What the user typed into the name field. Empty means "use the legend's
   // name", which the field shows as its placeholder.
   const [nameInput, setNameInput] = useState('');
@@ -131,7 +154,9 @@ const ImportDeck = () => {
   const originalList =
     original !== null && original !== 'error' ? original : null;
 
-  const isCode = looksLikeDeckCode(text);
+  // Edit mode turns a code into its list right away (see applyText), so only
+  // the import screen parses codes here.
+  const isCode = !editing && looksLikeDeckCode(text);
   const codeResult = useMemo((): CodeResult | null => {
     if (!isCode) return null;
     try {
@@ -142,17 +167,15 @@ const ImportDeck = () => {
       return { kind: 'error', error: e instanceof DeckCodeError ? e.kind : 'invalid' };
     }
   }, [isCode, text, index]);
-  const parsed = useMemo(
-    () =>
-      text.trim() === ''
-        ? null
-        : isCode
-          ? codeResult?.kind === 'ok'
-            ? codeResult.parsed
-            : null
-          : parseDeckText(text),
-    [text, isCode, codeResult],
-  );
+  const parsed = useMemo((): ParsedDeck | null => {
+    if (text.trim() === '') return null;
+    if (isCode) return codeResult?.kind === 'ok' ? codeResult.parsed : null;
+    const fromText = parseDeckText(text);
+    if (!editing || original === null || original === 'error') return fromText;
+    // Give every card its printing back: the pasted code's, else the deck's.
+    const fromCode = codeList ? withPrintingsFrom(fromText.list, codeList) : fromText.list;
+    return { ...fromText, list: withPrintingsFrom(fromCode, original) };
+  }, [text, isCode, codeResult, editing, original, codeList]);
   const sourceLines = useMemo(() => text.split(/\r\n|\r|\n/), [text]);
 
   const defaultName = defaultDeckName(parsed?.list.legend?.name);
@@ -174,11 +197,18 @@ const ImportDeck = () => {
   // user pasted silently goes missing.
   // Edit mode: compared as formatted text, so extra spaces / blank lines or
   // retyping the same list don't count as a change.
+  // Printings count too, so swapping in alt arts from a code is a change.
   const changed =
     !editing ||
     (parsed !== null &&
       originalList !== null &&
-      formatDeckText(parsed.list) !== formatDeckText(originalList));
+      (formatDeckText(parsed.list) !== formatDeckText(originalList) ||
+        printingsKey(parsed.list) !== printingsKey(originalList)));
+  const legendChanged =
+    editing &&
+    parsed !== null &&
+    originalList !== null &&
+    legendKey(parsed.list) !== legendKey(originalList);
   const canSave =
     !saving &&
     hasCards &&
@@ -191,15 +221,77 @@ const ImportDeck = () => {
     else router.replace('/profile');
   };
 
-  const pasteFromClipboard = async () => {
+  /**
+   * Edit mode: read a deck code and, if it's good, fill the decklist box with
+   * the list it stands for (its printings kept for the save). The code stays
+   * in its own field, so it's clear what was imported.
+   */
+  const importCode = (raw: string) => {
+    setCodeInput(raw);
+    setCodeError(null);
+    setCodeApplied(false);
+    const t = raw.trim();
+    if (t === '') return;
+    if (!looksLikeDeckCode(t)) {
+      setCodeError(CODE_MESSAGES.invalid);
+      return;
+    }
+    try {
+      const decoded = decodeDeckCode(t);
+      if (!index) {
+        setCodeError(CODE_MESSAGES.no_catalog);
+        return;
+      }
+      const list = deckListFromCode(decoded, index);
+      setCodeList(list);
+      setText(formatDeckText(list));
+      setCodeApplied(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e) {
+      setCodeError(CODE_MESSAGES[e instanceof DeckCodeError ? e.kind : 'invalid']);
+    }
+  };
+
+  /** Put text in the decklist box; editing, a code pasted there goes to the code field. */
+  const applyText = (t: string) => {
+    if (editing && looksLikeDeckCode(t)) {
+      setCodeOpen(true);
+      importCode(t);
+      return;
+    }
+    setText(t);
+  };
+
+  const pasteFromClipboard = async (target: 'list' | 'code' = 'list') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setNotice(null);
     const clip = await Clipboard.getStringAsync();
     if (clip.trim() === '') {
-      setNotice('Your clipboard is empty. Copy the decklist first.');
+      if (target === 'code') setCodeError('Your clipboard is empty. Copy the deck code first.');
+      else setNotice('Your clipboard is empty. Copy the decklist first.');
       return;
     }
-    setText(clip);
+    if (target === 'code') importCode(clip);
+    else applyText(clip);
+  };
+
+  // A new legend is a different deck in all but name; make sure it's meant.
+  const confirmSave = () => {
+    if (!canSave || parsed === null) return;
+    if (!legendChanged || originalList === null) {
+      void save();
+      return;
+    }
+    const from = originalList.legend?.name ?? 'no legend';
+    const to = parsed.list.legend?.name ?? 'no legend';
+    Alert.alert(
+      'Change the legend?',
+      `This list has ${to} instead of ${from}. Save it to this deck anyway?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Save', onPress: () => void save() },
+      ],
+    );
   };
 
   const save = async () => {
@@ -263,8 +355,6 @@ const ImportDeck = () => {
           {editing && (
             <Text className="-mt-2 mb-5 text-[14px] leading-5 text-ink-secondary">
               Change a count or a line, or clear it and paste a new list.
-              Matches you&apos;ve already played keep the list they were played
-              with.
             </Text>
           )}
 
@@ -326,6 +416,74 @@ const ImportDeck = () => {
             </>
           )}
 
+          {editing && !codeOpen && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              onPress={() => {
+                Haptics.selectionAsync();
+                setCodeOpen(true);
+              }}
+              className="mb-5 flex-row items-center justify-center gap-2 rounded-xl border border-border bg-surface py-3 active:bg-elevated"
+            >
+              <Icon name="hash" size={15} className="text-accent" />
+              <Text className="font-display text-sm text-accent">Import deck code</Text>
+            </TouchableOpacity>
+          )}
+
+          {editing && codeOpen && (
+            <View className="mb-5 rounded-2xl border border-border bg-surface p-4">
+              <View className="mb-2 flex-row items-center justify-between">
+                <Text className="font-display text-base text-ink-secondary">Deck code</Text>
+                <View className="flex-row items-center gap-4">
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Paste deck code from clipboard"
+                    onPress={() => void pasteFromClipboard('code')}
+                    hitSlop={8}
+                    className="flex-row items-center gap-1.5"
+                  >
+                    <Icon name="clipboard" size={13} className="text-accent" />
+                    <Text className="font-display text-[13px] text-accent">Paste</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Close deck code"
+                    onPress={() => setCodeOpen(false)}
+                    hitSlop={8}
+                  >
+                    <Icon name="x" size={16} className="text-ink-secondary" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <TextInput
+                value={codeInput}
+                onChangeText={importCode}
+                placeholder="Paste a deck code from Piltover Archive"
+                multiline
+                textAlignVertical="top"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                spellCheck={false}
+                accessibilityLabel="Deck code"
+                className="max-h-24 min-h-[56px] rounded-xl border border-border bg-elevated px-3 py-2.5 font-mono-medium text-[12px] leading-[18px] text-ink-primary placeholder:text-ink-tertiary"
+              />
+              {codeApplied && (
+                <View className="mt-2.5 flex-row items-center gap-1.5">
+                  <Icon name="check" size={14} className="text-accent" />
+                  <Text className="text-[13px] text-ink-primary">
+                    Decklist updated from this code.
+                  </Text>
+                </View>
+              )}
+              {codeError !== null && (
+                <View className="mt-2.5 flex-row gap-1.5">
+                  <Icon name="alert-circle" size={14} className="mt-0.5 text-loss-text" />
+                  <Text className="flex-1 text-[13px] leading-[18px] text-loss-text">{codeError}</Text>
+                </View>
+              )}
+            </View>
+          )}
+
           <View className="mb-2 flex-row items-center justify-between">
             <Text className="font-display text-base text-ink-secondary">
               {mode === 'code' && !editing ? 'Deck code' : 'Decklist'}
@@ -337,6 +495,8 @@ const ImportDeck = () => {
                   onPress={() => {
                     // The name is independent of the paste; keep it.
                     setText('');
+                    setCodeList(null);
+                    setCodeApplied(false);
                     setNotice(null);
                   }}
                   hitSlop={8}
@@ -348,6 +508,7 @@ const ImportDeck = () => {
               )}
               <TouchableOpacity
                 accessibilityRole="button"
+                accessibilityLabel="Paste from clipboard"
                 onPress={() => void pasteFromClipboard()}
                 hitSlop={8}
                 className="flex-row items-center gap-1.5"
@@ -363,8 +524,8 @@ const ImportDeck = () => {
           <TextInput
             value={text}
             onChangeText={(t) => {
-              setText(t);
               setNotice(null);
+              applyText(t);
             }}
             placeholder={
               loadingOriginal
@@ -474,7 +635,7 @@ const ImportDeck = () => {
                 accessibilityRole="button"
                 accessibilityState={{ disabled: !canSave, busy: saving }}
                 disabled={!canSave}
-                onPress={() => void save()}
+                onPress={confirmSave}
                 style={canSave ? CTA_GLOW : undefined}
                 className={`items-center rounded-full px-5 py-4 ${
                   canSave ? 'bg-accent active:bg-accent-strong' : 'bg-surface'

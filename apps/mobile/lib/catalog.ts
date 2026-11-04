@@ -15,13 +15,23 @@ import { supabase } from '@/lib/supabase';
 const DIR = new Directory(Paths.document, 'catalog');
 const FILE = new File(DIR, 'catalog.json');
 const PAGE = 1000; // PostgREST's default row cap per request
+/**
+ * Bump when the columns fetched below change, so a cache written by an older
+ * app (without the new column) counts as missing and is refetched once.
+ * 2: printings gained `rarity`.
+ */
+const CACHE_FORMAT = 2;
 
 /** The cached catalog, or null if there is none (or it's unreadable). */
 export async function readCachedCatalog(): Promise<Catalog | null> {
   try {
     if (!FILE.exists) return null;
-    const parsed = JSON.parse(await FILE.text()) as Catalog;
-    return typeof parsed.version === 'number' && Array.isArray(parsed.cards) ? parsed : null;
+    const parsed = JSON.parse(await FILE.text()) as Catalog & { format?: number };
+    return parsed.format === CACHE_FORMAT &&
+      typeof parsed.version === 'number' &&
+      Array.isArray(parsed.cards)
+      ? parsed
+      : null;
   } catch {
     // A corrupt cache is just a missing one: drop it and refetch.
     try {
@@ -36,7 +46,7 @@ function writeCachedCatalog(catalog: Catalog): void {
   // Write aside, then swap, so a crash mid-write never leaves half a file.
   const temp = new File(DIR, 'catalog.json.tmp');
   if (temp.exists) temp.delete();
-  temp.write(JSON.stringify(catalog));
+  temp.write(JSON.stringify({ ...catalog, format: CACHE_FORMAT }));
   if (FILE.exists) FILE.delete();
   temp.move(FILE);
 }
@@ -81,7 +91,7 @@ async function fetchCatalog(version: number): Promise<Catalog> {
       supabase
         .from('card_printings')
         .select(
-          'code, card_id, set_code, variant, alt_art, overnumbered, signed, promo, image_url, storage_path, orientation, artist, status',
+          'code, card_id, set_code, variant, alt_art, overnumbered, signed, promo, image_url, storage_path, orientation, artist, rarity, status',
         )
         .order('code')
         .range(from, to),

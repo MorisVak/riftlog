@@ -27,7 +27,7 @@ function table(name: string, t: Pick<TablePlan<Record<string, unknown>>, 'insert
     out.push(list(t.update.map((u) => `${keyOf(u.row)} — ${u.changed.join(', ')}`)));
   }
   if (t.conflicts?.length) {
-    out.push('    conflicts (left alone, not from Riftcodex):');
+    out.push('    conflicts (left alone, from another source):');
     out.push(list(t.conflicts.map((c) => `${c.key} (source: ${c.source})`), 50));
   }
   return out.join('\n');
@@ -44,8 +44,8 @@ export function formatReport(
   lines.push('');
   lines.push(
     source.kind === 'live'
-      ? `Source (Riftcodex, live fetch at ${source.fetchedAt})`
-      : `Source (Riftcodex snapshot fetched at ${source.fetchedAt}: ${source.path})`,
+      ? `Source (${source.label}, live fetch at ${source.fetchedAt})`
+      : `Source (${source.label} snapshot fetched at ${source.fetchedAt}: ${source.path})`,
   );
   lines.push(`  entries fetched           ${report.fetched}`);
   lines.push(`  spoiler twins dropped     ${report.droppedTwins.length}`);
@@ -67,7 +67,7 @@ export function formatReport(
   lines.push(table('cards', plan.cards));
   lines.push(table('card_printings', plan.printings));
   lines.push('');
-  lines.push(`Gone from Riftcodex (kept, not deleted): ${plan.missingFromSource.printings.length} printings, ${plan.missingFromSource.cards.length} cards`);
+  lines.push(`Gone from the source (kept, not deleted): ${plan.missingFromSource.printings.length} printings, ${plan.missingFromSource.cards.length} cards`);
   lines.push(list([...plan.missingFromSource.printings, ...plan.missingFromSource.cards], 50));
   lines.push('');
   if (plan.stops.length) {

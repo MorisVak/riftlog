@@ -94,6 +94,11 @@ them would make either impossible to restyle alone.
 for the count badge, used only by "Show changes" in the decklist. Their own
 family: a deck edit isn't a result or a scoring action.
 
+**Chosen champion** — `chosen` (gold) and `chosen-tint`: the gold frame on
+the chosen champion's art in the decklist (list and gallery) plus its gold
+"Chosen" chip (`CardRow` / `CardGrid` `chosen`, `CardArt` `chosen`). Its own
+token: gold elsewhere means a draw (result) or a hold (scoring action).
+
 **Domains** — `domain-{fury,calm,mind,body,chaos,order}` (base) and
 `domain-*-tint` (dark chip fill), for deck views: domain chips and the rune
 proportion bar. An identity family, separate from results and scoring actions.
@@ -162,11 +167,28 @@ the single spot art is decided. Don't render card images anywhere else.
   app reads `catalog_meta.version` and refetches the whole catalog only if it
   moved. No per-card requests. Offline or before the first download, decks
   show as written (no types, no art, no flags).
-- **Images** go through `lib/cardImage.ts`: our bucket's `storage_path` wins
-  over `image_url`; Riot's CDN (a Sanity image CDN) gets `?w=<px>&fm=webp`
-  sized to the view (a 120 px thumbnail is ~6 KB vs. a 1.4 MB PNG), with the
-  plain URL as the fallback if the sized one fails. Battlefields are drawn
-  landscape (`orientation`).
+- **Images** go through `lib/cardImage.ts`, which returns URLs to try in
+  order (`CardImage` moves to the next on error): our bucket first — the
+  240 px `cards/small/` copy for views up to 240 px, else the full copy —
+  then Riot's CDN sized to the view, then the plain `image_url`. The bucket
+  can't resize on request, so rows must use the small copy. Battlefields are
+  drawn landscape (`orientation`).
+- **Domain icons** are Riot's official ones, bundled in `assets/domains/`
+  (`DomainIcon` / `DomainIcons` in `components/deck/domain.tsx`). Chips show
+  icon + name; the card sheet's type line shows one or two.
+- **Rune symbols** are Riot's rune glyphs (colored circles), rendered from
+  their SVGs to PNGs in `assets/runes/` (no SVG renderer in the app), plus the
+  rainbow "any rune" (cropped tighter). `RuneIcon` draws one domain's rune, a
+  **dual rune** (two domains: the circle split down the middle, half from
+  each) or the rainbow; `InlineRune` is the in-text version. Card text draws
+  `:rb_rune_<domain>:` / `:rb_rune_rainbow:` as these symbols, with spoken
+  labels (each glyph has its own shape, so color isn't the only signal).
+- **Card sheet stats** are blocks: "Cost" = energy + one rune per power (dual
+  for two-domain cards, rainbow if the card has no domain), then "Might".
+- **Rarity gems** (Riot's, `assets/rarity/`, `components/deck/rarity.tsx`)
+  sit before the printing code in the sheet's footer; "Promo" has none. The
+  catalog cache has a format number (`CACHE_FORMAT` in `lib/catalog.ts`):
+  bump it when the fetched columns change, so old caches refetch once.
 - **Art is behind `CARD_ART`** (`lib/featureFlags.ts`): always on in dev,
   `EXPO_PUBLIC_CARD_ART=1` in the `preview` / `testflight` EAS profiles, off
   in `production`. With it off, rows stay text-only and tiles / the sheet show
@@ -637,7 +659,15 @@ pushes `/decks/import?deckId=…`, which pre-fills the box with
 `formatDeckText(list)` — tweak a line to change a few cards, or Clear + paste a
 whole new list. Same parser, preview, and error blocking as an import; Save is
 off until the list actually differs (compared as formatted text). The name
-isn't edited there. The deck screen re-reads on focus, quietly once shown, so
+isn't edited there. **No tabs:** one decklist box, and an **"Import deck
+code"** button above it that opens a code field (Paste, close). A good code —
+typed, pasted there, or pasted into the decklist box — fills the box with the
+list it stands for; the code stays visible with "Decklist updated from this
+code.", or a plain error. Text carries names only, so on save each
+card gets its printing back (`withPrintingsFrom`): the pasted code's first,
+else the deck's previous one; only new cards get the base printing. Same
+cards with other printings count as a change. If the legend differs, Save
+asks first ("Change the legend?"). The deck screen re-reads on focus, quietly once shown, so
 it reflects the edit on return.
 
 **A match links to the list as played.** History's deck link and the match

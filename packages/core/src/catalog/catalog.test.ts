@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { deckCodeSetId } from '../decks/deckCode';
 import { pickBasePrinting, type BasePrintingCandidate } from './basePrinting';
-import { baseCardName, cleanCardText, normalizeCardName, unescapeHtml } from './names';
+import { baseCardName, cleanCardText, normalizeCardName, splitCardName, unescapeHtml } from './names';
+import { cardImagePath, smallCardImagePath } from './imagePaths';
 import { collectorNumber, formatPrintingCode, parsePrintingCode } from './printingCode';
 
 describe('normalizeCardName', () => {
@@ -26,6 +27,17 @@ describe('normalizeCardName', () => {
     expect(normalizeCardName('Tail-Cloaked Matriarch')).toBe('tail-cloaked matriarch');
     expect(normalizeCardName('Star-Crossed')).toBe('star-crossed');
     expect(normalizeCardName('Gold // Buff')).toBe('gold // buff');
+  });
+});
+
+describe('splitCardName', () => {
+  it('splits deck-export and catalog spellings alike', () => {
+    expect(splitCardName('Riven, The Exile')).toEqual({ head: 'Riven', title: 'The Exile' });
+    expect(splitCardName('Riven - The Exile')).toEqual({ head: 'Riven', title: 'The Exile' });
+  });
+  it('splits at the first separator only, and keeps hyphenated words whole', () => {
+    expect(splitCardName('Vi - Peacekeeper, Again')).toEqual({ head: 'Vi', title: 'Peacekeeper, Again' });
+    expect(splitCardName('Star-Crossed')).toEqual({ head: 'Star-Crossed', title: '' });
   });
 });
 
@@ -146,5 +158,14 @@ describe('pickBasePrinting', () => {
 
   it('returns null for no printings', () => {
     expect(pickBasePrinting([])).toBeNull();
+  });
+});
+
+describe('card image paths', () => {
+  it('stores each printing as a full and a small WebP, with * written as s', () => {
+    expect(cardImagePath('SFD-149a')).toBe('cards/SFD-149a.webp');
+    expect(cardImagePath('UNL-229*')).toBe('cards/UNL-229s.webp');
+    expect(cardImagePath('OPP-OGN-259m')).toBe('cards/OPP-OGN-259m.webp');
+    expect(smallCardImagePath('cards/UNL-229s.webp')).toBe('cards/small/UNL-229s.webp');
   });
 });

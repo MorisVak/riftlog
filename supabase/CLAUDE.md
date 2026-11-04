@@ -269,9 +269,10 @@ because the two tables are related both ways.
 Every Riftbound card and printing, owned by us
 (`20261102184149_card_catalog.sql`). Postgres is the source of truth: an
 importer seeds and syncs it from Riftcodex (an open, unofficial API) with the
-secret key; when a Riot API key lands, a second importer writes
-`source = 'riot'`. **Clients never call Riftcodex** — they read these tables
-with the publishable key.
+secret key. Sets Riftcodex doesn't have yet (today: Radiance, RAD) come from
+Riot's official card gallery and are written with `source = 'riot'`.
+**Clients never call Riftcodex or Riot** — they read these tables with the
+publishable key, and card art from our own bucket.
 
 - **`sets`** — `code` PK (`OGN`), `name`, `released_on`, `deck_code_set_id`
   (the id deck codes use; **null = not deckable**: the promo sets OPP / PR /
@@ -317,7 +318,10 @@ with the publishable key.
 Access: anyone (`anon` and `authenticated`) may **read** sets, cards,
 printings, errata and `catalog_meta`; **writes** are admin-only by RLS. The
 **`card-images`** storage bucket is public-read (via public URL), admin-only
-write, 5 MB, png / jpeg / webp.
+write, 5 MB, png / jpeg / webp. It holds every printing's art twice,
+`cards/<CODE>.webp` (744 px) and `cards/small/<CODE>.webp` (240 px; `*` is
+written `s`), copied by `pnpm catalog:images`; `storage_path` points at the
+full one (the rule is `cardImagePath` in `@riftlog/core`).
 
 ### Feedback
 

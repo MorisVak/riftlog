@@ -45,6 +45,8 @@ export type CatalogPrinting = {
   storage_path: string | null;
   orientation: string;
   artist: string | null;
+  /** "Common", "Uncommon", "Rare", "Epic", "Showcase", "Promo"; null if unknown. */
+  rarity: string | null;
   status: 'spoiler' | 'released';
 };
 
@@ -59,10 +61,30 @@ export type CatalogIndex = {
   version: number;
   cardById: Map<string, CatalogCard>;
   cardByKey: Map<string, CatalogCard>;
+  /**
+   * The same, keyed without apostrophes: a fallback for exports that place
+   * one differently ("Hunter's Circle" for the official "Hunters' Circle").
+   * Keys that would collide are left out, so it never guesses between cards.
+   */
+  cardByLooseKey: Map<string, CatalogCard>;
   printingByCode: Map<string, CatalogPrinting>;
   /** Each card's base printing (see pickBasePrinting). */
   basePrinting: Map<string, CatalogPrinting>;
 };
+
+const looseKey = (key: string) => key.replace(/'/g, '');
+
+function looseIndex(cards: CatalogCard[]): Map<string, CatalogCard> {
+  const out = new Map<string, CatalogCard>();
+  const clashes = new Set<string>();
+  for (const c of cards) {
+    const k = looseKey(c.name_key);
+    if (out.has(k)) clashes.add(k);
+    else out.set(k, c);
+  }
+  for (const k of clashes) out.delete(k);
+  return out;
+}
 
 export function buildCatalogIndex(catalog: Catalog): CatalogIndex {
   const released = new Map(catalog.sets.map((s) => [s.code, s.released_on]));
@@ -83,6 +105,7 @@ export function buildCatalogIndex(catalog: Catalog): CatalogIndex {
     version: catalog.version,
     cardById: new Map(catalog.cards.map((c) => [c.id, c])),
     cardByKey: new Map(catalog.cards.map((c) => [c.name_key, c])),
+    cardByLooseKey: looseIndex(catalog.cards),
     printingByCode: new Map(catalog.printings.map((p) => [p.code, p])),
     basePrinting,
   };
@@ -96,7 +119,8 @@ export type CardMatch =
   | { kind: 'unknown' };
 
 export function matchCard(ref: Pick<CardRef, 'name' | 'code'>, index: CatalogIndex): CardMatch {
-  const byName = index.cardByKey.get(normalizeCardName(ref.name));
+  const key = normalizeCardName(ref.name);
+  const byName = index.cardByKey.get(key) ?? index.cardByLooseKey.get(looseKey(key));
   const printing = ref.code ? index.printingByCode.get(ref.code) : undefined;
   if (printing) {
     const card = index.cardById.get(printing.card_id);

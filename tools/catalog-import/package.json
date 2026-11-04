@@ -6,6 +6,7 @@
   "description": "Seeds and syncs the Supabase card catalog from Riftcodex. Server-side only (secret key).",
   "scripts": {
     "import": "tsx src/cli.ts",
+    "images": "tsx src/images-cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

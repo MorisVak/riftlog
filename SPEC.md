@@ -321,11 +321,13 @@ deck keeps its exact printings (alt arts) and is saved with its code. The
 deck screen's **"Copy deck code"** writes any deck as a code — each card's
 own printing, or its catalog base printing for text imports.
 
-**Known issue (must fix before launch):** "Edit list" goes through the text
-format, which carries names only, so saving an edit drops the printings of a
-code-imported deck (alt arts fall back to base printings). Fix: a card whose
-name is still in the deck keeps its previous printing; only new cards get the
-base printing.
+**Editing keeps printings (built).** "Edit list" shows the list as text,
+which carries names only, so on save each card gets its printing back
+(`withPrintingsFrom` in core): a card still in the deck keeps its previous
+printing; only new cards get the base printing. Its **"Import deck code"**
+button opens a code field; a good code fills the box with the list it stands
+for, with that code's printings (a way to swap in alt arts); same cards with other
+printings count as a change. Save asks before changing the legend.
 
 **Deck view (built).** Laid out like Piltover Archive's: the legend and chosen
 champion side by side as the deck's identity with its domains (derived from
@@ -793,12 +795,6 @@ and card art and text (Features 4 and 6) are built.
 > production builds) doesn't change that. The production key application is
 > still pending.
 
-> **MUST-FIX before launch — editing a code-imported deck drops its
-> printings.** "Edit list" goes through the text format, which carries names
-> only, so alt arts fall back to base printings on save. Fix: on save after a
-> text edit, a card whose name is still in the deck keeps its previous
-> printing; only new cards get the base printing. (Feature 4.)
-
 > **Riot's statements in the app.** The fan-made disclaimer and the Legal
 > Jibber Jabber statement appear once, at the bottom of the profile page,
 > small but visible without tapping anything ("clear and easy to find"), and
@@ -826,7 +822,7 @@ matching the incremental philosophy in `CLAUDE.md`.
 7. **Deck import** — plain-text import, sectioned deck view, "My decks".
    (Feature 4.) _(Done: text import, deck view, editing, choosing a deck for a
    match, Piltover Archive deck-code import and "Copy deck code".)_ Next:
-   Riftmana; the must-fix above (edits keep printings).
+   Riftmana. (Edits keep printings: done.)
 8. **Deck versioning & diffs** — version on edit, show change snapshots.
    (Feature 5.) _(Done except per-match diff snapshots in history.)_
 9. **Card art and text in decklists** — _(Done in the app: card catalog from
