@@ -10,7 +10,7 @@ import { useCardMatch } from '@/hooks/useCardMatch';
 const COLUMNS = 3;
 const GAP = 8;
 
-type Tile = { card: CardRef; tag?: string; change?: CardChange };
+type Tile = { card: CardRef; chosen?: boolean; change?: CardChange };
 
 /**
  * A section's cards as a gallery: a 3-column grid of card tiles (art via
@@ -30,7 +30,7 @@ const CardGrid = ({
   section,
 }: {
   cards: CardRef[];
-  /** Tiles placed first, e.g. the chosen champion (tagged). */
+  /** Tiles placed first, e.g. the chosen champion (`chosen`). */
   lead?: Tile[];
   changes?: DeckCardChange[];
   /** To flag cards of the wrong type. */
@@ -70,7 +70,7 @@ const CardGrid = ({
 };
 
 const CardTile = ({ tile, width, section }: { tile: Tile; width: number; section?: ListSection }) => {
-  const { card, tag, change } = tile;
+  const { card, chosen = false, change } = tile;
   const { issue } = useCardMatch(card, section);
   const { openCard } = useCardSheet();
   const up = change !== undefined && change.after > change.before;
@@ -90,7 +90,7 @@ const CardTile = ({ tile, width, section }: { tile: Tile; width: number; section
       accessibilityRole="button"
       accessibilityHint="Shows the card's details"
       onPress={() => openCard(card)}
-      accessibilityLabel={`${card.count} ${card.name}${tag ? `, ${tag}` : ''}${
+      accessibilityLabel={`${card.count} ${card.name}${chosen ? ', chosen champion' : ''}${
         label ? `, ${label.replace('−', 'minus ')}` : ''
       }${issue ? `, ${issueLabel(issue)}` : ''}`}
       style={{ width, opacity: removed ? 0.55 : 1 }}
@@ -98,7 +98,7 @@ const CardTile = ({ tile, width, section }: { tile: Tile; width: number; section
       // sit on a landscape (shorter) card rather than below it.
       className="self-start active:opacity-70"
     >
-      <CardArt card={card} variant="tile" width={width} />
+      <CardArt card={card} variant="tile" width={width} chosen={chosen} />
       {/* A problem card: icon + "Check", bottom-left; the label says what. */}
       {issue && (
         <View className="absolute bottom-1.5 left-1.5 flex-row items-center gap-0.5 rounded-md bg-background/85 px-1.5 py-0.5">
@@ -120,11 +120,11 @@ const CardTile = ({ tile, width, section }: { tile: Tile; width: number; section
           ×{card.count}
         </Text>
       </View>
-      {(tag || label) && (
+      {(chosen || label) && (
         <View className="absolute left-1.5 top-1.5 flex-row gap-1">
-          {tag && (
-            <View className="rounded-full bg-accent/25 px-1.5 py-0.5">
-              <Text className="font-display text-[10px] text-accent">{tag}</Text>
+          {chosen && (
+            <View className="rounded-full bg-chosen-tint px-1.5 py-0.5">
+              <Text className="font-display text-[10px] text-chosen">Chosen</Text>
             </View>
           )}
           {label && (

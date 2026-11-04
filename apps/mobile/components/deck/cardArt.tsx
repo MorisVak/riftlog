@@ -17,6 +17,8 @@ type CardArtProps = {
   variant: 'thumb' | 'feature' | 'tile' | 'sheet';
   /** `tile` / `sheet`: the width, in points. */
   width?: number;
+  /** The chosen champion in a decklist: framed in gold. */
+  chosen?: boolean;
 };
 
 const THUMB_W = 30;
@@ -33,7 +35,8 @@ const PORTRAIT = 88 / 63;
  * name to the card's base printing. Otherwise it's the placeholder it always
  * was — `thumb` renders nothing, so rows stay text-only.
  */
-const CardArt = ({ card, variant, width }: CardArtProps) => {
+const CardArt = ({ card, variant, width, chosen = false }: CardArtProps) => {
+  const frame = chosen ? 'border-2 border-chosen' : 'border border-border';
   const { match } = useCardMatch(card);
   const printing = CARD_ART && match && match.kind !== 'unknown' ? match.printing : null;
   const landscape = printing?.orientation === 'landscape';
@@ -55,6 +58,7 @@ const CardArt = ({ card, variant, width }: CardArtProps) => {
         width={w}
         height={h}
         rounded={variant === 'thumb' ? 'rounded-[3px]' : 'rounded-lg'}
+        chosen={chosen}
       />
     );
   }
@@ -70,7 +74,7 @@ const CardArt = ({ card, variant, width }: CardArtProps) => {
         accessible={false}
         importantForAccessibility="no-hide-descendants"
         style={{ width }}
-        className="aspect-[63/88] items-center justify-center gap-1.5 rounded-lg border border-border bg-elevated px-2"
+        className={`aspect-[63/88] items-center justify-center gap-1.5 rounded-lg bg-elevated px-2 ${frame}`}
       >
         <Icon name="image" size={16} className="text-ink-tertiary" />
         <Text className="text-center font-display text-[12px] leading-4 text-ink-primary" numberOfLines={3}>
@@ -89,7 +93,7 @@ const CardArt = ({ card, variant, width }: CardArtProps) => {
     <View
       accessible={false}
       importantForAccessibility="no-hide-descendants"
-      className="aspect-[63/88] w-[72px] items-center justify-center rounded-lg border border-border bg-elevated"
+      className={`aspect-[63/88] w-[72px] items-center justify-center rounded-lg bg-elevated ${frame}`}
     >
       <Icon name="image" size={18} className="text-ink-tertiary" />
     </View>
@@ -105,11 +109,13 @@ const CardImage = ({
   width,
   height,
   rounded,
+  chosen,
 }: {
   printing: CatalogPrinting;
   width: number;
   height: number;
   rounded: string;
+  chosen: boolean;
 }) => {
   // Our bucket first (small or full), then Riot's CDN; each failure tries the next.
   const urls = cardImageUrls(printing, width);
@@ -121,7 +127,9 @@ const CardImage = ({
       accessible={false}
       importantForAccessibility="no-hide-descendants"
       style={{ width, height }}
-      className={`overflow-hidden border border-border/60 bg-elevated ${rounded}`}
+      className={`overflow-hidden bg-elevated ${rounded} ${
+        chosen ? 'border-2 border-chosen' : 'border border-border/60'
+      }`}
     >
       {uri && (
         <Image

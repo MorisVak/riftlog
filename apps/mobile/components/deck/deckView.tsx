@@ -171,7 +171,7 @@ const DeckView = ({
                 ? [
                     {
                       card: list.champion,
-                      tag: 'Chosen',
+                      chosen: true,
                       change: championChange,
                     },
                   ]
@@ -180,7 +180,7 @@ const DeckView = ({
                 .filter((c) => c.after === 0)
                 .map((c) => ({
                   card: { name: c.name, code: null, count: c.before },
-                  tag: 'Chosen',
+                  chosen: true,
                   change: c,
                 })),
             ]}
@@ -190,7 +190,7 @@ const DeckView = ({
             {list.champion && (
               <CardRow
                 card={list.champion}
-                tag="Chosen"
+                chosen
                 divider={false}
                 change={championChange}
                 section="champion"
@@ -203,7 +203,7 @@ const DeckView = ({
                 <CardRow
                   key={`champion-${c.name}`}
                   card={{ name: c.name, code: null, count: c.before }}
-                  tag="Chosen"
+                  chosen
                   change={c}
                 />
               ))}

@@ -94,6 +94,11 @@ them would make either impossible to restyle alone.
 for the count badge, used only by "Show changes" in the decklist. Their own
 family: a deck edit isn't a result or a scoring action.
 
+**Chosen champion** — `chosen` (gold) and `chosen-tint`: the gold frame on
+the chosen champion's art in the decklist (list and gallery) plus its gold
+"Chosen" chip (`CardRow` / `CardGrid` `chosen`, `CardArt` `chosen`). Its own
+token: gold elsewhere means a draw (result) or a hold (scoring action).
+
 **Domains** — `domain-{fury,calm,mind,body,chaos,order}` (base) and
 `domain-*-tint` (dark chip fill), for deck views: domain chips and the rune
 proportion bar. An identity family, separate from results and scoring actions.
@@ -642,9 +647,11 @@ pushes `/decks/import?deckId=…`, which pre-fills the box with
 `formatDeckText(list)` — tweak a line to change a few cards, or Clear + paste a
 whole new list. Same parser, preview, and error blocking as an import; Save is
 off until the list actually differs (compared as formatted text). The name
-isn't edited there. **No tabs:** one box, plus a "Deck code" button beside
-"Paste" — a code (from the button or pasted into the box) is decoded and the
-box shows the list it stands for. Text carries names only, so on save each
+isn't edited there. **No tabs:** one decklist box, and an **"Import deck
+code"** button above it that opens a code field (Paste, close). A good code —
+typed, pasted there, or pasted into the decklist box — fills the box with the
+list it stands for; the code stays visible with "Decklist updated from this
+code.", or a plain error. Text carries names only, so on save each
 card gets its printing back (`withPrintingsFrom`): the pasted code's first,
 else the deck's previous one; only new cards get the base printing. Same
 cards with other printings count as a change. If the legend differs, Save

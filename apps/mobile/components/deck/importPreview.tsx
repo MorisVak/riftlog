@@ -86,7 +86,7 @@ const ImportPreview = ({
       <DeckSection title="Main deck" count={totals.main} target={DECK_TARGETS.main}>
         <Issues issues={issuesFor('main')} sourceLines={sourceLines} />
         {list.champion && (
-          <CardRow card={list.champion} tag="Chosen" divider={false} section="champion" />
+          <CardRow card={list.champion} chosen divider={false} section="champion" />
         )}
         <CardList cards={list.main} firstDivider={list.champion !== null} section="main" />
       </DeckSection>

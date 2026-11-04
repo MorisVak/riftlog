@@ -85,6 +85,13 @@ module.exports = {
           tint: '#3A1B31',
         },
 
+        // The chosen champion in a decklist: a gold frame on its art plus a
+        // "Chosen" chip. Its own token — gold elsewhere means a draw or a hold.
+        chosen: {
+          DEFAULT: '#E3B341',
+          tint: '#3A3017',
+        },
+
         // Deck changes between versions — a card added / increased (`added`)
         // or cut / reduced (`cut`), shown in the decklist's "Show changes"
         // mode. Their own family: a deck edit isn't a result or a scoring

@@ -96,9 +96,10 @@ const CODE_MESSAGES: Record<'no_catalog' | 'invalid' | 'newer_format', string> =
  * couple of cards is editing a line, and a whole new list is Clear + paste.
  * Saving goes through `updateDeckList`, which adds a new immutable version —
  * matches already played keep the list they were played with. The name isn't
- * edited here; the deck screen renames. There are no tabs: "Deck code" (or a
- * code pasted into the box) decodes the code and fills the box with the list
- * it stands for. Text carries names only, so on save every card gets its
+ * edited here; the deck screen renames. There are no tabs: "Import deck code"
+ * opens a code field above the list; a good code (typed, pasted, or pasted
+ * into the list box) fills the box with the list it stands for, and the code
+ * stays visible. Text carries names only, so on save every card gets its
  * printing back (`withPrintingsFrom`): from the pasted code first, else from
  * the deck as it was — a text edit no longer drops alt arts; only new cards
  * get the base printing. A list with the same cards but other printings counts
@@ -117,6 +118,11 @@ const ImportDeck = () => {
   // Edit mode: the list from the last deck code put in the box, whose
   // printings win on save.
   const [codeList, setCodeList] = useState<DeckList | null>(null);
+  // Edit mode's "Import deck code" panel: open?, the code, and how it went.
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [codeInput, setCodeInput] = useState('');
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [codeApplied, setCodeApplied] = useState(false);
   // What the user typed into the name field. Empty means "use the legend's
   // name", which the field shows as its placeholder.
   const [nameInput, setNameInput] = useState('');
@@ -216,46 +222,57 @@ const ImportDeck = () => {
   };
 
   /**
-   * Put text in the box. Editing, a deck code becomes the list it stands for
-   * (its printings kept for the save); a code that can't be read leaves the
-   * box as it was and says why.
+   * Edit mode: read a deck code and, if it's good, fill the decklist box with
+   * the list it stands for (its printings kept for the save). The code stays
+   * in its own field, so it's clear what was imported.
    */
-  const applyText = (t: string) => {
-    if (!editing || !looksLikeDeckCode(t)) {
-      setText(t);
+  const importCode = (raw: string) => {
+    setCodeInput(raw);
+    setCodeError(null);
+    setCodeApplied(false);
+    const t = raw.trim();
+    if (t === '') return;
+    if (!looksLikeDeckCode(t)) {
+      setCodeError(CODE_MESSAGES.invalid);
       return;
     }
     try {
       const decoded = decodeDeckCode(t);
       if (!index) {
-        setNotice(CODE_MESSAGES.no_catalog);
+        setCodeError(CODE_MESSAGES.no_catalog);
         return;
       }
       const list = deckListFromCode(decoded, index);
       setCodeList(list);
       setText(formatDeckText(list));
+      setCodeApplied(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e) {
-      setNotice(CODE_MESSAGES[e instanceof DeckCodeError ? e.kind : 'invalid']);
+      setCodeError(CODE_MESSAGES[e instanceof DeckCodeError ? e.kind : 'invalid']);
     }
   };
 
-  const pasteFromClipboard = async (want: 'any' | 'code' = 'any') => {
+  /** Put text in the decklist box; editing, a code pasted there goes to the code field. */
+  const applyText = (t: string) => {
+    if (editing && looksLikeDeckCode(t)) {
+      setCodeOpen(true);
+      importCode(t);
+      return;
+    }
+    setText(t);
+  };
+
+  const pasteFromClipboard = async (target: 'list' | 'code' = 'list') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setNotice(null);
     const clip = await Clipboard.getStringAsync();
     if (clip.trim() === '') {
-      setNotice(
-        want === 'code'
-          ? 'Your clipboard is empty. Copy the deck code first.'
-          : 'Your clipboard is empty. Copy the decklist first.',
-      );
+      if (target === 'code') setCodeError('Your clipboard is empty. Copy the deck code first.');
+      else setNotice('Your clipboard is empty. Copy the decklist first.');
       return;
     }
-    if (want === 'code' && !looksLikeDeckCode(clip)) {
-      setNotice("Your clipboard doesn't hold a deck code. In Piltover Archive, use Export → Deck code.");
-      return;
-    }
-    applyText(clip);
+    if (target === 'code') importCode(clip);
+    else applyText(clip);
   };
 
   // A new legend is a different deck in all but name; make sure it's meant.
@@ -399,6 +416,74 @@ const ImportDeck = () => {
             </>
           )}
 
+          {editing && !codeOpen && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              onPress={() => {
+                Haptics.selectionAsync();
+                setCodeOpen(true);
+              }}
+              className="mb-5 flex-row items-center justify-center gap-2 rounded-xl border border-border bg-surface py-3 active:bg-elevated"
+            >
+              <Icon name="hash" size={15} className="text-accent" />
+              <Text className="font-display text-sm text-accent">Import deck code</Text>
+            </TouchableOpacity>
+          )}
+
+          {editing && codeOpen && (
+            <View className="mb-5 rounded-2xl border border-border bg-surface p-4">
+              <View className="mb-2 flex-row items-center justify-between">
+                <Text className="font-display text-base text-ink-secondary">Deck code</Text>
+                <View className="flex-row items-center gap-4">
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Paste deck code from clipboard"
+                    onPress={() => void pasteFromClipboard('code')}
+                    hitSlop={8}
+                    className="flex-row items-center gap-1.5"
+                  >
+                    <Icon name="clipboard" size={13} className="text-accent" />
+                    <Text className="font-display text-[13px] text-accent">Paste</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Close deck code"
+                    onPress={() => setCodeOpen(false)}
+                    hitSlop={8}
+                  >
+                    <Icon name="x" size={16} className="text-ink-secondary" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <TextInput
+                value={codeInput}
+                onChangeText={importCode}
+                placeholder="Paste a deck code from Piltover Archive"
+                multiline
+                textAlignVertical="top"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                spellCheck={false}
+                accessibilityLabel="Deck code"
+                className="max-h-24 min-h-[56px] rounded-xl border border-border bg-elevated px-3 py-2.5 font-mono-medium text-[12px] leading-[18px] text-ink-primary placeholder:text-ink-tertiary"
+              />
+              {codeApplied && (
+                <View className="mt-2.5 flex-row items-center gap-1.5">
+                  <Icon name="check" size={14} className="text-accent" />
+                  <Text className="text-[13px] text-ink-primary">
+                    Decklist updated from this code.
+                  </Text>
+                </View>
+              )}
+              {codeError !== null && (
+                <View className="mt-2.5 flex-row gap-1.5">
+                  <Icon name="alert-circle" size={14} className="mt-0.5 text-loss-text" />
+                  <Text className="flex-1 text-[13px] leading-[18px] text-loss-text">{codeError}</Text>
+                </View>
+              )}
+            </View>
+          )}
+
           <View className="mb-2 flex-row items-center justify-between">
             <Text className="font-display text-base text-ink-secondary">
               {mode === 'code' && !editing ? 'Deck code' : 'Decklist'}
@@ -411,6 +496,7 @@ const ImportDeck = () => {
                     // The name is independent of the paste; keep it.
                     setText('');
                     setCodeList(null);
+                    setCodeApplied(false);
                     setNotice(null);
                   }}
                   hitSlop={8}
@@ -418,18 +504,6 @@ const ImportDeck = () => {
                   <Text className="font-display text-[13px] text-ink-secondary">
                     Clear
                   </Text>
-                </TouchableOpacity>
-              )}
-              {editing && (
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityLabel="Paste deck code"
-                  onPress={() => void pasteFromClipboard('code')}
-                  hitSlop={8}
-                  className="flex-row items-center gap-1.5"
-                >
-                  <Icon name="hash" size={13} className="text-accent" />
-                  <Text className="font-display text-[13px] text-accent">Deck code</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -441,7 +515,7 @@ const ImportDeck = () => {
               >
                 <Icon name="clipboard" size={13} className="text-accent" />
                 <Text className="font-display text-[13px] text-accent">
-                  {editing ? 'Paste' : 'Paste from clipboard'}
+                  Paste from clipboard
                 </Text>
               </TouchableOpacity>
             </View>

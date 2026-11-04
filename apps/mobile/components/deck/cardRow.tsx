@@ -11,8 +11,8 @@ export type CardChange = { before: number; after: number };
 
 type CardRowProps = {
   card: CardRef;
-  /** A short label after the name, e.g. "Chosen" for the chosen champion. */
-  tag?: string;
+  /** The chosen champion: gold frame on the art and a "Chosen" chip. */
+  chosen?: boolean;
   /** Hairline above the row; off for the first row of a section. */
   divider?: boolean;
   /**
@@ -55,7 +55,7 @@ const changeLabel = ({ before, after }: CardChange): string =>
  * card sheet. Every deck surface renders cards through this (and it through
  * `CardArt`), so art arrives in one place.
  */
-const CardRow = ({ card, tag, divider = true, change, section }: CardRowProps) => {
+const CardRow = ({ card, chosen = false, divider = true, change, section }: CardRowProps) => {
   const up = change !== undefined && change.after > change.before;
   const removed = change !== undefined && change.after === 0;
   const { match, issue } = useCardMatch(card, section);
@@ -66,7 +66,7 @@ const CardRow = ({ card, tag, divider = true, change, section }: CardRowProps) =
       accessibilityRole="button"
       accessibilityHint="Shows the card's details"
       onPress={() => openCard(card)}
-      accessibilityLabel={`${card.count} ${card.name}${tag ? `, ${tag}` : ''}${
+      accessibilityLabel={`${card.count} ${card.name}${chosen ? ', chosen champion' : ''}${
         change
           ? removed
             ? `, removed (was ${change.before})`
@@ -97,7 +97,7 @@ const CardRow = ({ card, tag, divider = true, change, section }: CardRowProps) =
           {card.count}
         </Text>
       </View>
-      <CardArt card={card} variant="thumb" />
+      <CardArt card={card} variant="thumb" chosen={chosen} />
       <View className="flex-1">
         <Text
           className={`text-[15px] ${
@@ -119,9 +119,9 @@ const CardRow = ({ card, tag, divider = true, change, section }: CardRowProps) =
           </View>
         )}
       </View>
-      {tag ? (
-        <View className="rounded-full bg-accent/15 px-2 py-0.5">
-          <Text className="font-display text-[11px] text-accent">{tag}</Text>
+      {chosen ? (
+        <View className="rounded-full bg-chosen-tint px-2 py-0.5">
+          <Text className="font-display text-[11px] text-chosen">Chosen</Text>
         </View>
       ) : null}
       {change ? (

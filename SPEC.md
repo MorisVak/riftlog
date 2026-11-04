@@ -324,9 +324,9 @@ own printing, or its catalog base printing for text imports.
 **Editing keeps printings (built).** "Edit list" shows the list as text,
 which carries names only, so on save each card gets its printing back
 (`withPrintingsFrom` in core): a card still in the deck keeps its previous
-printing; only new cards get the base printing. Its **"Deck code"** button
-pastes a code and fills the box with the list it stands for, with that
-code's printings (a way to swap in alt arts); same cards with other
+printing; only new cards get the base printing. Its **"Import deck code"**
+button opens a code field; a good code fills the box with the list it stands
+for, with that code's printings (a way to swap in alt arts); same cards with other
 printings count as a change. Save asks before changing the legend.
 
 **Deck view (built).** Laid out like Piltover Archive's: the legend and chosen
