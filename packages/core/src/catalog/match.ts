@@ -45,6 +45,8 @@ export type CatalogPrinting = {
   storage_path: string | null;
   orientation: string;
   artist: string | null;
+  /** "Common", "Uncommon", "Rare", "Epic", "Showcase", "Promo"; null if unknown. */
+  rarity: string | null;
   status: 'spoiler' | 'released';
 };
 

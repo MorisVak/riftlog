@@ -11,7 +11,7 @@ const card = (id: string, name: string, name_key: string, type: string) => ({
 });
 const printing = (code: string, card_id: string, extra: Partial<CatalogPrinting> = {}): CatalogPrinting => ({
   code, card_id, set_code: code.split('-')[0] ?? '', variant: '', alt_art: false, overnumbered: false,
-  signed: false, promo: false, image_url: null, storage_path: null, orientation: 'portrait', artist: null,
+  signed: false, promo: false, image_url: null, storage_path: null, orientation: 'portrait', artist: null, rarity: null,
   status: 'released', ...extra,
 });
 

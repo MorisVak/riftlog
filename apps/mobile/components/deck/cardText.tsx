@@ -1,13 +1,15 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { DOMAINS, type Domain } from '@riftlog/core';
-import { DOMAIN_CLASSES, DomainIcon, domainLabel } from '@/components/deck/domain';
+import { InlineRune, domainLabel } from '@/components/deck/domain';
 
 /**
  * A card's rules text as written in the catalog, with Riftbound's icon codes
- * drawn as small labelled chips (":rb_energy_2:" → "2", ":rb_rune_fury:" →
- * "Fury", ":rb_might:" → "Might") and keywords ("[Deflect]") in bold. Every
- * chip says what it is in words, so color never carries meaning alone.
+ * drawn as on the printed card — runes as Riot's rune symbols (":rb_rune_fury:",
+ * the rainbow ":rb_rune_rainbow:" = any rune), each with a spoken label; each
+ * domain's symbol has its own shape, so color never carries meaning alone —
+ * other codes as small labelled chips (":rb_energy_2:" → "2", ":rb_might:" →
+ * "Might"), and keywords ("[Deflect]") in bold.
  * The text itself is shown exactly as stored.
  */
 
@@ -29,14 +31,12 @@ function renderToken(token: string, key: number): React.ReactNode {
   const rune = /^:rb_rune_([a-z]+):$/.exec(token);
   if (rune?.[1]) {
     const d = rune[1];
-    if (d === 'rainbow') return <Chip key={key} label="Any rune" a11y="any rune" className="bg-elevated text-ink-primary" />;
-    if (isDomain(d)) {
-      // The domain's icon, then its name — the name is what says which.
+    if (d === 'rainbow' || isDomain(d)) {
+      const domain = d === 'rainbow' ? null : d;
       return (
-        <Text key={key} accessibilityLabel={`${domainLabel(d)} rune`}>
+        <Text key={key} accessibilityLabel={domain ? `${domainLabel(domain)} rune` : 'any rune'}>
           {' '}
-          <DomainIcon domain={d} size={13} />
-          <Text className={`font-mono-medium text-[12px] ${DOMAIN_CLASSES[d].text}`}>{` ${domainLabel(d)} `}</Text>
+          <InlineRune domain={domain} size={15} />{' '}
         </Text>
       );
     }

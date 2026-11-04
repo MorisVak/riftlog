@@ -175,8 +175,20 @@ the single spot art is decided. Don't render card images anywhere else.
   drawn landscape (`orientation`).
 - **Domain icons** are Riot's official ones, bundled in `assets/domains/`
   (`DomainIcon` / `DomainIcons` in `components/deck/domain.tsx`). Chips show
-  icon + name; the card sheet's type line and rune symbols in card text use
-  them. A dual-domain card simply shows two icons.
+  icon + name; the card sheet's type line shows one or two.
+- **Rune symbols** are Riot's rune glyphs (colored circles), rendered from
+  their SVGs to PNGs in `assets/runes/` (no SVG renderer in the app), plus the
+  rainbow "any rune" (cropped tighter). `RuneIcon` draws one domain's rune, a
+  **dual rune** (two domains: the circle split down the middle, half from
+  each) or the rainbow; `InlineRune` is the in-text version. Card text draws
+  `:rb_rune_<domain>:` / `:rb_rune_rainbow:` as these symbols, with spoken
+  labels (each glyph has its own shape, so color isn't the only signal).
+- **Card sheet stats** are blocks: "Cost" = energy + one rune per power (dual
+  for two-domain cards, rainbow if the card has no domain), then "Might".
+- **Rarity gems** (Riot's, `assets/rarity/`, `components/deck/rarity.tsx`)
+  sit before the printing code in the sheet's footer; "Promo" has none. The
+  catalog cache has a format number (`CACHE_FORMAT` in `lib/catalog.ts`):
+  bump it when the fetched columns change, so old caches refetch once.
 - **Art is behind `CARD_ART`** (`lib/featureFlags.ts`): always on in dev,
   `EXPO_PUBLIC_CARD_ART=1` in the `preview` / `testflight` EAS profiles, off
   in `production`. With it off, rows stay text-only and tiles / the sheet show
