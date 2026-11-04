@@ -20,6 +20,8 @@ import {
   looksLikeDeckCode,
   normalizeCardName,
   parseDeckText,
+  printingsKey,
+  withPrintingsFrom,
   type DeckList,
   type ParsedDeck,
 } from '@riftlog/core';
@@ -61,21 +63,6 @@ const FORMAT_EXAMPLE: { header: string; hint?: string; lines: string[] }[] = [
 const defaultDeckName = (legendName: string | undefined): string =>
   (legendName ?? '').split(/,| - /)[0]?.trim().slice(0, DECK_NAME_MAX) ?? '';
 
-/** Every card's printing code, in list order — what a deck code adds over text. */
-const printingsKey = (list: DeckList): string =>
-  [
-    list.legend,
-    list.champion,
-    ...list.main,
-    ...list.battlefields,
-    ...list.runes,
-    ...list.sideboard,
-    ...list.additionalLegends,
-    ...(list.unsorted ?? []),
-  ]
-    .map((c) => (c ? `${normalizeCardName(c.name)}|${c.code ?? ''}` : '-'))
-    .join('\n');
-
 /** The legend as a match key, so "Riven - The Exile" and "Riven, The Exile" agree. */
 const legendKey = (list: DeckList): string | null =>
   list.legend ? normalizeCardName(list.legend.name) : null;
@@ -109,10 +96,13 @@ const CODE_MESSAGES: Record<'no_catalog' | 'invalid' | 'newer_format', string> =
  * couple of cards is editing a line, and a whole new list is Clear + paste.
  * Saving goes through `updateDeckList`, which adds a new immutable version —
  * matches already played keep the list they were played with. The name isn't
- * edited here; the deck screen renames. Pasting a deck code here replaces the
- * list with its exact printings (alt arts, overnumbered); a code with the same
- * cards but other printings counts as a change. If the legend changes, Save
- * asks first.
+ * edited here; the deck screen renames. There are no tabs: "Deck code" (or a
+ * code pasted into the box) decodes the code and fills the box with the list
+ * it stands for. Text carries names only, so on save every card gets its
+ * printing back (`withPrintingsFrom`): from the pasted code first, else from
+ * the deck as it was — a text edit no longer drops alt arts; only new cards
+ * get the base printing. A list with the same cards but other printings counts
+ * as a change. If the legend changes, Save asks first.
  */
 const ImportDeck = () => {
   // The preview checks cards against the catalog; make sure it's current.
@@ -123,17 +113,16 @@ const ImportDeck = () => {
   const editing = typeof deckId === 'string' && deckId !== '';
   // Edit mode: the list being edited, once loaded ('error' if it couldn't be).
   const [original, setOriginal] = useState<DeckList | 'error' | null>(null);
-  // One box per tab, so switching to "Deck code" while editing doesn't throw
-  // away the list text (and back).
-  const [drafts, setDrafts] = useState({ text: '', code: '' });
+  const [text, setText] = useState('');
+  // Edit mode: the list from the last deck code put in the box, whose
+  // printings win on save.
+  const [codeList, setCodeList] = useState<DeckList | null>(null);
   // What the user typed into the name field. Empty means "use the legend's
   // name", which the field shows as its placeholder.
   const [nameInput, setNameInput] = useState('');
   const [saving, setSaving] = useState(false);
   // Which hints to show; what the paste IS is decided by its shape.
   const [mode, setMode] = useState<'text' | 'code'>('text');
-  const text = drafts[mode];
-  const setText = (t: string) => setDrafts((d) => ({ ...d, [mode]: t }));
   const { index } = useCatalog();
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -148,7 +137,7 @@ const ImportDeck = () => {
           return;
         }
         setOriginal(deck.list);
-        setDrafts((d) => ({ ...d, text: formatDeckText(deck.list) }));
+        setText(formatDeckText(deck.list));
       })
       .catch(() => active && setOriginal('error'));
     return () => {
@@ -159,7 +148,9 @@ const ImportDeck = () => {
   const originalList =
     original !== null && original !== 'error' ? original : null;
 
-  const isCode = looksLikeDeckCode(text);
+  // Edit mode turns a code into its list right away (see applyText), so only
+  // the import screen parses codes here.
+  const isCode = !editing && looksLikeDeckCode(text);
   const codeResult = useMemo((): CodeResult | null => {
     if (!isCode) return null;
     try {
@@ -170,17 +161,15 @@ const ImportDeck = () => {
       return { kind: 'error', error: e instanceof DeckCodeError ? e.kind : 'invalid' };
     }
   }, [isCode, text, index]);
-  const parsed = useMemo(
-    () =>
-      text.trim() === ''
-        ? null
-        : isCode
-          ? codeResult?.kind === 'ok'
-            ? codeResult.parsed
-            : null
-          : parseDeckText(text),
-    [text, isCode, codeResult],
-  );
+  const parsed = useMemo((): ParsedDeck | null => {
+    if (text.trim() === '') return null;
+    if (isCode) return codeResult?.kind === 'ok' ? codeResult.parsed : null;
+    const fromText = parseDeckText(text);
+    if (!editing || original === null || original === 'error') return fromText;
+    // Give every card its printing back: the pasted code's, else the deck's.
+    const fromCode = codeList ? withPrintingsFrom(fromText.list, codeList) : fromText.list;
+    return { ...fromText, list: withPrintingsFrom(fromCode, original) };
+  }, [text, isCode, codeResult, editing, original, codeList]);
   const sourceLines = useMemo(() => text.split(/\r\n|\r|\n/), [text]);
 
   const defaultName = defaultDeckName(parsed?.list.legend?.name);
@@ -202,13 +191,13 @@ const ImportDeck = () => {
   // user pasted silently goes missing.
   // Edit mode: compared as formatted text, so extra spaces / blank lines or
   // retyping the same list don't count as a change.
-  // A pasted code also counts printings, so swapping in alt arts is a change.
+  // Printings count too, so swapping in alt arts from a code is a change.
   const changed =
     !editing ||
     (parsed !== null &&
       originalList !== null &&
       (formatDeckText(parsed.list) !== formatDeckText(originalList) ||
-        (isCode && printingsKey(parsed.list) !== printingsKey(originalList))));
+        printingsKey(parsed.list) !== printingsKey(originalList)));
   const legendChanged =
     editing &&
     parsed !== null &&
@@ -226,15 +215,47 @@ const ImportDeck = () => {
     else router.replace('/profile');
   };
 
-  const pasteFromClipboard = async () => {
+  /**
+   * Put text in the box. Editing, a deck code becomes the list it stands for
+   * (its printings kept for the save); a code that can't be read leaves the
+   * box as it was and says why.
+   */
+  const applyText = (t: string) => {
+    if (!editing || !looksLikeDeckCode(t)) {
+      setText(t);
+      return;
+    }
+    try {
+      const decoded = decodeDeckCode(t);
+      if (!index) {
+        setNotice(CODE_MESSAGES.no_catalog);
+        return;
+      }
+      const list = deckListFromCode(decoded, index);
+      setCodeList(list);
+      setText(formatDeckText(list));
+    } catch (e) {
+      setNotice(CODE_MESSAGES[e instanceof DeckCodeError ? e.kind : 'invalid']);
+    }
+  };
+
+  const pasteFromClipboard = async (want: 'any' | 'code' = 'any') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setNotice(null);
     const clip = await Clipboard.getStringAsync();
     if (clip.trim() === '') {
-      setNotice('Your clipboard is empty. Copy the decklist first.');
+      setNotice(
+        want === 'code'
+          ? 'Your clipboard is empty. Copy the deck code first.'
+          : 'Your clipboard is empty. Copy the decklist first.',
+      );
       return;
     }
-    setText(clip);
+    if (want === 'code' && !looksLikeDeckCode(clip)) {
+      setNotice("Your clipboard doesn't hold a deck code. In Piltover Archive, use Export → Deck code.");
+      return;
+    }
+    applyText(clip);
   };
 
   // A new legend is a different deck in all but name; make sure it's meant.
@@ -314,14 +335,14 @@ const ImportDeck = () => {
             </TouchableOpacity>
           </View>
 
-          {editing && mode === 'text' && (
+          {editing && (
             <Text className="-mt-2 mb-5 text-[14px] leading-5 text-ink-secondary">
               Change a count or a line, or clear it and paste a new list.
             </Text>
           )}
 
-          {/* Text or deck code. A pasted code is recognised in either box. */}
-          {(
+          {/* Which hints to show. A pasted code is recognised either way. */}
+          {!editing && (
             <View className="mb-4 flex-row gap-2">
               {(
                 [
@@ -380,7 +401,7 @@ const ImportDeck = () => {
 
           <View className="mb-2 flex-row items-center justify-between">
             <Text className="font-display text-base text-ink-secondary">
-              {mode === 'code' ? 'Deck code' : 'Decklist'}
+              {mode === 'code' && !editing ? 'Deck code' : 'Decklist'}
             </Text>
             <View className="flex-row gap-3">
               {text !== '' && (
@@ -389,6 +410,7 @@ const ImportDeck = () => {
                   onPress={() => {
                     // The name is independent of the paste; keep it.
                     setText('');
+                    setCodeList(null);
                     setNotice(null);
                   }}
                   hitSlop={8}
@@ -398,15 +420,28 @@ const ImportDeck = () => {
                   </Text>
                 </TouchableOpacity>
               )}
+              {editing && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Paste deck code"
+                  onPress={() => void pasteFromClipboard('code')}
+                  hitSlop={8}
+                  className="flex-row items-center gap-1.5"
+                >
+                  <Icon name="hash" size={13} className="text-accent" />
+                  <Text className="font-display text-[13px] text-accent">Deck code</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 accessibilityRole="button"
+                accessibilityLabel="Paste from clipboard"
                 onPress={() => void pasteFromClipboard()}
                 hitSlop={8}
                 className="flex-row items-center gap-1.5"
               >
                 <Icon name="clipboard" size={13} className="text-accent" />
                 <Text className="font-display text-[13px] text-accent">
-                  Paste from clipboard
+                  {editing ? 'Paste' : 'Paste from clipboard'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -415,13 +450,13 @@ const ImportDeck = () => {
           <TextInput
             value={text}
             onChangeText={(t) => {
-              setText(t);
               setNotice(null);
+              applyText(t);
             }}
             placeholder={
               loadingOriginal
                 ? 'Loading deck…'
-                : mode === 'code'
+                : mode === 'code' && !editing
                   ? 'Paste your deck code here'
                   : 'Paste your decklist here'
             }
@@ -435,7 +470,7 @@ const ImportDeck = () => {
             className="max-h-64 min-h-[160px] rounded-xl border border-border bg-elevated px-4 py-3 font-mono-medium text-[13px] leading-5 text-ink-primary placeholder:text-ink-tertiary"
           />
 
-          {text.trim() === '' && mode === 'code' && (
+          {text.trim() === '' && mode === 'code' && !editing && (
             <View className="mt-4 flex-row gap-2.5 rounded-2xl border border-border bg-surface p-4">
               <Icon name="info" size={16} className="mt-0.5 text-accent" />
               <Text className="flex-1 text-[14px] leading-5 text-ink-primary">
@@ -446,7 +481,7 @@ const ImportDeck = () => {
             </View>
           )}
 
-          {text.trim() === '' && mode === 'text' && (
+          {text.trim() === '' && (mode === 'text' || editing) && (
             <View className="mt-4 rounded-2xl border border-border bg-surface px-4 py-3.5">
               <Text className="mb-2.5 font-display text-base text-ink-secondary">
                 Expected format

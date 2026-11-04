@@ -27,6 +27,7 @@ export {
   type DeckCardChange,
   type DeckSectionDiff,
 } from './decks/diff';
+export { printingsKey, withPrintingsFrom } from './decks/printings';
 export { isDeckList } from './decks/validate';
 export {
   DeckCodeError,

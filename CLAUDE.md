@@ -179,13 +179,6 @@ up:
   Google Play release requires an approved Riot API key (or a written
   license), per Riot's Legal Jibber Jabber. The card art flag doesn't change
   that. The production key application is still pending.
-- **MUST-FIX: editing a code-imported deck drops its printings.** "Edit list"
-  goes through the text format, which carries names only, so after a save
-  every card in a section loses its printing code (an alt art falls back to
-  the base printing; only "Unsorted" cards keep theirs). Expected fix: on
-  save after a text edit, a card whose name is still in the deck keeps its
-  previous printing; only new cards get the base printing. (Workaround
-  today: "Edit list" → Deck code tab, paste the deck's code.)
 
 ## Card catalog
 
@@ -308,8 +301,6 @@ card art on.
   can't appear in deck codes (OPP / PR / JDG aren't in the library's set map).
 - **The "newer format" deck-code message** is only unit-tested, not checked
   on the simulator.
-- Must-fix before launch: printings lost on editing a code-imported deck
-  (see "Before launch — urgent").
 
 ## Website and operations
 
