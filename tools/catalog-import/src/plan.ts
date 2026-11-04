@@ -10,6 +10,9 @@
 import type { Database } from '@riftlog/core';
 import type { Desired, DesiredCard, DesiredPrinting, DesiredSet, Override } from './transform';
 
+/** Who a run writes as. Riftcodex runs and gallery (Riot) runs never touch each other's rows. */
+export type CatalogSource = Database['public']['Enums']['catalog_source'];
+
 type Tables = Database['public']['Tables'];
 export type SetRow = Tables['sets']['Row'];
 export type CardRow = Tables['cards']['Row'];
@@ -65,6 +68,7 @@ function planTable<D extends Record<string, unknown>, C extends { source: string
   current: C[],
   keyOf: (row: D | C) => string,
   toWrite: (row: D, existing: C | undefined) => W & Record<string, unknown>,
+  source: CatalogSource,
 ): TablePlan<W> {
   const byKey = new Map(current.map((c) => [keyOf(c), c]));
   const plan: TablePlan<W> = { insert: [], update: [], unchanged: 0, skippedEdited: [], conflicts: [] };
@@ -83,7 +87,7 @@ function planTable<D extends Record<string, unknown>, C extends { source: string
     const changed = diff(row, existing as unknown as Record<string, unknown>);
     if (changed.length === 0) {
       plan.unchanged++;
-    } else if (existing.source !== 'riftcodex') {
+    } else if (existing.source !== source) {
       plan.conflicts.push({ key, source: existing.source });
     } else {
       plan.update.push({ row, changed });
@@ -97,8 +101,13 @@ export function makePlan(input: {
   current: CatalogSnapshot;
   overrides: Override[];
   newId: () => string;
+  /** Default 'riftcodex'. */
+  source?: CatalogSource;
 }): Plan {
-  const { desired, current, overrides, newId } = input;
+  const { desired, current, newId } = input;
+  const source = input.source ?? 'riftcodex';
+  // overrides.json corrects Riftcodex entries; other sources don't sync it.
+  const overrides = source === 'riftcodex' ? input.overrides : [];
   const stops: string[] = [];
 
   // Safety stops.
@@ -108,7 +117,7 @@ export function makePlan(input: {
   for (const t of desired.report.typeConflicts) {
     stops.push(`"${t.name_key}" has more than one card type: ${t.types.join(', ')}`);
   }
-  const imported = current.printings.filter((p) => p.source === 'riftcodex').length;
+  const imported = current.printings.filter((p) => p.source === source).length;
   if (imported > 0 && desired.printings.length < imported * 0.9) {
     stops.push(
       `Riftcodex gave ${desired.printings.length} printings, more than 10% fewer than the ${imported} already imported`,
@@ -118,6 +127,7 @@ export function makePlan(input: {
   // Overrides: overrides.json → catalog_overrides.
   const overrideKey = (o: { riftcodex_id: string; field: string }) => `${o.riftcodex_id}:${o.field}`;
   const currentOverrides = new Map(current.overrides.map((o) => [overrideKey(o), o]));
+  const syncOverrides = source === 'riftcodex';
   const fileKeys = new Set(overrides.map(overrideKey));
   const overridePlan: Plan['overrides'] = { insert: [], update: [], unchanged: 0, onlyInDatabase: [] };
   for (const o of overrides) {
@@ -130,14 +140,17 @@ export function makePlan(input: {
       else overridePlan.unchanged++;
     }
   }
-  overridePlan.onlyInDatabase = current.overrides.filter((o) => !fileKeys.has(overrideKey(o))).map(overrideKey);
+  overridePlan.onlyInDatabase = syncOverrides
+    ? current.overrides.filter((o) => !fileKeys.has(overrideKey(o))).map(overrideKey)
+    : [];
 
   // Sets.
   const sets = planTable<DesiredSet, SetRow, SetWrite>(
     desired.sets,
     current.sets,
     (r) => r.code,
-    (d) => ({ ...d, source: 'riftcodex' }),
+    (d) => ({ ...d, source }),
+    source,
   );
 
   // Cards, keyed by name_key; new cards get their id here so printings can
@@ -146,7 +159,8 @@ export function makePlan(input: {
     desired.cards,
     current.cards,
     (r) => r.name_key,
-    (d, existing) => ({ id: existing?.id ?? newId(), ...d, source: 'riftcodex' }),
+    (d, existing) => ({ id: existing?.id ?? newId(), ...d, source }),
+    source,
   );
   const cardId = new Map<string, string>(current.cards.map((c) => [c.name_key, c.id]));
   for (const c of cards.insert) cardId.set(c.name_key, c.id);
@@ -156,7 +170,8 @@ export function makePlan(input: {
     desired.printings,
     current.printings,
     (r) => r.code,
-    ({ name_key, ...p }) => ({ ...p, card_id: cardId.get(name_key) ?? '', source: 'riftcodex' }),
+    ({ name_key, ...p }) => ({ ...p, card_id: cardId.get(name_key) ?? '', source }),
+    source,
   );
 
   const desiredCodes = new Set(desired.printings.map((p) => p.code));
@@ -168,8 +183,8 @@ export function makePlan(input: {
     cards,
     printings,
     missingFromSource: {
-      printings: current.printings.filter((p) => p.source === 'riftcodex' && !desiredCodes.has(p.code)).map((p) => p.code),
-      cards: current.cards.filter((c) => c.source === 'riftcodex' && !desiredKeys.has(c.name_key)).map((c) => c.name),
+      printings: current.printings.filter((p) => p.source === source && !desiredCodes.has(p.code)).map((p) => p.code),
+      cards: current.cards.filter((c) => c.source === source && !desiredKeys.has(c.name_key)).map((c) => c.name),
     },
     stops,
   };

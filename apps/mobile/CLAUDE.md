@@ -162,11 +162,16 @@ the single spot art is decided. Don't render card images anywhere else.
   app reads `catalog_meta.version` and refetches the whole catalog only if it
   moved. No per-card requests. Offline or before the first download, decks
   show as written (no types, no art, no flags).
-- **Images** go through `lib/cardImage.ts`: our bucket's `storage_path` wins
-  over `image_url`; Riot's CDN (a Sanity image CDN) gets `?w=<px>&fm=webp`
-  sized to the view (a 120 px thumbnail is ~6 KB vs. a 1.4 MB PNG), with the
-  plain URL as the fallback if the sized one fails. Battlefields are drawn
-  landscape (`orientation`).
+- **Images** go through `lib/cardImage.ts`, which returns URLs to try in
+  order (`CardImage` moves to the next on error): our bucket first — the
+  240 px `cards/small/` copy for views up to 240 px, else the full copy —
+  then Riot's CDN sized to the view, then the plain `image_url`. The bucket
+  can't resize on request, so rows must use the small copy. Battlefields are
+  drawn landscape (`orientation`).
+- **Domain icons** are Riot's official ones, bundled in `assets/domains/`
+  (`DomainIcon` / `DomainIcons` in `components/deck/domain.tsx`). Chips show
+  icon + name; the card sheet's type line and rune symbols in card text use
+  them. A dual-domain card simply shows two icons.
 - **Art is behind `CARD_ART`** (`lib/featureFlags.ts`): always on in dev,
   `EXPO_PUBLIC_CARD_ART=1` in the `preview` / `testflight` EAS profiles, off
   in `production`. With it off, rows stay text-only and tiles / the sheet show

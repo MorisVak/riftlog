@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { DOMAINS, type Domain } from '@riftlog/core';
-import { DOMAIN_CLASSES, domainLabel } from '@/components/deck/domain';
+import { DOMAIN_CLASSES, DomainIcon, domainLabel } from '@/components/deck/domain';
 
 /**
  * A card's rules text as written in the catalog, with Riftbound's icon codes
@@ -31,13 +31,13 @@ function renderToken(token: string, key: number): React.ReactNode {
     const d = rune[1];
     if (d === 'rainbow') return <Chip key={key} label="Any rune" a11y="any rune" className="bg-elevated text-ink-primary" />;
     if (isDomain(d)) {
+      // The domain's icon, then its name — the name is what says which.
       return (
-        <Chip
-          key={key}
-          label={domainLabel(d)}
-          a11y={`${domainLabel(d)} rune`}
-          className={`${DOMAIN_CLASSES[d].tint} ${DOMAIN_CLASSES[d].text}`}
-        />
+        <Text key={key} accessibilityLabel={`${domainLabel(d)} rune`}>
+          {' '}
+          <DomainIcon domain={d} size={13} />
+          <Text className={`font-mono-medium text-[12px] ${DOMAIN_CLASSES[d].text}`}>{` ${domainLabel(d)} `}</Text>
+        </Text>
       );
     }
   }

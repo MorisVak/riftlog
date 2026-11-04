@@ -54,6 +54,21 @@ describe('matchCard', () => {
     });
   });
 
+  it("matches names whose apostrophe sits elsewhere, but never guesses between cards", () => {
+    const withCircle = buildCatalogIndex({
+      ...catalog,
+      cards: [...catalog.cards, card('hc', "Hunters' Circle", "hunters' circle", 'Battlefield')],
+      printings: [...catalog.printings, printing('RAD-163', 'hc')],
+    });
+    expect(matchCard({ name: "Hunter's Circle", code: null }, withCircle)).toMatchObject({ kind: 'matched', card: { id: 'hc' } });
+    const clash = buildCatalogIndex({
+      ...catalog,
+      cards: [...catalog.cards, card('a', "A's B", "a's b", 'Spell'), card('b', "As' B", "as' b", 'Spell')],
+      printings: [],
+    });
+    expect(matchCard({ name: 'As B', code: null }, clash)).toEqual({ kind: 'unknown' });
+  });
+
   it('reports unknown cards', () => {
     expect(matchCard({ name: 'Not A Card', code: null }, index)).toEqual({ kind: 'unknown' });
   });

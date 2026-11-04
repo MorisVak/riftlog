@@ -12,7 +12,7 @@ type CatalogTable = 'sets' | 'cards' | 'card_printings' | 'catalog_overrides';
 const PAGE = 1000; // PostgREST's default row cap per request
 const CHUNK = 500;
 
-async function readAll<T extends CatalogTable>(
+export async function readAll<T extends CatalogTable>(
   db: Client,
   table: T,
   orderBy: string,

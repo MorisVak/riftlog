@@ -42,7 +42,7 @@ export type RiftcodexSet = {
 
 export class ShapeError extends Error {
   constructor(where: string, what: string) {
-    super(`Unexpected Riftcodex response at ${where}: ${what}`);
+    super(`Unexpected source data at ${where}: ${what}`);
     this.name = 'ShapeError';
   }
 }

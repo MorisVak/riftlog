@@ -18,7 +18,13 @@ export type Snapshot = RiftcodexRaw & {
 };
 
 /** Where the data came from, for the report. */
-export type SourceInfo = { kind: 'live' | 'snapshot'; fetchedAt: string; path: string | null };
+export type SourceInfo = {
+  /** "Riftcodex" or "Riot card gallery". */
+  label: string;
+  kind: 'live' | 'snapshot';
+  fetchedAt: string;
+  path: string | null;
+};
 
 export function saveSnapshot(raw: RiftcodexRaw, fetchedAt: Date): string {
   mkdirSync(CACHE_DIR, { recursive: true });

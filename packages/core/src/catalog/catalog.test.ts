@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { deckCodeSetId } from '../decks/deckCode';
 import { pickBasePrinting, type BasePrintingCandidate } from './basePrinting';
 import { baseCardName, cleanCardText, normalizeCardName, unescapeHtml } from './names';
+import { cardImagePath, smallCardImagePath } from './imagePaths';
 import { collectorNumber, formatPrintingCode, parsePrintingCode } from './printingCode';
 
 describe('normalizeCardName', () => {
@@ -146,5 +147,14 @@ describe('pickBasePrinting', () => {
 
   it('returns null for no printings', () => {
     expect(pickBasePrinting([])).toBeNull();
+  });
+});
+
+describe('card image paths', () => {
+  it('stores each printing as a full and a small WebP, with * written as s', () => {
+    expect(cardImagePath('SFD-149a')).toBe('cards/SFD-149a.webp');
+    expect(cardImagePath('UNL-229*')).toBe('cards/UNL-229s.webp');
+    expect(cardImagePath('OPP-OGN-259m')).toBe('cards/OPP-OGN-259m.webp');
+    expect(smallCardImagePath('cards/UNL-229s.webp')).toBe('cards/small/UNL-229s.webp');
   });
 });

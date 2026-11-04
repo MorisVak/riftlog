@@ -1,6 +1,49 @@
 import React from 'react';
-import { Text, View } from 'react-native';
-import type { Domain, DomainCount } from '@riftlog/core';
+import { Image, Text, View, type ImageSourcePropType } from 'react-native';
+import { DOMAINS, type Domain, type DomainCount } from '@riftlog/core';
+
+/**
+ * Riot's official domain icons (64 px, from the card gallery's data). Static
+ * requires: Metro can't bundle a path built at runtime. A dual-domain card
+ * simply shows two of these — there are no separate dual icons.
+ */
+const DOMAIN_ICONS: Record<Domain, ImageSourcePropType> = {
+  fury: require('@/assets/domains/fury.png'),
+  calm: require('@/assets/domains/calm.png'),
+  mind: require('@/assets/domains/mind.png'),
+  body: require('@/assets/domains/body.png'),
+  chaos: require('@/assets/domains/chaos.png'),
+  order: require('@/assets/domains/order.png'),
+};
+
+/** A catalog domain name ("Fury", "Colorless") as a Domain, if it is one. */
+export const asDomain = (name: string): Domain | null => {
+  const d = name.toLowerCase();
+  return (DOMAINS as readonly string[]).includes(d) ? (d as Domain) : null;
+};
+
+/** One domain's icon. Decorative: whatever shows it also says the name. */
+export const DomainIcon = ({ domain, size = 14 }: { domain: Domain; size?: number }) => (
+  <Image
+    source={DOMAIN_ICONS[domain]}
+    style={{ width: size, height: size }}
+    accessible={false}
+    importantForAccessibility="no"
+  />
+);
+
+/** A card's one or two domain icons side by side (Colorless shows none). */
+export const DomainIcons = ({ domains, size = 14 }: { domains: string[]; size?: number }) => {
+  const known = domains.map(asDomain).filter((d): d is Domain => d !== null);
+  if (known.length === 0) return null;
+  return (
+    <View className="flex-row items-center gap-0.5">
+      {known.map((d) => (
+        <DomainIcon key={d} domain={d} size={size} />
+      ))}
+    </View>
+  );
+};
 
 /**
  * Full class names per domain. NativeWind only compiles classes that appear
@@ -21,9 +64,10 @@ export const DOMAIN_CLASSES: Record<
 export const domainLabel = (d: Domain): string =>
   d.charAt(0).toUpperCase() + d.slice(1);
 
-/** A domain's name on its tint. The name, not the color, carries meaning. */
+/** A domain's icon and name on its tint. The name, not the color, carries meaning. */
 export const DomainChip = ({ domain }: { domain: Domain }) => (
-  <View className={`rounded-full px-2.5 py-1 ${DOMAIN_CLASSES[domain].tint}`}>
+  <View className={`flex-row items-center gap-1 rounded-full py-1 pl-1.5 pr-2.5 ${DOMAIN_CLASSES[domain].tint}`}>
+    <DomainIcon domain={domain} size={14} />
     <Text className={`font-display text-[12px] ${DOMAIN_CLASSES[domain].text}`}>
       {domainLabel(domain)}
     </Text>

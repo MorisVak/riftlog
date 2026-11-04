@@ -4,6 +4,7 @@ import type { CardRef } from '@riftlog/core';
 import Icon from '@/components/icon';
 import CardArt from '@/components/deck/cardArt';
 import CardText from '@/components/deck/cardText';
+import { DomainIcons } from '@/components/deck/domain';
 import { useCardMatch } from '@/hooks/useCardMatch';
 
 /**
@@ -64,7 +65,10 @@ const CardDetails = ({ card }: { card: CardRef }) => {
         <CardArt card={card} variant="sheet" width={artWidth} />
       </View>
       <Text className="mt-5 font-display-bold text-[22px] leading-7 text-ink-primary">{info.name}</Text>
-      <Text className="mt-1 font-display text-[14px] text-ink-secondary">{typeLine}</Text>
+      <View className="mt-1 flex-row items-center gap-1.5">
+        <DomainIcons domains={info.domains} size={16} />
+        <Text className="flex-1 font-display text-[14px] text-ink-secondary">{typeLine}</Text>
+      </View>
       {stats.length > 0 && (
         <Text className="mt-1 font-mono-medium text-[13px] text-ink-secondary">{stats.join(' · ')}</Text>
       )}

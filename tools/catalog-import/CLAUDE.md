@@ -14,6 +14,11 @@ From the repo root:
     pnpm catalog:import --from-snapshot <file>     # use a saved snapshot, no network
     pnpm catalog:import --report <file.json>       # also save the full plan
 
+    pnpm catalog:import --source gallery           # Riot's card gallery, RAD only (dry run)
+    pnpm catalog:import --source gallery --only-set RAD --from-snapshot .cache/gallery-<ts>.html
+    pnpm catalog:images                            # card art: what would be copied
+    pnpm catalog:images --apply [--limit N]        # copy art into the bucket
+
 Paths are relative to where you run the command. The script is invoked with
 `pnpm --filter … run import` because `import` is also a pnpm command.
 
@@ -56,6 +61,17 @@ compares with the database.
   overrides, sets, cards, printings. Not one transaction, but idempotent: re-run
   after a failure.
 - `src/cli.ts` — the command line above.
+- `src/gallery.ts` — pure: reads Riot's card gallery page (its embedded
+  `__NEXT_DATA__`) and maps the cards to the Riftcodex entry shape, so the
+  same transform and plan run. Ids: `rad-043-167` → `RAD-043`, `-star` →
+  `*`; legends are named `<champion tag> - <title>`; a missing type is read
+  from the image's alt text. Gallery runs write `source = 'riot'`, keep
+  `riftcodex_id` null, skip overrides, and never touch Riftcodex rows (or
+  report rows "gone"). One GET per run, saved as `.cache/gallery-<ts>.html`.
+- `src/images.ts` / `src/images-cli.ts` — self-hosted art (see the root
+  `CLAUDE.md`): downloads full (744 px) and small (240 px) WebP from Riot's
+  card CDN, 2 at a time with a pause, uploads to `card-images`, then sets
+  `storage_path`. Files already in the bucket are kept; resumable.
 
 The pure modules use no Node APIs, so they can move into an Edge Function.
 

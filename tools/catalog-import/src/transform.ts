@@ -99,7 +99,8 @@ export type DesiredPrinting = {
   artist: string | null;
   rarity: string | null;
   orientation: 'portrait' | 'landscape';
-  riftcodex_id: string;
+  /** Riftcodex's own id; null for entries from another source. */
+  riftcodex_id: string | null;
   status: CatalogStatus;
 };
 
@@ -173,6 +174,8 @@ export function transform(input: {
   overrides: Override[];
   /** YYYY-MM-DD; sets released after it are spoilers. */
   today: string;
+  /** Store each entry's id as `riftcodex_id` (Riftcodex runs only). Default true. */
+  keepRiftcodexIds?: boolean;
 }): Desired {
   const report: TransformReport = {
     fetched: input.cards.length,
@@ -360,7 +363,7 @@ export function transform(input: {
         artist: original.media.artist,
         rarity: original.classification.rarity,
         orientation: orientation === 'landscape' ? 'landscape' : 'portrait',
-        riftcodex_id: original.id,
+        riftcodex_id: input.keepRiftcodexIds === false ? null : original.id,
         status,
       },
       card: {

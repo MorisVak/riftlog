@@ -98,8 +98,8 @@ const CardArt = ({ card, variant, width }: CardArtProps) => {
 };
 
 /**
- * One card image: the CDN-sized WebP first, the original URL if that fails,
- * and an empty card-shaped frame if both do.
+ * One card image: our self-hosted copy first, then Riot's CDN, and an empty
+ * card-shaped frame if every URL fails.
  */
 const CardImage = ({
   printing,
@@ -112,9 +112,10 @@ const CardImage = ({
   height: number;
   rounded: string;
 }) => {
+  // Our bucket first (small or full), then Riot's CDN; each failure tries the next.
   const urls = cardImageUrls(printing, width);
-  const [attempt, setAttempt] = useState<'sized' | 'plain' | 'failed'>('sized');
-  const uri = attempt === 'failed' || !urls ? null : urls[attempt];
+  const [attempt, setAttempt] = useState(0);
+  const uri = urls[attempt] ?? null;
 
   return (
     <View
@@ -129,8 +130,8 @@ const CardImage = ({
           style={{ width: '100%', height: '100%' }}
           contentFit="cover"
           transition={120}
-          recyclingKey={printing.code}
-          onError={() => setAttempt((a) => (a === 'sized' && urls?.plain !== urls?.sized ? 'plain' : 'failed'))}
+          recyclingKey={`${printing.code}-${attempt}`}
+          onError={() => setAttempt((a) => a + 1)}
         />
       )}
     </View>

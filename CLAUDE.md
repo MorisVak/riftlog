@@ -191,7 +191,22 @@ up:
 Every Riftbound card and printing lives in our Postgres catalog (`sets`,
 `cards`, `card_printings`, …; schema in `supabase/CLAUDE.md`). It's filled
 from **Riftcodex** (an open, unofficial card API) by the importer in
-`tools/catalog-import`; the apps only ever read our tables, never Riftcodex.
+`tools/catalog-import`. Sets Riftcodex doesn't carry yet come from **Riot's
+official card gallery** (playriftbound.com/en-us/card-gallery, whose page
+embeds its card data) with `--source gallery`, written as `source = 'riot'`
+— today only Radiance (RAD). The apps only ever read our tables, never
+Riftcodex or Riot.
+
+**Card art is self-hosted.** `pnpm catalog:images` copies each printing's
+image once from its `image_url` into our `card-images` bucket, in two sizes
+(`cards/<CODE>.webp` 744 px, `cards/small/<CODE>.webp` 240 px for list rows;
+about 100 KB per printing), and sets `storage_path`. The app loads art from
+the bucket; `image_url` is only a fallback. Dry run by default, `--apply` to
+copy, `--limit N` for a trial; resumable. The importer never touches
+`storage_path`, so re-imports keep the art.
+
+**Adding new cards later** (a new set, spoilers once Riftcodex or the gallery
+has them): dry-run the import, `--apply`, then `pnpm catalog:images --apply`.
 
 **Importer** (details in `tools/catalog-import/CLAUDE.md`):
 
@@ -272,18 +287,16 @@ card art on.
 
 ### Known catalog gaps
 
-- **Radiance (RAD)** — RAD is in the deck-code library's set map (id 6), but
-  Riftcodex doesn't have it yet (its `/sets` lists 8 sets, no RAD), so none
-  of its cards are in the catalog. The 12 cards of the "Riven sloppin" deck
-  that show "Not in the card catalog" are most likely RAD: Riven, The Exile;
-  Riven, Broken Blade; Reckless Innovator; Blade of the Exile; Bedeviling
-  Stranger; Ki Burst; Life from Stone; Siren's Song; Hunter's Circle; Hunker
-  Down; Hush; An Offer You Can't Refuse. **Checked 2026-11-02, not
-  confirmed:** none of them is in any set Riftcodex has, but no source we
-  could read lists RAD's cards (Piltover Archive's search and the official
-  gallery render client-side), so their set is unverified. Plan: re-run a
-  live sync once Riftcodex adds RAD; enter cards by hand only if that takes
-  too long.
+- **Radiance (RAD)** comes from Riot's gallery, not Riftcodex (which still
+  lacks it as of 2026-11-04): 167 cards, 219 printings, `source = 'riot'`.
+  RAD reprints of cards Riftcodex already has (the runes, Aphelios, Ezreal,
+  Kayn, Sett, Yone) keep their Riftcodex card row; only the RAD printings
+  attach to it. 11 RAD cards (Hush, Fanfare, Scorched Earth, …) have no
+  domain in Riot's data. When Riftcodex adds RAD, its sync reports the RAD
+  rows as conflicts and leaves them alone; hand them over by setting
+  `source = 'riftcodex'` as for manual rows.
+- **Gallery spellings can differ from deck exports** ("Hunters' Circle" vs.
+  "Hunter's Circle"): name matching ignores apostrophes as a fallback.
 
 ### Open items
 
