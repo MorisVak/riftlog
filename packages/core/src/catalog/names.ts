@@ -36,6 +36,17 @@ export const baseCardName = (name: string): string =>
   unescapeHtml(name).replace(PRINTING_TAG, '').replace(/\s+/g, ' ').trim();
 
 /**
+ * "Riven, The Exile" or "Riven - The Exile" → { head: 'Riven', title: 'The Exile' }.
+ * Deck exports write ", ", the catalog (and so deck codes) " - "; the split is
+ * at the first of either. No separator → the whole name is the head.
+ */
+export const splitCardName = (name: string): { head: string; title: string } => {
+  const m = /,\s*| - /.exec(name);
+  if (!m) return { head: name.trim(), title: '' };
+  return { head: name.slice(0, m.index).trim(), title: name.slice(m.index + m[0].length).trim() };
+};
+
+/**
  * The match key for a card name. Sources disagree on punctuation — the
  * catalog writes "Vi - Peacekeeper", deck exports "Vi, Peacekeeper" — so the
  * key treats " - " and ", " alike, straightens quotes, drops the printing

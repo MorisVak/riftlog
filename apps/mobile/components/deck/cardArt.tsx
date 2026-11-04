@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import type { CardRef, CatalogPrinting } from '@riftlog/core';
+import { splitCardName, type CardRef, type CatalogPrinting } from '@riftlog/core';
 import Icon from '@/components/icon';
 import { useCardMatch } from '@/hooks/useCardMatch';
 import { cardImageUrls } from '@/lib/cardImage';
@@ -64,8 +64,7 @@ const CardArt = ({ card, variant, width }: CardArtProps) => {
   if (variant === 'tile' || variant === 'sheet') {
     // Card-shaped placeholder that names the card, since there's no image to
     // tell tiles apart. "Champion, Title" breaks after the champion.
-    const [head, ...rest] = card.name.split(',');
-    const title = rest.join(',').trim();
+    const { head, title } = splitCardName(card.name);
     return (
       <View
         accessible={false}

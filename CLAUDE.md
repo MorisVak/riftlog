@@ -184,7 +184,8 @@ up:
   every card in a section loses its printing code (an alt art falls back to
   the base printing; only "Unsorted" cards keep theirs). Expected fix: on
   save after a text edit, a card whose name is still in the deck keeps its
-  previous printing; only new cards get the base printing.
+  previous printing; only new cards get the base printing. (Workaround
+  today: "Edit list" → Deck code tab, paste the deck's code.)
 
 ## Card catalog
 

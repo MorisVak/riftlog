@@ -7,6 +7,7 @@ import {
   deckDomains,
   resortUnsorted,
   sectionTotals,
+  splitCardName,
   type CardRef,
   type DeckCardChange,
   type DeckList,
@@ -298,8 +299,7 @@ const IdentityCard = ({
   isNew?: boolean;
   section: SectionName;
 }) => {
-  const [head, ...rest] = (card?.name ?? '').split(',');
-  const title = rest.join(',').trim();
+  const { head, title } = splitCardName(card?.name ?? '');
   const { issue } = useCardMatch(card ?? { name: '', code: null }, card ? section : undefined);
   const { openCard } = useCardSheet();
 

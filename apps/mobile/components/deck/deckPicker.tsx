@@ -11,7 +11,7 @@ import {
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { deckDomains } from '@riftlog/core';
+import { deckDomains, splitCardName } from '@riftlog/core';
 import { fetchMyDecks, type Deck } from '@/lib/decks';
 import { DomainChips } from '@/components/deck/domain';
 import Icon from '@/components/icon';
@@ -26,7 +26,7 @@ const MENU_SHADOW = {
 } as const;
 
 /** "Kennen, Heart of the Tempest" → "Kennen": fits the small filter button. */
-const shortLegend = (name: string): string => name.split(',')[0]?.trim() || name;
+const shortLegend = (name: string): string => splitCardName(name).head || name;
 
 type LoadState =
   | { kind: 'loading' }

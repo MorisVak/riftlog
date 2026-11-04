@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,6 +18,7 @@ import {
   deckListFromCode,
   formatDeckText,
   looksLikeDeckCode,
+  normalizeCardName,
   parseDeckText,
   type DeckList,
   type ParsedDeck,
@@ -59,6 +61,25 @@ const FORMAT_EXAMPLE: { header: string; hint?: string; lines: string[] }[] = [
 const defaultDeckName = (legendName: string | undefined): string =>
   (legendName ?? '').split(/,| - /)[0]?.trim().slice(0, DECK_NAME_MAX) ?? '';
 
+/** Every card's printing code, in list order — what a deck code adds over text. */
+const printingsKey = (list: DeckList): string =>
+  [
+    list.legend,
+    list.champion,
+    ...list.main,
+    ...list.battlefields,
+    ...list.runes,
+    ...list.sideboard,
+    ...list.additionalLegends,
+    ...(list.unsorted ?? []),
+  ]
+    .map((c) => (c ? `${normalizeCardName(c.name)}|${c.code ?? ''}` : '-'))
+    .join('\n');
+
+/** The legend as a match key, so "Riven - The Exile" and "Riven, The Exile" agree. */
+const legendKey = (list: DeckList): string | null =>
+  list.legend ? normalizeCardName(list.legend.name) : null;
+
 /** What a pasted deck code turned into. */
 type CodeResult =
   | { kind: 'ok'; parsed: ParsedDeck }
@@ -88,7 +109,10 @@ const CODE_MESSAGES: Record<'no_catalog' | 'invalid' | 'newer_format', string> =
  * couple of cards is editing a line, and a whole new list is Clear + paste.
  * Saving goes through `updateDeckList`, which adds a new immutable version —
  * matches already played keep the list they were played with. The name isn't
- * edited here; the deck screen renames.
+ * edited here; the deck screen renames. Pasting a deck code here replaces the
+ * list with its exact printings (alt arts, overnumbered); a code with the same
+ * cards but other printings counts as a change. If the legend changes, Save
+ * asks first.
  */
 const ImportDeck = () => {
   // The preview checks cards against the catalog; make sure it's current.
@@ -99,13 +123,17 @@ const ImportDeck = () => {
   const editing = typeof deckId === 'string' && deckId !== '';
   // Edit mode: the list being edited, once loaded ('error' if it couldn't be).
   const [original, setOriginal] = useState<DeckList | 'error' | null>(null);
-  const [text, setText] = useState('');
+  // One box per tab, so switching to "Deck code" while editing doesn't throw
+  // away the list text (and back).
+  const [drafts, setDrafts] = useState({ text: '', code: '' });
   // What the user typed into the name field. Empty means "use the legend's
   // name", which the field shows as its placeholder.
   const [nameInput, setNameInput] = useState('');
   const [saving, setSaving] = useState(false);
   // Which hints to show; what the paste IS is decided by its shape.
   const [mode, setMode] = useState<'text' | 'code'>('text');
+  const text = drafts[mode];
+  const setText = (t: string) => setDrafts((d) => ({ ...d, [mode]: t }));
   const { index } = useCatalog();
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -120,7 +148,7 @@ const ImportDeck = () => {
           return;
         }
         setOriginal(deck.list);
-        setText(formatDeckText(deck.list));
+        setDrafts((d) => ({ ...d, text: formatDeckText(deck.list) }));
       })
       .catch(() => active && setOriginal('error'));
     return () => {
@@ -174,11 +202,18 @@ const ImportDeck = () => {
   // user pasted silently goes missing.
   // Edit mode: compared as formatted text, so extra spaces / blank lines or
   // retyping the same list don't count as a change.
+  // A pasted code also counts printings, so swapping in alt arts is a change.
   const changed =
     !editing ||
     (parsed !== null &&
       originalList !== null &&
-      formatDeckText(parsed.list) !== formatDeckText(originalList));
+      (formatDeckText(parsed.list) !== formatDeckText(originalList) ||
+        (isCode && printingsKey(parsed.list) !== printingsKey(originalList))));
+  const legendChanged =
+    editing &&
+    parsed !== null &&
+    originalList !== null &&
+    legendKey(parsed.list) !== legendKey(originalList);
   const canSave =
     !saving &&
     hasCards &&
@@ -200,6 +235,25 @@ const ImportDeck = () => {
       return;
     }
     setText(clip);
+  };
+
+  // A new legend is a different deck in all but name; make sure it's meant.
+  const confirmSave = () => {
+    if (!canSave || parsed === null) return;
+    if (!legendChanged || originalList === null) {
+      void save();
+      return;
+    }
+    const from = originalList.legend?.name ?? 'no legend';
+    const to = parsed.list.legend?.name ?? 'no legend';
+    Alert.alert(
+      'Change the legend?',
+      `This list has ${to} instead of ${from}. Save it to this deck anyway?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Save', onPress: () => void save() },
+      ],
+    );
   };
 
   const save = async () => {
@@ -260,16 +314,14 @@ const ImportDeck = () => {
             </TouchableOpacity>
           </View>
 
-          {editing && (
+          {editing && mode === 'text' && (
             <Text className="-mt-2 mb-5 text-[14px] leading-5 text-ink-secondary">
               Change a count or a line, or clear it and paste a new list.
-              Matches you&apos;ve already played keep the list they were played
-              with.
             </Text>
           )}
 
-          {/* Which hints to show. A pasted code is recognised either way. */}
-          {!editing && (
+          {/* Text or deck code. A pasted code is recognised in either box. */}
+          {(
             <View className="mb-4 flex-row gap-2">
               {(
                 [
@@ -328,7 +380,7 @@ const ImportDeck = () => {
 
           <View className="mb-2 flex-row items-center justify-between">
             <Text className="font-display text-base text-ink-secondary">
-              {mode === 'code' && !editing ? 'Deck code' : 'Decklist'}
+              {mode === 'code' ? 'Deck code' : 'Decklist'}
             </Text>
             <View className="flex-row gap-3">
               {text !== '' && (
@@ -369,7 +421,7 @@ const ImportDeck = () => {
             placeholder={
               loadingOriginal
                 ? 'Loading deck…'
-                : mode === 'code' && !editing
+                : mode === 'code'
                   ? 'Paste your deck code here'
                   : 'Paste your decklist here'
             }
@@ -383,7 +435,7 @@ const ImportDeck = () => {
             className="max-h-64 min-h-[160px] rounded-xl border border-border bg-elevated px-4 py-3 font-mono-medium text-[13px] leading-5 text-ink-primary placeholder:text-ink-tertiary"
           />
 
-          {text.trim() === '' && mode === 'code' && !editing && (
+          {text.trim() === '' && mode === 'code' && (
             <View className="mt-4 flex-row gap-2.5 rounded-2xl border border-border bg-surface p-4">
               <Icon name="info" size={16} className="mt-0.5 text-accent" />
               <Text className="flex-1 text-[14px] leading-5 text-ink-primary">
@@ -394,7 +446,7 @@ const ImportDeck = () => {
             </View>
           )}
 
-          {text.trim() === '' && (mode === 'text' || editing) && (
+          {text.trim() === '' && mode === 'text' && (
             <View className="mt-4 rounded-2xl border border-border bg-surface px-4 py-3.5">
               <Text className="mb-2.5 font-display text-base text-ink-secondary">
                 Expected format
@@ -474,7 +526,7 @@ const ImportDeck = () => {
                 accessibilityRole="button"
                 accessibilityState={{ disabled: !canSave, busy: saving }}
                 disabled={!canSave}
-                onPress={() => void save()}
+                onPress={confirmSave}
                 style={canSave ? CTA_GLOW : undefined}
                 className={`items-center rounded-full px-5 py-4 ${
                   canSave ? 'bg-accent active:bg-accent-strong' : 'bg-surface'

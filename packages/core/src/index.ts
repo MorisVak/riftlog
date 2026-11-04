@@ -43,6 +43,7 @@ export {
   baseCardName,
   cleanCardText,
   normalizeCardName,
+  splitCardName,
   unescapeHtml,
 } from './catalog/names';
 export { pickBasePrinting, type BasePrintingCandidate } from './catalog/basePrinting';

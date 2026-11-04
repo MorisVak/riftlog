@@ -642,7 +642,11 @@ pushes `/decks/import?deckId=…`, which pre-fills the box with
 `formatDeckText(list)` — tweak a line to change a few cards, or Clear + paste a
 whole new list. Same parser, preview, and error blocking as an import; Save is
 off until the list actually differs (compared as formatted text). The name
-isn't edited there. The deck screen re-reads on focus, quietly once shown, so
+isn't edited there. Like the import, it has **Text / Deck code** tabs (one box
+each): a pasted code replaces the list with its exact printings, and a code
+with the same cards but other printings (alt arts) counts as a change. If the
+saved list's legend differs from the current one, Save asks first ("Change
+the legend?"). The deck screen re-reads on focus, quietly once shown, so
 it reflects the edit on return.
 
 **A match links to the list as played.** History's deck link and the match
