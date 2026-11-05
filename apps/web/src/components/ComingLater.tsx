@@ -82,11 +82,10 @@ const ITEMS: {
     phase: "later",
     icon: Palette,
     title: "Playerboard customization",
-    body: "Change the background of your board.",
+    body: "The board already shows both legends. Next: make your half your own.",
     points: [
-      "Show the legend you're playing",
-      "Or any legend you like",
-      "Maybe some custom backgrounds too",
+      "Any legend you like behind your score",
+      "Custom backgrounds",
     ],
   },
   {

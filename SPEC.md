@@ -773,18 +773,15 @@ and card art and text (Features 4 and 6) are built.
 > Riftlog has disappeared from the Apple ID's "Sign in with Apple" list.
 > Once more with a non-Apple account.
 
-> **HARD TODO — website rework.** riftlog.net still shows the app as it
-> was: retake the screenshots of the reworked app (Home's hero, the versus
-> banners, the board with legends, History's filters, the Decks tab) and
-> add short animated recordings (GIF / video) of the key moments — the
-> game-start intro, scoring and a take-back, between games — with the
-> page's motion reworked to match. No card art on the website (see the
-> card-art rule in `CLAUDE.md`), so recordings need the art flag off or
-> the art kept out of frame. **Includes the privacy notice:** `/privacy`
-> ("Your choices") still describes account deletion by email only (within
-> 30 days) — add the in-app deletion (Profile → Delete account, immediate,
-> Apple sign-in revoked), keeping email as the fallback; check `/terms`,
-> which points to it. Owner signs off on legal wording.
+> **HARD TODO — website rework (in progress).** Done on `website-rework`:
+> new screenshots from the app's demo mode (card art allowed now), looping
+> clips (the game-start face-off, scoring and a take-back, ending a game),
+> a face-off strip under the hero, and copy for what the app does now.
+> **Still open — the privacy notice:** `/privacy` ("Your choices") still
+> describes account deletion by email only (within 30 days) — add the
+> in-app deletion (Profile → Delete account, immediate, Apple sign-in
+> revoked), keeping email as the fallback; check `/terms`, which points to
+> it. Owner signs off on legal wording.
 
 > **URGENT TODO — custom SMTP for sign-in emails.** Blocks email sign-in
 > for real users: no email sender is configured, so Supabase Auth uses its

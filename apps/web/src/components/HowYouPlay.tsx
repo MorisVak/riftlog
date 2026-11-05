@@ -26,7 +26,7 @@ const CARDS: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: ShieldCheck,
     title: "Only your data",
-    body: "You only see your own matches. No stats across other players.",
+    body: "You only see your own matches. No stats across other players. Delete your account anytime, right in the app.",
   },
 ];
 

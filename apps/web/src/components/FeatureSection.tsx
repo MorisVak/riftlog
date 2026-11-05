@@ -2,12 +2,25 @@ import type { ReactNode } from "react";
 import { PhoneFrame } from "./PhoneFrame";
 import { Reveal } from "./Reveal";
 import type { ScreenshotName } from "./screenshots.generated";
+import type { VideoName } from "./videos";
 
 export type FeaturePoint = { title: string; body: ReactNode };
-export type FeatureShot = {
-  shot: ScreenshotName;
-  alt: string;
-  caption: string;
+/** A still, or a looping recording of the app. */
+export type FeatureShot = { alt: string; caption: string } & (
+  | { shot: ScreenshotName; video?: never }
+  | { video: VideoName; shot?: never }
+);
+
+/**
+ * A phone's width in the row by how many there are, so a whole row fits the
+ * content width on a desktop (≈1088px) and only scrolls sideways on phones.
+ */
+const PHONE_W: Record<number, string> = {
+  1: "sm:w-[260px]",
+  2: "sm:w-[260px]",
+  3: "sm:w-[260px]",
+  4: "sm:w-[250px] lg:w-[240px]",
+  5: "sm:w-[250px] lg:w-[196px]",
 };
 
 /**
@@ -71,15 +84,19 @@ export function FeatureSection({
           group
           className="-mx-5 mt-14 snap-x snap-mandatory overflow-x-auto px-5 pb-4 sm:mx-0 sm:px-0"
         >
-          <ul className="mx-auto flex w-max gap-6 sm:gap-8">
-            {shots.map(({ shot, alt, caption }, i) => (
+          <ul className={`mx-auto flex w-max gap-6 ${shots.length >= 5 ? "lg:gap-5" : "sm:gap-8"}`}>
+            {shots.map(({ shot, video, alt, caption }, i) => (
               <li
-                key={shot}
+                key={shot ?? video}
                 data-reveal-child
                 style={{ transitionDelay: `${i * 140}ms` }}
-                className="w-[240px] shrink-0 snap-center sm:w-[260px]"
+                className={`w-[240px] shrink-0 snap-center ${PHONE_W[Math.min(shots.length, 5)]}`}
               >
-                <PhoneFrame shot={shot} alt={alt} />
+                {video ? (
+                  <PhoneFrame video={video} alt={alt} />
+                ) : (
+                  <PhoneFrame shot={shot} alt={alt} />
+                )}
                 <p className="mt-4 text-center font-display text-sm text-ink-secondary">
                   {caption}
                 </p>

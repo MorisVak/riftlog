@@ -80,7 +80,7 @@ export function HeroPhone() {
         >
           <PhoneFrame
             shot="board"
-            alt="Riftlog score board mid-game: 5 to 4, with a running match clock and Conquer, Hold and Special buttons for each player"
+            alt="Riftlog score board mid-game: 4 to 2, Riven behind your half and Akali behind theirs, a running match clock, and Conquer, Hold and Special buttons for each player"
             glow
             priority
           />
@@ -102,7 +102,7 @@ export function HeroPhone() {
         >
           <PhoneFrame
             shot="board-landscape"
-            alt="Riftlog score board held sideways: 5 to 4, a clock facing each player, and each player's Conquer, Hold and Special buttons under their score"
+            alt="Riftlog score board held sideways: 5 to 2, a clock facing each player, and each player's Conquer, Hold and Special buttons under their score"
             glow
           />
         </div>

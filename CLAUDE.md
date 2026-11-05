@@ -191,12 +191,10 @@ up:
   deleted", the profile / matches / decks gone, and Riftlog gone from
   Settings → Apple Account → Sign in with Apple. Also once with a Discord /
   Google / email account (no Apple step).
-- **Website rework (hard todo).** riftlog.net still shows the app as it
-  was: new screenshots of the reworked app, short animated recordings
-  (GIF / video) of the key moments (game-start intro, scoring and a
-  take-back, between games), and the page's motion reworked to match. No
-  card art on the website — record with the art flag off or keep art out of
-  frame. **Part of it: the privacy notice** — `/privacy` ("Your choices")
+- **Website rework (hard todo, in progress on `website-rework`).** New
+  screenshots from demo mode, looping clips (the face-off, scoring with a
+  take-back, ending a game), the face-off strip, and the copy are done.
+  **Still open: the privacy notice** — `/privacy` ("Your choices")
   still says accounts are deleted by email within 30 days; add in-app
   deletion (Profile → Delete account, immediate; Apple sign-in revoked), and
   `/terms` points there too. Legal pages need the owner's sign-off. Details
@@ -308,12 +306,11 @@ bucket, enter errata, and switch spoiler / released. Saving sets
 `source = 'manual'` (new rows) or `manually_edited = true` (edited imported
 rows); the version bumps itself. Writes are already admin-only by RLS.
 
-**Card art is mobile-only for now.** Only `apps/mobile` renders card images
-(behind the `CARD_ART` flag, see "EAS profiles and card art" above).
-`apps/web` — riftlog.net, its screenshots and any future deck pages — must
-not show card art: no image components, no remote image domains for
-`cmsassets.rgpub.io` or the bucket. Don't retake website screenshots with
-card art on.
+**Card art on the website** is allowed (owner, 2026-11-05): riftlog.net's
+screenshots and recordings show the app as it looks, card art included.
+They're still pre-rendered files (`apps/web/public/screenshots`,
+`public/videos`) — the website loads no images from Riot's CDN or the
+bucket. The footer carries the fan-made disclaimer and Legal Jibber Jabber.
 
 ### Known catalog gaps
 

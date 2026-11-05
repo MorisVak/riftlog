@@ -285,7 +285,7 @@ from the file gets the default crop.
   section") or a "Check" badge on its tile, and the deck gets a summary line.
   Sections still come from the text export's headers; there's no "Unsorted"
   section.
-- **Card art is mobile-only.** `apps/web` must not render it.
+- **Card art in the app is rendered here only**; the website shows it in pre-rendered screenshots and clips (allowed since 2026-11-05), never by loading images itself.
 
 **Colorblind-safe rule (non-negotiable):** result color is NEVER the only
 signal. Every win/loss/draw indicator pairs the color with (a) a `W`/`L`/`D`

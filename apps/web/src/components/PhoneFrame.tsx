@@ -3,6 +3,8 @@
  * 1x/2x WebP pairs; a plain <img srcSet> serves exactly those files, which
  * next/image's own resizing would only duplicate. */
 import { SCREENSHOTS, type ScreenshotName } from "./screenshots.generated";
+import { LoopVideo } from "./LoopVideo";
+import { VIDEOS, type VideoName } from "./videos";
 
 /**
  * Phone frame around a real app screenshot. The status bar is cropped off every
@@ -10,23 +12,23 @@ import { SCREENSHOTS, type ScreenshotName } from "./screenshots.generated";
  * content. A landscape shot (wider than tall) gets the band on the right, where
  * the island sits when the phone is turned clockwise. Width/height come from
  * the generated manifest so the page doesn't shift while images load.
+ * With `video` instead of `shot`, it shows a looping recording (LoopVideo).
  */
 export function PhoneFrame({
   shot,
+  video,
   alt,
   className = "",
   glow = false,
   priority = false,
 }: {
-  shot: ScreenshotName;
   alt: string;
   className?: string;
   glow?: boolean;
   /** Above-the-fold shot (the hero): load eagerly with high priority. */
   priority?: boolean;
-}) {
-  const { width, height } = SCREENSHOTS[shot];
-  const src = `/screenshots/${shot}.webp`;
+} & ({ shot: ScreenshotName; video?: never } | { video: VideoName; shot?: never })) {
+  const { width, height } = video ? VIDEOS[video] : SCREENSHOTS[shot];
   const landscape = width > height;
 
   return (
@@ -53,17 +55,21 @@ export function PhoneFrame({
             }`}
           />
         </div>
-        <img
-          src={src}
-          srcSet={`${src} 1x, /screenshots/${shot}@2x.webp 2x`}
-          width={width}
-          height={height}
-          alt={alt}
-          loading={priority ? "eager" : "lazy"}
-          fetchPriority={priority ? "high" : "auto"}
-          decoding="async"
-          className="block h-auto w-full min-w-0"
-        />
+        {video ? (
+          <LoopVideo name={video} label={alt} />
+        ) : (
+          <img
+            src={`/screenshots/${shot}.webp`}
+            srcSet={`/screenshots/${shot}.webp 1x, /screenshots/${shot}@2x.webp 2x`}
+            width={width}
+            height={height}
+            alt={alt}
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "auto"}
+            decoding="async"
+            className="block h-auto w-full min-w-0"
+          />
+        )}
       </div>
     </div>
   );
