@@ -224,8 +224,10 @@ from the file gets the default crop.
   catalog cache has a format number (`CACHE_FORMAT` in `lib/catalog.ts`):
   bump it when the fetched columns change, so old caches refetch once.
 - **Foil** (`components/deck/foil.tsx`, as on Piltover Archive): Rare, Epic
-  and Showcase printings get a rainbow sheen over their art on gallery tiles
-  and in the card sheet (not rows or headers) — a `foil`-token gradient three
+  and Showcase printings get a rainbow sheen over their art only where you
+  look at the card itself — the card sheet, and the decklist's gallery tiles
+  (`CardArt`'s `foil`; tiles default to off, so pickers like the legend grid
+  stay plain) — a `foil`-token gradient three
   times the card's size, `mixBlendMode: 'color-dodge'` at 60%, sliding across
   and back (Reanimated, 3 s each way; still with Reduce Motion). No new
   dependency: blend modes are built into RN 0.81's New Architecture, and the

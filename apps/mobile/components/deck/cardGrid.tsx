@@ -98,7 +98,7 @@ const CardTile = ({ tile, width, section }: { tile: Tile; width: number; section
       // sit on a landscape (shorter) card rather than below it.
       className="self-start active:opacity-70"
     >
-      <CardArt card={card} variant="tile" width={width} chosen={chosen} />
+      <CardArt card={card} variant="tile" width={width} chosen={chosen} foil />
       {/* A problem card: icon + "Check", bottom-left; the label says what. */}
       {issue && (
         <View className="absolute bottom-1.5 left-1.5 flex-row items-center gap-0.5 rounded-md bg-background/85 px-1.5 py-0.5">

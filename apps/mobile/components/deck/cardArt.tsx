@@ -22,6 +22,12 @@ type CardArtProps = {
   width?: number;
   /** The chosen champion in a decklist: framed in gold. */
   chosen?: boolean;
+  /**
+   * The foil sheen on rare-and-better art — only where you look at the card
+   * itself: on by default in the card sheet, and on tiles only when asked
+   * for (the decklist gallery), not in pickers like the legend grid.
+   */
+  foil?: boolean;
 };
 
 const THUMB_W = 30;
@@ -38,7 +44,7 @@ const PORTRAIT = 88 / 63;
  * name to the card's base printing. Otherwise it's the placeholder it always
  * was — `thumb` renders nothing, so rows stay text-only.
  */
-const CardArt = ({ card, variant, width, chosen = false }: CardArtProps) => {
+const CardArt = ({ card, variant, width, chosen = false, foil }: CardArtProps) => {
   const frame = chosen ? 'border-2 border-chosen' : 'border border-border';
   const { match } = useCardMatch(card);
   const printing = CARD_ART && match && match.kind !== 'unknown' ? match.printing : null;
@@ -62,8 +68,7 @@ const CardArt = ({ card, variant, width, chosen = false }: CardArtProps) => {
         height={h}
         rounded={variant === 'thumb' ? 'rounded-[3px]' : 'rounded-lg'}
         chosen={chosen}
-        // Gallery tiles and the card sheet only: rows and headers are too small to read it.
-        foil={(variant === 'tile' || variant === 'sheet') && isFoiled(printing.rarity)}
+        foil={(foil ?? variant === 'sheet') && isFoiled(printing.rarity)}
       />
     );
   }
