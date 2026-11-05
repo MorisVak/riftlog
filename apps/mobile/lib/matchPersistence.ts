@@ -21,6 +21,8 @@ export type MatchDeckRef = {
   edited: boolean;
   /** The legend of the version played (from its list). */
   legend: CardRef | null;
+  /** The legend of the deck's current version — the printing the deck shows. */
+  currentLegend: CardRef | null;
 };
 
 /** A match row with its games embedded (newest match first; games by index). */
@@ -111,7 +113,10 @@ const HISTORY_COLUMNS =
   // whole list): the fallback for matches saved before legends were stored.
   'deck_version:deck_versions!matches_deck_version_fkey(id, legend:list->legend, ' +
   'deck:decks!deck_versions_deck_id_owner_id_fkey(' +
-  'id, name, archived_at, current_version_id))';
+  'id, name, archived_at, current_version_id, ' +
+  // The deck's current legend too: its printing (an alt art from a deck
+  // code) is what the deck shows, and older versions may name only the card.
+  'current:deck_versions!decks_current_version_fkey(legend:list->legend)))';
 
 type HistoryRow = MatchRow & {
   games: GameRow[];
@@ -123,6 +128,7 @@ type HistoryRow = MatchRow & {
       name: string;
       archived_at: string | null;
       current_version_id: string | null;
+      current: { legend: CardRef | null } | null;
     } | null;
   } | null;
 };
@@ -140,6 +146,7 @@ const withDeck = ({ deck_version, ...row }: HistoryRow): MatchWithGames => {
             versionId: deck_version.id,
             edited: deck.current_version_id !== deck_version.id,
             legend: deck_version.legend ?? null,
+            currentLegend: deck.current?.legend ?? null,
           }
         : null,
   };

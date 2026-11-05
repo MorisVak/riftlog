@@ -392,7 +392,10 @@ it.
 **Match rows show your legend.** History and Home's recent matches draw your
 legend (stored on p1 with the match; for matches saved before that, the
 legend of the deck version played — `fetchMatchHistory` selects just
-`list->legend` from it, no backfill) across the whole row —
+`list->legend` from it, no backfill — and shown in the **printing the deck
+uses now** when it's the same card: older versions from text import name
+only the card, so they'd show the standard art instead of the deck's; see
+`yourLegendFor` in `lib/historyView.ts`) across the whole row —
 `MatchBackdrop` in `cardArt.tsx`, cropped by height on the face and zoomed
 past the card frame and the domain-icon column (`artRect` with
 `ICON_COLUMN`, `coverInside`) — **tinted with the result** (`tint`: a

@@ -1,4 +1,10 @@
-import { splitCardName, type CardRef, type Player, type PlayerId } from '@riftlog/core';
+import {
+  normalizeCardName,
+  splitCardName,
+  type CardRef,
+  type Player,
+  type PlayerId,
+} from '@riftlog/core';
 import type { GameRow, MatchWithGames } from './matchPersistence';
 import { elapsedSeconds, formatClock } from './clock';
 
@@ -117,6 +123,24 @@ function scoreLine(scores: GameRow['scores_at_end']): string {
   return `${s.p1 ?? 0}${EN_DASH}${s.p2 ?? 0}`;
 }
 
+/**
+ * Your legend for a match row: the one stored with the match, else (older
+ * matches) the one in the deck version played — shown in the printing the
+ * deck uses now when it's the same card, so every match with a deck shows
+ * the deck's art (an alt art picked through a deck code), even where the
+ * version played named only the card. A deck whose legend has since changed
+ * keeps the legend actually played.
+ */
+function yourLegendFor(stored: CardRef | null, deck: MatchWithGames['deck']): CardRef | null {
+  const played = stored ?? deck?.legend ?? null;
+  const current = deck?.currentLegend ?? null;
+  if (!played) return current;
+  if (current?.code && normalizeCardName(current.name) === normalizeCardName(played.name)) {
+    return current;
+  }
+  return played;
+}
+
 export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
   const players = (m.players as unknown as Player[]) ?? [];
   const p1 = players.find((p) => p.id === 'p1');
@@ -177,8 +201,7 @@ export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
     opponent: typedName || champion || 'Opponent',
     opponentChampion: typedName && champion ? champion : null,
     opponentLegend,
-    // Stored with the match; for older matches, the deck version's legend.
-    yourLegend: p1?.legend ?? m.deck?.legend ?? null,
+    yourLegend: yourLegendFor(p1?.legend ?? null, m.deck),
     format: isBo1 ? 'BO1' : 'BO3',
     score,
     date: new Date(m.ended_at).toLocaleDateString(undefined, {
