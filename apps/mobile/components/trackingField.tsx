@@ -3,13 +3,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import type { CardRef, PlayerId } from '@riftlog/core';
 import { useMatch } from '@/contexts/matchContext';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import ScoringComponent from './scoringComponent';
 import MatchClock from './matchClock';
@@ -21,7 +14,7 @@ import React from 'react';
 const ON_ACCENT = '#0D1B2A';
 // `background` mirrored for the gradient stops: a vignette over the legend
 // art, darker toward the divider and the outer edge where text sits.
-const VIGNETTE = ['#0D1B2AE6', '#0D1B2A99', '#0D1B2AE6'] as const;
+const VIGNETTE = ['#0D1B2AD9', '#0D1B2A66', '#0D1B2AD9'] as const;
 
 /**
  * The player's legend behind their half: dimmed and vignetted, so the score,
@@ -32,26 +25,13 @@ const LegendBackground = ({ player }: { player: { legend?: CardRef } }) =>
   player.legend ? (
     <View pointerEvents="none" className="absolute inset-0">
       <LegendPortrait card={player.legend} />
-      <View className="absolute inset-0 bg-background/60" />
+      <View className="absolute inset-0 bg-background/45" />
       <LinearGradient
         colors={VIGNETTE}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
     </View>
   ) : null;
-
-/** The "hit" when a point is taken back: the half flashes red, briefly. */
-const useHit = () => {
-  const hit = useSharedValue(0);
-  const style = useAnimatedStyle(() => ({ opacity: hit.value * 0.28 }));
-  const play = () => {
-    hit.value = withSequence(
-      withTiming(1, { duration: 50 }),
-      withTiming(0, { duration: 420, easing: Easing.out(Easing.quad) }),
-    );
-  };
-  return { style, play };
-};
 
 type TrackingFieldProps = {
   playerId: PlayerId;
@@ -69,15 +49,13 @@ const TrackingField = ({
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const landscape = width > height;
-  const hit = useHit();
   const player = match?.players.find((p) => p.id === playerId);
   if (!player) return null;
 
-  // Behind everything on the half: the legend, then the hit's red flash.
+  // Behind everything on the half: the legend.
   const backdrop = (
     <>
       <LegendBackground player={player} />
-      <Animated.View pointerEvents="none" style={hit.style} className="absolute inset-0 bg-loss" />
     </>
   );
   // The player's name, larger, on a soft pill so it reads over the art.
@@ -114,7 +92,7 @@ const TrackingField = ({
           {nameTag}
         </View>
 
-        <ScoringComponent playerId={playerId} onHit={hit.play} />
+        <ScoringComponent playerId={playerId} />
 
         <View style={{ right: side }} className="absolute items-center gap-3">
           {match?.timeLimitSeconds != null && (
@@ -139,7 +117,7 @@ const TrackingField = ({
       {backdrop}
       <View className="absolute top-4">{nameTag}</View>
 
-      <ScoringComponent playerId={playerId} onHit={hit.play} />
+      <ScoringComponent playerId={playerId} />
 
       {/* END pinned to the bottom edge of the active player's half, per the
           design — a wide accent pill with a checkmark. The opponent half has no

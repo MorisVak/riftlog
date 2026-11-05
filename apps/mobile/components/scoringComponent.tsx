@@ -16,8 +16,6 @@ import React from 'react';
 
 type ScoringComponentProps = {
   playerId: PlayerId;
-  /** A point was taken back: the half plays its "hit" (a red flash). */
-  onHit?: () => void;
 };
 
 /**
@@ -71,14 +69,15 @@ const ACTIONS: {
   },
 ];
 
-// The take-back "hit" on the numeral: a quick sideways shake while it flashes
-// red. Raw values mirror `ink-primary` and `loss-text` (an animated color
-// can't take a class).
+// A take-back is usually fixing a mis-tap, so its feedback is quiet: the
+// numeral dips a little and tints toward red for a moment. Raw values mirror
+// `ink-primary` and `loss-text` (an animated color can't take a class).
 const INK_PRIMARY = '#E4E5F2';
 const LOSS_TEXT = '#FB8181';
-const SHAKE_PX = 12;
-const SHAKE_STEP_MS = 45;
-const HIT_COLOR_MS = 380;
+const DIP_SCALE = 0.92;
+const DIP_MS = 90;
+const SETTLE_MS = 260;
+const TINT = 0.7;
 
 // The "+1" that lifts off the pressed button: how far it travels, and how long
 // it takes to rise and fade out.
@@ -152,16 +151,16 @@ const ActionButton = ({
   );
 };
 
-const ScoringComponent = ({ playerId, onHit }: ScoringComponentProps) => {
+const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
   const { match, incrementScore, decrementScore } = useMatch();
 
-  // The hit: the numeral shakes and flashes red, so taking a point back
-  // feels different from scoring one (like a hit in a game).
-  const shake = useSharedValue(0);
-  const flash = useSharedValue(0);
+  // The take-back: a small dip and a brief red tint — different from a point
+  // scored, without making a fuss of a correction.
+  const dip = useSharedValue(1);
+  const tint = useSharedValue(0);
   const numeralStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(flash.value, [0, 1], [INK_PRIMARY, LOSS_TEXT]),
-    transform: [{ translateX: shake.value }],
+    color: interpolateColor(tint.value, [0, 1], [INK_PRIMARY, LOSS_TEXT]),
+    transform: [{ scale: dip.value }],
   }));
 
   // Landscape halves are short, so the numeral shrinks to keep the buttons
@@ -182,20 +181,17 @@ const ScoringComponent = ({ playerId, onHit }: ScoringComponentProps) => {
   const onUndo = () => {
     // At 0 there's nothing to take back (and nothing is recorded).
     if (player.gameScore <= 0) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
     decrementScore(playerId);
-    shake.value = withSequence(
-      withTiming(-SHAKE_PX, { duration: SHAKE_STEP_MS }),
-      withTiming(SHAKE_PX, { duration: SHAKE_STEP_MS }),
-      withTiming(-SHAKE_PX * 0.6, { duration: SHAKE_STEP_MS }),
-      withTiming(SHAKE_PX * 0.6, { duration: SHAKE_STEP_MS }),
-      withTiming(0, { duration: SHAKE_STEP_MS }),
+    const ease = Easing.out(Easing.quad);
+    dip.value = withSequence(
+      withTiming(DIP_SCALE, { duration: DIP_MS, easing: ease }),
+      withTiming(1, { duration: SETTLE_MS, easing: ease }),
     );
-    flash.value = withSequence(
-      withTiming(1, { duration: 60 }),
-      withTiming(0, { duration: HIT_COLOR_MS, easing: Easing.out(Easing.quad) }),
+    tint.value = withSequence(
+      withTiming(TINT, { duration: DIP_MS }),
+      withTiming(0, { duration: SETTLE_MS + 120, easing: ease }),
     );
-    onHit?.();
   };
 
   return (
