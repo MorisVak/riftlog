@@ -197,7 +197,10 @@ const Stats = ({ info, domains }: { info: CatalogCard; domains: Domain[] }) => {
           a11y={isGear ? `Might bonus: plus ${info.might}` : `Might: ${info.might}`}
         >
           <StatNumber>{isGear ? `+${info.might}` : info.might}</StatNumber>
-          <MightIcon size={22} />
+          {/* A digit sits low in its line box; drop the glyph to match it. */}
+          <View style={{ transform: [{ translateY: 4 }] }}>
+            <MightIcon size={22} />
+          </View>
         </Stat>
       )}
     </View>
