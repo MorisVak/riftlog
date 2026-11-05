@@ -16,6 +16,7 @@ import { fetchMyDecks, type Deck } from '@/lib/decks';
 import { DomainChips } from '@/components/deck/domain';
 import Icon from '@/components/icon';
 import { CardBackdrop } from '@/components/deck/cardArt';
+import PressOverlay from '@/components/pressOverlay';
 
 // The legend menu floats over the list; a style object, not a shadow class
 // (see the shadow note in apps/mobile/CLAUDE.md). Mirrors `background`.
@@ -397,39 +398,50 @@ const DeckOption = ({
       accessibilityState={{ selected }}
       accessibilityLabel={`${deck.name}${deck.list.legend ? `, ${deck.list.legend.name}` : ''}${isDefault ? ', default deck' : ''}`}
       onPress={onPress}
-      className={`flex-row items-center gap-3 rounded-2xl border px-4 py-4 active:bg-elevated ${
-        selected ? 'border-accent bg-accent/10' : 'border-border bg-surface'
+      // The legend art is the backdrop, so the fill stays `bg-surface` (a
+      // tinted fill would show a seam where the art fades in) — selection is
+      // the accent border and the check — and a press is an overlay.
+      className={`relative flex-row items-center gap-3 overflow-hidden rounded-2xl border bg-surface px-4 py-4 ${
+        selected ? 'border-accent' : 'border-border'
       }`}
     >
-      <View className="flex-1">
-        <View className="flex-row items-center gap-2">
-          <Text
-            className="flex-shrink font-display-bold text-[17px] text-ink-primary"
-            numberOfLines={1}
-          >
-            {deck.name}
-          </Text>
-          {isDefault && (
-            <View className="rounded-full bg-accent/15 px-2 py-0.5">
-              <Text className="font-display text-[11px] text-accent">Default</Text>
+      {({ pressed }) => (
+        <>
+          {deck.list.legend && <CardBackdrop card={deck.list.legend} />}
+          <View className="flex-1">
+            <View className="flex-row items-center gap-2">
+              <Text
+                className="flex-shrink font-display-bold text-[17px] text-ink-primary"
+                numberOfLines={1}
+              >
+                {deck.name}
+              </Text>
+              {isDefault && (
+                <View className="rounded-full bg-accent/15 px-2 py-0.5">
+                  <Text className="font-display text-[11px] text-accent">Default</Text>
+                </View>
+              )}
             </View>
-          )}
-        </View>
-        {deck.list.legend && (
-          <Text className="mt-1 text-[14px] text-ink-secondary" numberOfLines={1}>
-            {deck.list.legend.name}
-          </Text>
-        )}
-        {domains && (
-          <View className="mt-2">
-            <DomainChips domains={domains} />
+            {deck.list.legend && (
+              <Text className="mt-1 text-[14px] text-ink-secondary" numberOfLines={1}>
+                {deck.list.legend.name}
+              </Text>
+            )}
+            {domains && (
+              <View className="mt-2">
+                <DomainChips domains={domains} />
+              </View>
+            )}
           </View>
-        )}
-      </View>
-      {selected ? (
-        <Icon name="check" size={20} className="text-accent" />
-      ) : (
-        <View className="h-5 w-5" />
+          {selected ? (
+            <View className="h-7 w-7 items-center justify-center rounded-full bg-background/70">
+              <Icon name="check" size={18} className="text-accent" />
+            </View>
+          ) : (
+            <View className="h-7 w-7" />
+          )}
+          <PressOverlay pressed={pressed} />
+        </>
       )}
     </Pressable>
   );

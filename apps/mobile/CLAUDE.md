@@ -356,7 +356,9 @@ and `p2` the opponent (see the p1-perspective rule below).
   that opens a full-height page sheet of large deck rows, with search and a
   "Legend" filter once your decks span 2+ legends) pre-selects your **default
   deck** (`profiles.default_deck_id`) → `MatchConfig.deck` →
-  `players[0].deck`. On save only its `versionId` is written
+  `players[0].deck`. The picker's rows show each deck's legend art
+  (`CardBackdrop`; fill stays `bg-surface`, selection is the accent border +
+  check, a press is the overlay). On save only its `versionId` is written
   (`matches.deck_version_id`); History reads it back through `matches →
   deck_versions → decks` (current name, archived flag). With a deck chosen,
   your portrait shows its legend ("From Rivon"); "Clear" beside the label
