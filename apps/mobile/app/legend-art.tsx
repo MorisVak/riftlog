@@ -53,12 +53,13 @@ const printingLabel = (p: CatalogPrinting): string =>
           : 'Standard';
 
 /**
- * Profile → Legend art: which art legends are drawn with across the app —
- * deck cards, match rows, the hero, the board, the versus screens. Display
- * only: decklists, the card sheet and deck codes keep each deck's own
- * printing. One toggle prefers the overnumbered art everywhere; tapping a
- * legend picks its art by hand (that wins over the toggle). Saved on the
- * profile, so it follows the account.
+ * Profile → Legend art: which art replaces a legend's standard art across
+ * the app — deck cards, match rows, the hero, the board, the versus screens
+ * and (unless "Use in decklists" is off) decklists. A deck with a special
+ * printing keeps it; the card sheet and deck codes never change. One toggle
+ * prefers the overnumbered art; tapping a legend picks its art by hand
+ * (that wins over the toggle). Saved on the profile, so it follows the
+ * account.
  */
 const LegendArtScreen = () => {
   const insets = useSafeAreaInsets();
@@ -141,8 +142,9 @@ const LegendArtScreen = () => {
         ListHeaderComponent={
           <View className="gap-3 pb-1">
             <Text className="px-1 text-[13px] leading-[18px] text-ink-secondary">
-              How legends look across the app — on your decks, matches and the board. Your decklists
-              and deck codes keep their own printings.
+              Replaces a legend&apos;s standard art across the app — your decks, matches and the
+              board. A deck with a special printing (from a deck code) keeps it, and deck codes
+              never change.
             </Text>
             <View className="flex-row items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
               <View className="flex-1">
@@ -159,6 +161,25 @@ const LegendArtScreen = () => {
                 onValueChange={(on) => {
                   Haptics.selectionAsync();
                   save({ ...pref, overnumbered: on });
+                }}
+                trackColor={{ false: BORDER, true: ACCENT }}
+                thumbColor={THUMB}
+                ios_backgroundColor={BORDER}
+              />
+            </View>
+            <View className="flex-row items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
+              <View className="flex-1">
+                <Text className="font-display text-[15px] text-ink-primary">Use in decklists</Text>
+                <Text className="mt-0.5 text-[12px] text-ink-tertiary">
+                  Off: decklists show the legend as imported.
+                </Text>
+              </View>
+              <Switch
+                accessibilityLabel="Use in decklists"
+                value={pref.decklists}
+                onValueChange={(on) => {
+                  Haptics.selectionAsync();
+                  save({ ...pref, decklists: on });
                 }}
                 trackColor={{ false: BORDER, true: ACCENT }}
                 thumbColor={THUMB}
@@ -197,6 +218,7 @@ const LegendArtScreen = () => {
                 card={{ name: c.name, code: p?.code ?? null, count: 1 }}
                 variant="tile"
                 width={tileW}
+                asPrinted
               />
               <Text className="mt-1.5 font-display text-[13px] text-ink-primary" numberOfLines={1}>
                 {splitCardName(c.name).head}

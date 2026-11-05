@@ -33,14 +33,19 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
     **Account → Sign out / Delete account** (one destructive confirm, the
     `delete_my_account` RPC, then a local sign-out)), Riot's statements at
     the bottom (account-gated).
-  - `legend-art.tsx` — which art legends are drawn with: "Prefer
-    overnumbered art" plus a per-legend pick (a grid of every legend; tap
-    for its printings, "Automatic" to undo). Saved on the profile
-    (`profiles.legend_art`, `setLegendArt`). **Display only:** applied in
-    `cardArt.tsx`'s `useArtPrinting` (backdrops and portraits — deck cards,
-    match rows, the hero, the board, the versus screens) via core's
-    `legendArtPrinting`; decklists, the card sheet and deck codes keep each
-    deck's own printing. Sign
+  - `legend-art.tsx` — which art **replaces a legend's standard art**:
+    "Prefer overnumbered art", a per-legend pick (a grid of every legend;
+    tap for its printings, "Automatic" to undo), and "Use in decklists"
+    (on by default). Saved on the profile (`profiles.legend_art`,
+    `setLegendArt`). Core's `legendArtPrinting` applies it only where the
+    deck's printing is the standard one — a deck with a special printing
+    (overnumbered / signed / alt art / promo, from a deck code) keeps it; a
+    text import always gets the standard art, which is why this exists.
+    Used by `cardArt.tsx` everywhere: backdrops and portraits always,
+    decklists (`CardArt` thumb / feature / tile) unless "Use in decklists"
+    is off. **Not** the card sheet (it shows the printing's own number and
+    set) and not `asPrinted` tiles (the picker itself). Deck codes never
+    change. Sign
     out is a row in Account, not an icon by your name, so a stray tap
     can't reach it.
   - `login.tsx` / `verify-otp.tsx` — modal auth routes

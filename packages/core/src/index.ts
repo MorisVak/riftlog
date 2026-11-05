@@ -50,6 +50,7 @@ export {
 export { pickBasePrinting, type BasePrintingCandidate } from './catalog/basePrinting';
 export {
   NO_LEGEND_ART,
+  isStandardPrinting,
   legendArtOptions,
   legendArtPrinting,
   parseLegendArt,

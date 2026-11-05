@@ -36,6 +36,8 @@ type CardArtProps = {
    * for (the decklist gallery), not in pickers like the legend grid.
    */
   foil?: boolean;
+  /** Show exactly this printing, ignoring the legend-art preference. */
+  asPrinted?: boolean;
 };
 
 const THUMB_W = 30;
@@ -52,10 +54,22 @@ const PORTRAIT = 88 / 63;
  * name to the card's base printing. Otherwise it's the placeholder it always
  * was — `thumb` renders nothing, so rows stay text-only.
  */
-const CardArt = ({ card, variant, width, chosen = false, foil }: CardArtProps) => {
+const CardArt = ({
+  card,
+  variant,
+  width,
+  chosen = false,
+  foil,
+  asPrinted = false,
+}: CardArtProps) => {
   const frame = chosen ? 'border-2 border-chosen' : 'border border-border';
-  const { match } = useCardMatch(card);
-  const printing = CARD_ART && match && match.kind !== 'unknown' ? match.printing : null;
+  const { profile } = useProfile();
+  // Decklists follow your legend art too (unless turned off there). Not the
+  // card sheet — it shows the printing's own number and set — and not where
+  // a printing is shown on purpose (`asPrinted`, the legend-art picker).
+  const applyPref =
+    !asPrinted && variant !== 'sheet' && (profile?.legendArt ?? NO_LEGEND_ART).decklists;
+  const printing = usePrinting(card, applyPref);
   const landscape = printing?.orientation === 'landscape';
 
   if (printing && (printing.image_url || printing.storage_path)) {
@@ -95,11 +109,17 @@ const CardArt = ({ card, variant, width, chosen = false, foil }: CardArtProps) =
         className={`aspect-[63/88] items-center justify-center gap-1.5 rounded-lg bg-elevated px-2 ${frame}`}
       >
         <Icon name="image" size={16} className="text-ink-tertiary" />
-        <Text className="text-center font-display text-[12px] leading-4 text-ink-primary" numberOfLines={3}>
+        <Text
+          className="text-center font-display text-[12px] leading-4 text-ink-primary"
+          numberOfLines={3}
+        >
           {head?.trim()}
         </Text>
         {title !== '' && (
-          <Text className="text-center text-[10px] leading-[13px] text-ink-secondary" numberOfLines={2}>
+          <Text
+            className="text-center text-[10px] leading-[13px] text-ink-secondary"
+            numberOfLines={2}
+          >
             {title}
           </Text>
         )}
@@ -198,18 +218,23 @@ const FOCUS_AT = 0.62;
 const backdropFocus = (code: string): Focus => LEGEND_FOCUS[code] ?? DEFAULT_FOCUS;
 
 /**
- * The art printing for a legend's decorative art (backdrops, portraits), or
- * null with the flag off / not in the catalog. Your legend-art preference
- * (Profile → Legend art) picks the printing here — display only, so the deck
- * view and the card sheet (`CardArt`) keep showing the deck's own printing.
+ * A card's catalog printing, with your legend-art preference applied when
+ * `applyPref` (Profile → Legend art; core's `legendArtPrinting`: it replaces
+ * the *standard* art of a legend only — a deck's special printing is kept).
+ * null with the flag off or the card not in the catalog.
  */
-const useArtPrinting = (card: CardRef | null): CatalogPrinting | null => {
+const usePrinting = (card: CardRef | null, applyPref: boolean): CatalogPrinting | null => {
   const { match } = useCardMatch(card ?? { name: '', code: null });
   const { index } = useCatalog();
   const { profile } = useProfile();
-  const pref = profile?.legendArt ?? NO_LEGEND_ART;
-  if (!card || !CARD_ART || !match || match.kind === 'unknown' || !index) return null;
-  const p = legendArtPrinting(match.card, match.printing, pref, index);
+  if (!card || !CARD_ART || !match || match.kind === 'unknown') return null;
+  if (!applyPref || !index) return match.printing;
+  return legendArtPrinting(match.card, match.printing, profile?.legendArt ?? NO_LEGEND_ART, index);
+};
+
+/** The printing for a legend's decorative art (backdrops, portraits): always with the preference. */
+const useArtPrinting = (card: CardRef | null): CatalogPrinting | null => {
+  const p = usePrinting(card, true);
   return p && (p.image_url || p.storage_path) ? p : null;
 };
 

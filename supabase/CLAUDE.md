@@ -198,7 +198,8 @@ also clear it when they archive that deck.
 
 **`legend_art`** (jsonb, not null, default `'{}'`; must be an object ≤ 16 KB)
 is a display preference — which art legends are drawn with:
-`{ overnumbered: boolean, picks: { <card id>: <printing code> } }`, parsed
+`{ overnumbered: boolean, picks: { <card id>: <printing code> }, decklists: boolean }`
+(`decklists` missing = true), parsed
 defensively by core's `parseLegendArt`. Owner-written with a plain update;
 it never touches a deck's list or deck code.
 
