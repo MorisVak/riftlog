@@ -14,7 +14,12 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
     Profile**. Home first (the app opens on it), then by how often they're
     used. One kind of thing per tab: decks are content, so they have their
     own tab; Profile is you and your settings, kept a tab (not a header
-    avatar) so settings are in plain sight.
+    avatar) so settings are in plain sight. The bar is our own
+    (`components/tabBar.tsx`, passed as `tabBar`): a rounded bar floating
+    just above the bottom edge, a soft accent pill behind the active tab
+    that glides to the next on a tap (Reanimated spring), that tab's icon
+    popping (1.18× and back), a light haptic on press. Screens cross-fade
+    (`animation: 'fade'`). Hidden (renders nothing) during a match.
   - `(tabs)/index.tsx` — Home; also hosts the whole match flow by `phase`
   - `(tabs)/history.tsx` — match history (account-gated)
   - `(tabs)/decks.tsx` — your decks: the title row carries Select and
