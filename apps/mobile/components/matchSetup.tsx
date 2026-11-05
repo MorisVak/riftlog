@@ -1,140 +1,229 @@
+import React, { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
-  useWindowDimensions,
 } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, {
-  Easing,
-  FadeIn,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { splitCardName, type CardRef } from '@riftlog/core';
 import type { MatchConfig } from '@/contexts/matchContext';
 import { useMatch } from '@/contexts/matchContext';
 import { useAuth } from '@/contexts/authContext';
-import { toDeckSnapshot, type Deck } from '@/lib/decks';
-import DeckPicker from './deck/deckPicker';
-import LegendPicker, { useLegends } from './match/legendPicker';
-import type { CardRef } from '@riftlog/core';
 import { useProfile } from '@/contexts/profileContext';
+import { toDeckSnapshot, type Deck } from '@/lib/decks';
+import DeckPicker, { type DeckPickerHandle } from './deck/deckPicker';
+import { LegendPortrait } from './deck/cardArt';
+import { LegendSheet, useLegends } from './match/legendPicker';
 import DurationPicker from './durationPicker';
+import Icon from './icon';
+import PressOverlay from './pressOverlay';
 import { CTA_GLOW } from './ctaGlow';
-import React, { useEffect, useState } from 'react';
 
 type MatchSetupProps = {
   onClose: () => void;
 };
 
-// ink-secondary token — TextInput's placeholderTextColor is a prop, not a class,
-// so it takes the raw value rather than a NativeWind className.
-const INK_SECONDARY = '#868FB0';
-// background token — Feather's color is a prop; this is the ink used on accent.
-const ON_ACCENT = '#0D1B2A';
-
-// Round lengths offered for a timed match, in minutes — the two common ones,
-// with anything else set on the custom wheels. One clock covers the whole
-// match, so for a Bo3 this is the length of the entire round, not of each game.
+// Round lengths offered for a timed match, in minutes, plus Off and Custom.
+// One clock covers the whole match, so for a Bo3 this is the whole round.
 const TIME_PRESETS = [30, 60] as const;
-/** A preset in minutes, or the custom minutes/seconds picker. */
-type TimeChoice = (typeof TIME_PRESETS)[number] | 'custom';
-// Where the custom wheels start — a typical tournament round, so the common
-// case is a nudge rather than a scroll from zero.
+type Clock = 'off' | (typeof TIME_PRESETS)[number] | 'custom';
+// Where the custom wheels start — a typical tournament round.
 const DEFAULT_CUSTOM = { minutes: 50, seconds: 0 };
 
-// Drag-to-dismiss thresholds: release past this far down, or flick faster than
-// this, and the sheet closes; otherwise it springs back to rest.
-const DISMISS_DISTANCE = 120;
-const DISMISS_VELOCITY = 800;
-// How far the sheet slides off-screen on dismiss before unmounting — also
-// where it starts from on mount, so it has to be taller than the sheet itself.
-const SHEET_TRAVEL = 520;
-// The entrance is a timing curve, not a spring: the sheet is being pulled up
-// into place, so it decelerates into rest and stops. Any spring overshoots, and
-// over a travel this long even a heavily damped one reads as a bounce.
-const ENTER_DURATION = 320;
-const ENTER_EASING = Easing.out(Easing.cubic);
-// The exit is a plain timing — a spring's overshoot on the way out reads as a
-// bounce against the screen edge.
-const EXIT_DURATION = 200;
+// `background` (tailwind.config.js), clear → nearly opaque: the shade under a
+// portrait's name. Gradient stops can't take a class.
+const SHADE = ['#0D1B2A00', '#0D1B2AF2'] as const;
+
+const PORTRAIT_H = 196;
+const VS_SIZE = 40;
 
 /**
- * Pre-match setup sheet. Collects the format (Bo1 / Bo3), the timed-match
- * clock, both player names — `p1` is always you, `p2` the opponent — when
- * signed in the deck you're playing (optional), and the opponent's legend
- * (required whenever the card catalog is loaded, so History can show it),
- * then starts the match with that config. Turn tracking is still deferred.
+ * One side of the matchup: the legend's art (cropped on its face) with the
+ * side ("You" / "Opponent") and the legend's name, or an empty slot asking
+ * for one. The whole portrait is the button.
+ */
+const Portrait = ({
+  side,
+  legend,
+  caption,
+  emptyLabel,
+  emptyHint,
+  onPress,
+}: {
+  side: string;
+  legend: CardRef | null;
+  /** A small line under the legend's name, e.g. "From Rivon". */
+  caption?: string;
+  emptyLabel: string;
+  emptyHint: string;
+  onPress: () => void;
+}) => {
+  const name = legend ? splitCardName(legend.name) : null;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${side}: ${legend ? legend.name : emptyLabel}`}
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress();
+      }}
+      style={{ height: PORTRAIT_H }}
+      className={`relative overflow-hidden rounded-2xl border ${
+        legend ? 'border-border bg-elevated' : 'border-dashed border-border bg-surface'
+      }`}
+    >
+      {({ pressed }) => (
+        <>
+          {legend && <LegendPortrait card={legend} />}
+          {legend && (
+            <LinearGradient
+              colors={SHADE}
+              locations={[0.35, 1]}
+              style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+            />
+          )}
+          <View className="absolute left-2.5 top-2.5 rounded-full bg-background/70 px-2.5 py-1">
+            <Text className="font-display text-[11px] text-ink-primary">{side}</Text>
+          </View>
+          {name ? (
+            <View className="absolute bottom-0 left-0 right-0 px-3 pb-3">
+              <Text className="font-display-bold text-[18px] text-ink-primary" numberOfLines={1}>
+                {name.head}
+              </Text>
+              {name.title !== '' && (
+                <Text className="text-[12px] text-ink-secondary" numberOfLines={1}>
+                  {name.title}
+                </Text>
+              )}
+              {caption && (
+                <Text className="mt-1 text-[11px] text-ink-tertiary" numberOfLines={1}>
+                  {caption}
+                </Text>
+              )}
+            </View>
+          ) : (
+            <View className="absolute inset-0 items-center justify-center gap-1.5 px-3">
+              <Icon name="plus-circle" size={24} className="text-ink-secondary" />
+              <Text className="text-center font-display text-[14px] text-ink-primary">
+                {emptyLabel}
+              </Text>
+              <Text className="text-center text-[11px] text-ink-tertiary">{emptyHint}</Text>
+            </View>
+          )}
+          <PressOverlay pressed={pressed} />
+        </>
+      )}
+    </Pressable>
+  );
+};
+
+/** A row of equal buttons, one selected (format, clock). */
+const Segmented = <T extends string | number>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) => (
+  <View className="flex-row gap-2">
+    {options.map((o) => {
+      const selected = o.value === value;
+      return (
+        <TouchableOpacity
+          key={String(o.value)}
+          accessibilityRole="button"
+          accessibilityState={{ selected }}
+          onPress={() => {
+            if (selected) return;
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onChange(o.value);
+          }}
+          className={`flex-1 items-center rounded-xl border py-3 ${
+            selected ? 'border-accent bg-accent' : 'border-border bg-elevated'
+          }`}
+        >
+          <Text
+            className={`font-display text-sm ${selected ? 'text-background' : 'text-ink-secondary'}`}
+          >
+            {o.label}
+          </Text>
+        </TouchableOpacity>
+      );
+    })}
+  </View>
+);
+
+const Label = ({ children, hint }: { children: string; hint?: string }) => (
+  <View className="mb-2 flex-row items-baseline justify-between">
+    <Text className="font-display text-base text-ink-secondary">{children}</Text>
+    {hint && <Text className="text-xs text-ink-tertiary">{hint}</Text>}
+  </View>
+);
+
+/**
+ * Pre-match setup: a native page sheet over Home, built around the matchup —
+ * your legend and theirs side by side (you left: you're p1), each a portrait
+ * you tap to choose, with the names under them. Then your deck (signed in,
+ * optional; a deck supplies your legend, and your portrait then opens the
+ * deck picker), the format and the clock. Start is pinned at the bottom and
+ * says what's missing: their legend is required whenever the catalog is
+ * loaded (so History can show it); a custom clock can't be 00:00.
+ *
+ * `p1` is always you, `p2` the opponent — asymmetric on purpose, since
+ * history derives win/loss and the "vs" label from p1. Turn tracking is
+ * still deferred.
  */
 const MatchSetup = ({ onClose }: MatchSetupProps) => {
   const { startMatch } = useMatch();
-  // The sheet never grows past the status bar: when its content is taller
-  // (timed + custom wheels, a small phone), the content scrolls instead. The
-  // space is measured — the sheet sits in Home, above the tab bar — and the
-  // window height stands in until then.
-  const { height: screenH } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-  const [areaH, setAreaH] = useState(screenH);
-  const maxSheetH = areaH - insets.top - 8;
   // Decks are an account feature; a guest has none and their match isn't saved.
   const { status } = useAuth();
   const signedIn = status === 'authed';
   // Your default deck (Profile) is pre-selected; you can still change it.
   const { profile } = useProfile();
+  const insets = useSafeAreaInsets();
 
+  const [visible, setVisible] = useState(true);
   const [bestOf, setBestOf] = useState<1 | 3>(1);
-  // Signed in, your name starts as your display name; still editable.
-  const [p1Name, setP1Name] = useState(
-    signedIn ? (profile?.displayName ?? '') : '',
-  );
+  const [p1Name, setP1Name] = useState(signedIn ? (profile?.displayName ?? '') : '');
   const [p2Name, setP2Name] = useState('');
-  const [timed, setTimed] = useState(false);
-  const [choice, setChoice] = useState<TimeChoice>(TIME_PRESETS[0]);
+  const [clock, setClock] = useState<Clock>('off');
   const [custom, setCustom] = useState(DEFAULT_CUSTOM);
   const [deck, setDeck] = useState<Deck | null>(null);
   const [opponentLegend, setOpponentLegend] = useState<CardRef | null>(null);
   // Your legend without a deck (one you haven't uploaded yet). Optional; a
-  // chosen deck's legend wins, so the field hides while a deck is picked.
+  // chosen deck's legend wins.
   const [yourLegend, setYourLegend] = useState<CardRef | null>(null);
+  const [sheet, setSheet] = useState<'you' | 'them' | null>(null);
+  const deckPicker = useRef<DeckPickerHandle>(null);
+
   const deckChosen = signedIn && deck !== null;
+  const shownYourLegend = deckChosen ? (deck?.list.legend ?? null) : yourLegend;
   // Required — unless there's no catalog to pick from (first launch offline).
   const legendsAvailable = useLegends().length > 0;
   const needsLegend = legendsAvailable && opponentLegend === null;
 
   // The configured clock, in seconds. null when the match isn't timed.
-  const timeLimitSeconds = !timed
-    ? null
-    : choice === 'custom'
-      ? custom.minutes * 60 + custom.seconds
-      : choice * 60;
-  // A timed match needs an actual duration — 00:00 on the wheels is not a round.
+  const timeLimitSeconds =
+    clock === 'off' ? null : clock === 'custom' ? custom.minutes * 60 + custom.seconds : clock * 60;
   const timeSet = timeLimitSeconds === null || timeLimitSeconds > 0;
   const startable = timeSet && !needsLegend;
 
-  const pickFormat = (value: 1 | 3) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setBestOf(value);
-  };
-
-  const toggleTimed = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setTimed((on) => !on);
-  };
-
-  const pickChoice = (value: TimeChoice) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setChoice(value);
+  // Dismiss with the slide-down; the parent unmounts once it's gone
+  // (onDismiss is iOS-only, so elsewhere right away).
+  const close = () => {
+    setVisible(false);
+    if (Platform.OS !== 'ios') onClose();
   };
 
   const start = () => {
@@ -144,242 +233,107 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
       bestOf,
       playerNames: [p1Name, p2Name],
       timeLimitSeconds,
-      deck: signedIn && deck ? toDeckSnapshot(deck) : null,
+      deck: deckChosen && deck ? toDeckSnapshot(deck) : null,
       opponentLegend,
       yourLegend: deckChosen ? null : yourLegend,
     };
     startMatch(config);
+    // The board replaces Home at once, so no slide-out to wait for.
     onClose();
   };
 
-  // Unmounts the sheet. Called once the slide-out has finished, so the parent
-  // never tears it down mid-animation.
-  const close = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onClose();
-  };
-
-  // Drag-to-dismiss, and the entrance/exit. The sheet follows the finger
-  // downward (never up), and the backdrop fades as it goes so the two feel
-  // connected. Release past the threshold (or with enough downward velocity)
-  // and it slides off and closes; otherwise it springs back to rest.
-  //
-  // The same value drives the entrance: it starts a full travel below rest and
-  // springs up on mount, which fades the backdrop in on the way (its opacity is
-  // derived from this) with no second animation to keep in step.
-  const translateY = useSharedValue(SHEET_TRAVEL);
-  const startY = useSharedValue(0);
-
-  useEffect(() => {
-    translateY.value = withTiming(0, {
-      duration: ENTER_DURATION,
-      easing: ENTER_EASING,
-    });
-  }, [translateY]);
-
-  // Slide out, then unmount. For a drag-dismiss the slide has already happened,
-  // so that path calls close() directly instead.
-  const dismiss = () => {
-    translateY.value = withTiming(SHEET_TRAVEL, { duration: EXIT_DURATION }, () => {
-      runOnJS(close)();
-    });
-  };
-
-  const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: 1 - Math.min(translateY.value / SHEET_TRAVEL, 1),
-  }));
-
-  const pan = Gesture.Pan()
-    .activeOffsetY(10) // only a downward drag activates; taps/typing pass through
-    .onStart(() => {
-      startY.value = translateY.value;
-    })
-    .onUpdate((e) => {
-      translateY.value = Math.max(0, startY.value + e.translationY);
-    })
-    .onEnd((e) => {
-      if (translateY.value > DISMISS_DISTANCE || e.velocityY > DISMISS_VELOCITY) {
-        translateY.value = withTiming(SHEET_TRAVEL, { duration: EXIT_DURATION }, () => {
-          runOnJS(close)();
-        });
-      } else {
-        translateY.value = withSpring(0, { damping: 20, stiffness: 220 });
-      }
-    });
-
-  const formatButton = (value: 1 | 3, label: string) => {
-    const selected = bestOf === value;
-    return (
-      <TouchableOpacity
-        onPress={() => pickFormat(value)}
-        className={`flex-1 items-center rounded-xl border px-3 py-3 ${
-          selected
-            ? 'border-accent bg-accent'
-            : 'border-border bg-elevated active:bg-surface'
-        }`}
-      >
-        <Text
-          className={`font-display text-sm ${
-            selected ? 'text-background' : 'text-ink-secondary'
-          }`}
-        >
-          {label}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
-  const timeButton = (value: TimeChoice, label: string) => {
-    const selected = choice === value;
-    return (
-      <TouchableOpacity
-        key={String(value)}
-        onPress={() => pickChoice(value)}
-        className={`flex-1 items-center rounded-xl border px-2 py-2.5 ${
-          selected
-            ? 'border-accent bg-accent'
-            : 'border-border bg-elevated active:bg-surface'
-        }`}
-      >
-        <Text
-          className={`font-display text-sm ${
-            selected ? 'text-background' : 'text-ink-secondary'
-          }`}
-        >
-          {label}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
+  const nameInput =
+    'h-11 rounded-xl border border-border bg-elevated px-3 text-[15px] text-ink-primary placeholder:text-ink-tertiary';
 
   return (
-    <View
-      className="absolute inset-0 z-50"
-      onLayout={(e) => setAreaH(e.nativeEvent.layout.height)}
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={close}
+      onDismiss={onClose}
     >
-      <TouchableWithoutFeedback onPress={dismiss}>
-        <Animated.View
-          style={backdropStyle}
-          className="absolute inset-0 bg-background/80"
-        />
-      </TouchableWithoutFeedback>
+      <View className="flex-1 bg-background">
+        <View className="flex-row items-center justify-between px-5 pb-1 pt-5">
+          <Text className="font-display-bold text-[26px] tracking-tight text-ink-primary">
+            New match
+          </Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            onPress={close}
+            className="h-9 w-9 items-center justify-center rounded-full border border-border bg-elevated"
+          >
+            <Icon name="x" size={17} className="text-ink-secondary" />
+          </TouchableOpacity>
+        </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 justify-end"
-      >
-        <Animated.View
-          style={[sheetStyle, { maxHeight: maxSheetH }]}
-          className="rounded-t-3xl border-t border-border bg-surface px-5 pt-2"
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className="flex-1"
         >
-          {/* Drag-to-dismiss is scoped to the grab handle and title rather than
-              the whole sheet: the custom-time wheels scroll vertically, and a
-              sheet-wide pan would swallow that drag and dismiss instead. */}
-          <GestureDetector gesture={pan}>
-            <View>
-              <View className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
-              <Text className="mb-5 font-display-bold text-xl text-ink-primary">
-                New match
-              </Text>
-            </View>
-          </GestureDetector>
-
-          {/* Everything below the title scrolls once the sheet is at its
-              tallest. The custom-time wheels are scroll views of their own;
-              iOS hands a drag on them to the wheel, not to this. */}
           <ScrollView
-            bounces={false}
+            contentContainerStyle={{ padding: 20, paddingTop: 16, paddingBottom: 24 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 32 }}
-            style={{ flexGrow: 0 }}
           >
-
-            <Text className="mb-2 font-display text-base text-ink-secondary">
-              Format
-            </Text>
-            <View className="mb-5 flex-row gap-2">
-              {formatButton(1, 'Best of 1')}
-              {formatButton(3, 'Best of 3')}
+            {/* The matchup: you left (p1), them right, VS between. */}
+            <View className="relative flex-row gap-3">
+              <View className="flex-1 gap-2">
+                <Portrait
+                  side="You"
+                  legend={shownYourLegend}
+                  caption={deckChosen && deck ? `From ${deck.name}` : undefined}
+                  emptyLabel="Your legend"
+                  emptyHint={signedIn ? 'Optional · or pick a deck' : 'Optional'}
+                  onPress={() => (deckChosen ? deckPicker.current?.open() : setSheet('you'))}
+                />
+                <TextInput
+                  value={p1Name}
+                  onChangeText={setP1Name}
+                  placeholder="Your name"
+                  returnKeyType="next"
+                  accessibilityLabel="Your name"
+                  className={nameInput}
+                />
+              </View>
+              <View className="flex-1 gap-2">
+                <Portrait
+                  side="Opponent"
+                  legend={opponentLegend}
+                  emptyLabel="Their legend"
+                  emptyHint={legendsAvailable ? 'Tap to choose' : 'Card list not loaded'}
+                  onPress={() => legendsAvailable && setSheet('them')}
+                />
+                <TextInput
+                  value={p2Name}
+                  onChangeText={setP2Name}
+                  placeholder="Opponent name"
+                  returnKeyType="done"
+                  accessibilityLabel="Opponent name"
+                  className={nameInput}
+                />
+              </View>
+              <View
+                pointerEvents="none"
+                style={{
+                  width: VS_SIZE,
+                  height: VS_SIZE,
+                  top: PORTRAIT_H / 2 - VS_SIZE / 2,
+                  left: '50%',
+                  marginLeft: -VS_SIZE / 2,
+                }}
+                className="absolute items-center justify-center rounded-full border border-border bg-background"
+              >
+                <Text className="font-display-bold text-[13px] text-ink-primary">VS</Text>
+              </View>
             </View>
 
-            {/* Timed match. One clock covers the whole match — for a Bo3 the
-                preset is the length of the round, not of each game — and it keeps
-                running through the between-games break (sideboarding is on the
-                clock) and past zero into overtime. */}
-            <TouchableOpacity
-              onPress={toggleTimed}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: timed }}
-              className={`flex-row items-center gap-3 rounded-xl border px-4 py-3 ${
-                timed
-                  ? 'mb-3 border-accent bg-elevated'
-                  : 'mb-5 border-border bg-elevated active:bg-surface'
-              }`}
-            >
-              <View
-                className={`h-6 w-6 items-center justify-center rounded-md border ${
-                  timed ? 'border-accent bg-accent' : 'border-border bg-surface'
-                }`}
-              >
-                {timed && <Feather name="check" size={15} color={ON_ACCENT} />}
-              </View>
-              <View className="flex-1">
-                <Text className="font-display text-base text-ink-primary">
-                  Timed match
-                </Text>
-                <Text className="mt-0.5 text-xs text-ink-secondary">
-                  One clock for the whole match — it runs between games too.
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {timed && (
-              <Animated.View entering={FadeIn.duration(160)} className="mb-5">
-                <View className="flex-row gap-2">
-                  {TIME_PRESETS.map((m) => timeButton(m, `${m} min`))}
-                  {timeButton('custom', 'Custom')}
-                </View>
-
-                {choice === 'custom' && (
-                  <Animated.View entering={FadeIn.duration(160)} className="mt-2">
-                    <DurationPicker
-                      minutes={custom.minutes}
-                      seconds={custom.seconds}
-                      onChange={setCustom}
-                    />
-                  </Animated.View>
-                )}
-              </Animated.View>
-            )}
-
-            {/* Asymmetric on purpose: p1 is always the device owner ("you"), and
-                history derives win/loss and the "vs" label from that. Symmetric
-                "Player 1 / Player 2" fields made it easy to enter yourself second
-                and invert every result. */}
-            <Text className="mb-2 font-display text-base text-ink-secondary">
-              You
-            </Text>
-            <TextInput
-              value={p1Name}
-              onChangeText={setP1Name}
-              placeholder="Your name"
-              placeholderTextColor={INK_SECONDARY}
-              returnKeyType="next"
-              className="mb-4 rounded-xl border border-border bg-elevated px-4 py-3 text-base text-ink-primary"
-            />
             {signedIn && (
-              <View className="mb-4">
-                <View className="mb-2 flex-row items-baseline justify-between">
-                  <Text className="font-display text-base text-ink-secondary">
-                    Your deck
-                  </Text>
-                  <Text className="text-xs text-ink-tertiary">Optional</Text>
-                </View>
+              <View className="mt-6">
+                <Label hint="Optional">Your deck</Label>
                 <DeckPicker
+                  ref={deckPicker}
                   value={deck}
                   onChange={setDeck}
                   defaultDeckId={profile?.defaultDeckId ?? null}
@@ -387,55 +341,60 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
                 />
               </View>
             )}
-            {!deckChosen && (
-              <View className="mb-4">
-                <View className="mb-2 flex-row items-baseline justify-between">
-                  <Text className="font-display text-base text-ink-secondary">
-                    Your legend
-                  </Text>
-                  <Text className="text-xs text-ink-tertiary">Optional</Text>
-                </View>
-                <LegendPicker
-                  value={yourLegend}
-                  onChange={setYourLegend}
-                  title="Your legend"
-                  placeholder="Choose your legend"
-                  optional
-                />
-              </View>
-            )}
-            <Text className="mb-2 font-display text-base text-ink-secondary">
-              Opponent
-            </Text>
-            <TextInput
-              value={p2Name}
-              onChangeText={setP2Name}
-              placeholder="Opponent name"
-              placeholderTextColor={INK_SECONDARY}
-              returnKeyType="done"
-              className="mb-4 rounded-xl border border-border bg-elevated px-4 py-3 text-base text-ink-primary"
-            />
-            <Text className="mb-2 font-display text-base text-ink-secondary">
-              Their legend
-            </Text>
-            <View className="mb-6">
-              <LegendPicker
-                value={opponentLegend}
-                onChange={setOpponentLegend}
-                title="Their legend"
-                placeholder="Choose their legend"
+
+            <View className="mt-6">
+              <Label>Format</Label>
+              <Segmented<1 | 3>
+                options={[
+                  { value: 1, label: 'Best of 1' },
+                  { value: 3, label: 'Best of 3' },
+                ]}
+                value={bestOf}
+                onChange={setBestOf}
               />
             </View>
 
-            {/* Disabled while something required is missing — a timed match set
-                to 00:00, or no opponent legend. The label says which rather than
-                leaving a dead button. */}
+            {/* One clock covers the whole match — for a Bo3 the length of the
+                round — and keeps running between games and into overtime. */}
+            <View className="mt-6">
+              <Label hint={clock === 'off' ? undefined : 'One clock for the whole match'}>
+                Clock
+              </Label>
+              <Segmented<Clock>
+                options={[
+                  { value: 'off', label: 'Off' },
+                  ...TIME_PRESETS.map((m) => ({ value: m, label: `${m} min` })),
+                  { value: 'custom', label: 'Custom' },
+                ]}
+                value={clock}
+                onChange={setClock}
+              />
+              {clock === 'custom' && (
+                <Animated.View entering={FadeIn.duration(160)} className="mt-2">
+                  <DurationPicker
+                    minutes={custom.minutes}
+                    seconds={custom.seconds}
+                    onChange={setCustom}
+                  />
+                </Animated.View>
+              )}
+            </View>
+          </ScrollView>
+
+          {/* Pinned, so Start is always in reach. Disabled while something
+              required is missing; the label says which. CTA_GLOW, not the
+              `shadow-accent-btn` class: toggling that class as the form
+              becomes valid throws "Couldn't find a navigation context"
+              (apps/mobile/CLAUDE.md, "Shadows"). */}
+          <View
+            style={{ paddingBottom: Math.max(insets.bottom, 12) + 8 }}
+            className="border-t border-border/60 bg-background px-5 pt-3"
+          >
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !startable }}
               onPress={start}
               disabled={!startable}
-              // CTA_GLOW, not the `shadow-accent-btn` class: toggling a NativeWind
-              // shadow class as the form becomes valid throws "Couldn't find a
-              // navigation context" (see apps/mobile/CLAUDE.md, "Shadows").
               style={startable ? CTA_GLOW : undefined}
               className={`items-center rounded-full px-5 py-4 ${
                 startable ? 'bg-accent active:bg-accent-strong' : 'bg-elevated'
@@ -453,10 +412,26 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
                     : 'Choose their legend first'}
               </Text>
             </TouchableOpacity>
-          </ScrollView>
-        </Animated.View>
-      </KeyboardAvoidingView>
-    </View>
+          </View>
+        </KeyboardAvoidingView>
+
+        <LegendSheet
+          visible={sheet === 'them'}
+          onClose={() => setSheet(null)}
+          value={opponentLegend}
+          onChange={setOpponentLegend}
+          title="Their legend"
+        />
+        <LegendSheet
+          visible={sheet === 'you'}
+          onClose={() => setSheet(null)}
+          value={yourLegend}
+          onChange={setYourLegend}
+          title="Your legend"
+          optional
+        />
+      </View>
+    </Modal>
   );
 };
 

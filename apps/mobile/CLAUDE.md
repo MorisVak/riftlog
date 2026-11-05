@@ -339,53 +339,58 @@ A settled Bo3 can therefore have fewer than three games; nothing downstream
 (overview, history, persistence) assumes a fixed count — they all map over
 `match.games`.
 
-Pre-match setup collects **format (Bo1/Bo3)**, **player names**, and the
-**timed-match toggle + round length** via the setup sheet
-(`components/matchSetup.tsx`), passed to `startMatch` as a `MatchConfig`; blank
-names fall back to "You"/"Opponent". Signed in, your name field starts as your
-**display name** (`profile.displayName`), still editable. The two slots are **not interchangeable**:
-`p1` is always the device owner and `p2` the opponent (see the p1-perspective
-rule below). Signed in, the sheet also offers **Your deck**
-(`components/deck/deckPicker.tsx`, optional, "No deck" first — a field that
-opens a full-height page sheet of large deck rows, with a search field (deck
-name or legend) and a small "Legend" filter dropdown beside it once your decks
-span 2+ legends; it pre-selects your
-**default deck** from Profile, `profiles.default_deck_id`) → `MatchConfig.deck`
-→ `players[0].deck` (a `DeckSnapshot`). On save only its `versionId` is
-written (`matches.deck_version_id`); the deck is stripped from the `players`
-jsonb, since the immutable version already holds the list. History reads it
-back through `matches → deck_versions → decks` (current name, archived flag):
-the name on the row's meta line, a link in the expanded row, and a "View
-details" button to the match detail (`app/matches/[id].tsx`, see below).
+**Pre-match setup** (`components/matchSetup.tsx`) is a native **page sheet**
+over Home (swipe down or ✕ to close; `onDismiss` unmounts it), built around
+the **matchup**: two legend portraits side by side — **you left (p1), the
+opponent right**, "VS" between — each a `LegendPortrait` (the legend's art,
+cropped on its face) you tap to choose, with the two name fields under them.
+Below: **Your deck** (signed in, optional), **Format** (Best of 1 / 3) and
+**Clock** (Off / 30 min / 60 min / Custom, which opens the wheels) as rows of
+equal buttons, and **Start pinned at the bottom**, so it's always in reach.
+Everything goes to `startMatch` as a `MatchConfig`; blank names fall back to
+"You"/"Opponent", and signed in your name starts as your **display name**.
+The two slots are **not interchangeable**: `p1` is always the device owner
+and `p2` the opponent (see the p1-perspective rule below).
+
+- **Your deck** (`components/deck/deckPicker.tsx`, "No deck" first — a field
+  that opens a full-height page sheet of large deck rows, with search and a
+  "Legend" filter once your decks span 2+ legends) pre-selects your **default
+  deck** (`profiles.default_deck_id`) → `MatchConfig.deck` →
+  `players[0].deck`. On save only its `versionId` is written
+  (`matches.deck_version_id`); History reads it back through `matches →
+  deck_versions → decks` (current name, archived flag). With a deck chosen,
+  your portrait shows its legend ("From Rivon") and tapping it opens the deck
+  picker (`DeckPicker`'s `ref` → `open()`).
+- **Their legend (required — under internal testing):** the opponent
+  portrait opens `LegendSheet` (`components/match/legendPicker.tsx`: every
+  catalog legend as a searchable art grid, one tap picks). Start stays off —
+  "Choose their legend first" — until one is picked, except with no catalog
+  to pick from (first launch offline), so a match can always start.
+- **Your legend** without a deck (one not uploaded yet, or a guest): your
+  portrait opens the same sheet with `optional` ("Clear"). A chosen deck's
+  legend wins.
+- Both are stored as `Player.legend` (a `CardRef`) inside `matches.players`
+  — no migration; older matches simply have none.
+- Start uses `CTA_GLOW`, not `shadow-accent-btn`: the button enables
+  mid-form, and toggling that class throws "Couldn't find a navigation
+  context".
+
 Still deferred: the track-turns control. See the match flow before extending
 it.
 
-**Their legend (required — under internal testing).** Setup also asks for the
-opponent's legend (`components/match/legendPicker.tsx`: a field with the
-pick's art as its backdrop, opening a page sheet with every catalog legend as
-a searchable art grid). Start stays off — "Choose their legend first" — until
-one is picked, except when there's no catalog to pick from (first launch
-offline), so a match can always start. It's stored on p2 as `Player.legend`
-(a `CardRef`) inside `matches.players`. p1's legend is the chosen deck's;
-with no deck (or one you haven't uploaded yet) setup shows an optional **Your
-legend** picker instead (`LegendPicker` with `optional`, which adds "Clear"),
-hidden while a deck is picked — the deck's legend wins. No migration, older
-matches simply have none. History and Home's
-recent matches show the opponent's legend as the row backdrop
-(`CardBackdrop`, score/date on a dark pill, press overlay), **tinted with the
-result** (`tint`: a `mixBlendMode: 'color'` layer of `bg-win` / `bg-loss` /
-`bg-draw` at 60%, so a loss reads red — never alone: the letter badge and
-result bar stay), and with no name
-typed the row reads "vs Kennen" (a typed name: "vs Alex · Kennen"; a blank
-name is stored as the default "Opponent", which counts as none). Only your own
-matches are ever read back — never aggregated across users (Riot policy).
-
-The setup sheet is capped below the status bar (measured: it sits in Home,
-above the tab bar) and everything under its title scrolls, so the tallest
-state (timed + custom wheels) still fits; the grab handle stays reachable.
-Its Start button uses `CTA_GLOW`, not `shadow-accent-btn`: the button now
-enables mid-form, and toggling that class threw "Couldn't find a navigation
-context".
+**Match rows show the matchup.** History and Home's recent matches draw both
+legends as the row backdrop — `MatchBackdrop` in `cardArt.tsx`: yours left,
+theirs right, split by a slanted seam, each half cropped by **height**
+(`scaleBy="height"`) so faces keep the full backdrop's size and the card
+frame stays out — **tinted with the result** (`tint`: a
+`mixBlendMode: 'color'` layer of `bg-win` / `bg-loss` / `bg-draw` at 35%, so
+a loss reads red while the art's own colors still come through — never
+alone: the letter badge and result bar stay). With one legend known it's
+that one alone (`CardBackdrop`). Score and date sit on a dark pill; a press
+lays the overlay. With no name typed the row reads "vs Kennen" (a typed
+name: "vs Alex · Kennen"; a blank name is stored as the default "Opponent",
+which counts as none). Only your own matches are ever read back — never
+aggregated across users (Riot policy).
 
 ### Timed mode
 
@@ -479,13 +484,10 @@ game counter, nothing taking board space from either player:
   restored match never replays it.
 - History stores the configured limit and the total paused time; played time
   (excluding pauses) and the overtime flag are derived in `lib/historyView.ts`.
-- The setup sheet offers two presets (30 / 60 min) plus **Custom**, which opens
-  `components/durationPicker.tsx` — minute/second wheels built from a snapping
-  `ScrollView`, not a picker dependency. A timed match at 00:00 can't start; the
-  Start button disables and says so.
-- Because those wheels scroll vertically, the sheet's **drag-to-dismiss is
-  scoped to the grab handle + title**, not the whole sheet. Don't widen it back
-  or the pan will swallow the wheel drag.
+- Setup's Clock offers Off, two presets (30 / 60 min) and **Custom**, which
+  opens `components/durationPicker.tsx` — minute/second wheels built from a
+  snapping `ScrollView`, not a picker dependency. A timed match at 00:00 can't
+  start; the Start button disables and says so.
 
 Conventions:
 

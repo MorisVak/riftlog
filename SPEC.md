@@ -129,8 +129,12 @@ games and the match themselves.
    loaded (under internal testing; it may become optional). Without a deck
    — say one not uploaded yet — they can pick their own legend instead
    (optional). History and
-   Home show it as the match row's backdrop and, with no opponent name,
-   as the opponent's label ("vs Kennen"). Built: format, names, deck, the
+   Home show both legends as the match row's backdrop — yours left,
+   theirs right, tinted with the result — and, with no opponent name,
+   the opponent's legend as their label ("vs Kennen"). The setup screen
+   is built around that matchup: two legend portraits side by side
+   (you left), names under them, then deck, format and clock, with Start
+   pinned at the bottom. Built: format, names, deck, the
    timed toggle + presets, and the opponent's legend.
    The match saves the exact deck *version* played, so renaming, editing, or
    deleting the deck later never changes what history says you played.
