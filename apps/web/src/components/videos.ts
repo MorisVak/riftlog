@@ -10,7 +10,7 @@ import type { ScreenshotName } from "./screenshots.generated";
  */
 export const VIDEOS = {
   /** The game-start versus intro, held sideways (game 3), the whole screen. */
-  intro: { width: 796, height: 367, poster: "board-landscape", v: 3 },
+  intro: { width: 796, height: 367, poster: "board-landscape", v: 4 },
 } as const satisfies Record<string, { width: number; height: number; poster: ScreenshotName; v: number }>;
 
 export type VideoName = keyof typeof VIDEOS;

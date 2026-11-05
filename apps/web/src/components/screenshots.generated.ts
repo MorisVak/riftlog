@@ -15,12 +15,12 @@ export const SCREENSHOTS = {
   "board": {
     "width": 390,
     "height": 845,
-    "v": "ebc6d4f3"
+    "v": "cc647625"
   },
   "board-landscape": {
     "width": 796,
     "height": 367,
-    "v": "ca1a0da6"
+    "v": "31310e10"
   },
   "who-won": {
     "width": 390,

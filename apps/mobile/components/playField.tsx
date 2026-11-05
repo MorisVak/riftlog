@@ -136,16 +136,22 @@ const PlayField = () => {
     <View className="flex-1">
       <TrackingField className="rotate-180" playerId="p2" />
 
+      <TrackingField playerId="p1" onEnd={openEnd} />
+
       {/* The halves are separated by a line, not a band — the Bo3 series pips
           live inside it (see BoardDivider). It takes no height: the halves
           (and their legend art) meet exactly at the line, and the divider is
-          drawn over the seam, centred on it. As a plain row it was a ~16pt
-          band of background between the two arts. */}
-      <View pointerEvents="none" style={{ height: 0, zIndex: 10 }} className="justify-center">
+          drawn over the seam, centred on it (as a plain row it was a ~16pt
+          band of background between the two arts). Placed by paint order —
+          after both halves, before the controls and the prompts — never by
+          zIndex, which once drew it over the "Who won" dialog. */}
+      <View
+        pointerEvents="none"
+        style={{ height: 0 }}
+        className="absolute inset-x-0 top-1/2 justify-center"
+      >
         <BoardDivider />
       </View>
-
-      <TrackingField playerId="p1" onEnd={openEnd} />
 
       {/* Clock and controls float over the divider instead of sitting in a bar,
           so neither player loses board space to them. `box-none` lets taps
