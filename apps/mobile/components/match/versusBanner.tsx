@@ -58,6 +58,7 @@ const VersusBanner = ({
   titleClass,
   score,
   height = 216,
+  large = false,
   className = '',
   accessibilityLabel,
 }: {
@@ -70,6 +71,8 @@ const VersusBanner = ({
   titleClass: string;
   score: string;
   height?: number;
+  /** A bigger title and score — the match-complete screen's moment. */
+  large?: boolean;
   /** Outer layout, e.g. `-mx-4` to run edge to edge, or a rounded frame. */
   className?: string;
   accessibilityLabel: string;
@@ -108,8 +111,18 @@ const VersusBanner = ({
     <View className="absolute bottom-0 left-0 right-0 flex-row items-end gap-3 px-4 pb-3.5">
       <BannerName side={you} align="left" />
       <View className="items-center">
-        <Text className={`font-display-bold text-[15px] ${titleClass}`}>{title}</Text>
-        <Text className="font-mono text-[36px] leading-[40px] text-ink-primary">{score}</Text>
+        <Text
+          className={`font-display-bold ${large ? 'text-[22px]' : 'text-[15px]'} ${titleClass}`}
+        >
+          {title}
+        </Text>
+        <Text
+          className={`font-mono text-ink-primary ${
+            large ? 'text-[52px] leading-[56px]' : 'text-[36px] leading-[40px]'
+          }`}
+        >
+          {score}
+        </Text>
       </View>
       <BannerName side={them} align="right" />
     </View>

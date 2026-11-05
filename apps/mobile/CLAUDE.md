@@ -503,13 +503,14 @@ game counter, nothing taking board space from either player:
   stay mirror images, clear of the notch. Layout reads `useWindowDimensions`
   (`width > height`), not the orientation API.
 - **Each half shows its player's legend** behind it (`LegendBackground` in
-  `components/trackingField.tsx`): the face crop under a 60% `background`
+  `components/trackingField.tsx`): the face crop under a 45% `background`
   layer and a vignette, turning with the half so it faces its player; the
   score and buttons stay the focus. The player's name is larger and bold on
-  a soft pill. **Taking a point back plays a "hit"**: the half flashes red
-  (`useHit`), the numeral shakes and flashes `loss-text`
-  (`scoringComponent.tsx`), with a heavy haptic, so a take-back feels
-  different from a point scored. At 0 a tap does nothing (and plays nothing).
+  a soft pill. **A take-back is quiet on purpose** — it's usually fixing a
+  mis-tap: the numeral dips a little and tints toward `loss-text` for a
+  moment (`scoringComponent.tsx`), with a soft haptic. (A red flash over
+  the half plus a shake was tried and was too much.) At 0 a tap does
+  nothing (and plays nothing).
 - **Game-start intro** (`components/gameStartIntro.tsx`, over `PlayField`):
   a versus animation — both **legends** slide in from the sides (yours from
   the left) and meet at a slanted cut, like the match detail's banner; "VS"
@@ -519,7 +520,9 @@ game counter, nothing taking board space from either player:
   ~2.2s, tap to skip. Laid out a quarter turn (-90°,
   like the board clock) at the screen's landscape size (no turn when the phone
   is already landscape), so both players read
-  it from the side and your side sits at your end. It plays once per game id and
+  it from the side and your side sits at your end. Turned, the names' bottom
+  corners land at the screen's top and bottom, so they're inset by the
+  larger safe-area inset (clear of the status bar and home indicator). It plays once per game id and
   only for a game that *just* started (no events, `startedAt` < 3s ago), so a
   restored match never replays it.
 - History stores the configured limit and the total paused time; played time
@@ -551,6 +554,13 @@ Conventions:
   glowing "Start game N" low in thumb reach and "End round" (with a
   confirm). In portrait both clocks sit in the flow — the rotated one above
   the banner, yours at the bottom — so nothing floats over the content.
+- **Match complete** (`components/matchOverview.tsx`) is the third of the
+  set: the versus banner full bleed under the status bar (a soft shade keeps
+  the time readable), `large`, with "Victory" / "Defeat" / "Draw" over the
+  final score (a Bo1's points, a Bo3's games); "Match complete · Best of N";
+  the detail's **Games** card (`GameCard`, score graphs included — the
+  in-memory games go through the same `toDetailGameVM` as saved rows); the
+  notes; and **Done pinned at the bottom**.
 - **Match detail** (`app/matches/[id].tsx`, `fetchMatch` →
   `lib/matchDetailView.ts` → `components/match/gameCard.tsx`): a **versus
   banner** (`components/match/versusBanner.tsx`, shared with between games),
@@ -588,7 +598,8 @@ Conventions:
   **match-complete** screen they go through `setGameNote` / `setMatchNote` in
   `matchContext` (signed-in only). Each screen ends editing on a tap on
   empty space (`Keyboard.dismiss`, which also covers a hardware keyboard);
-  on match-complete a tap on Done first just closes the keyboard, so a note
+  on match-complete a tap on Done first just ends editing (blurring the
+  focused field via `TextInput.State`, hardware keyboard too), so a note
   is never lost. **A Bo1 has a round note only** — its one game *is* the
   round, so the match-complete screen and the match detail hide the game
   note (the detail still shows one that an older Bo1 already has). Text is stored via core's `normalizeNote` (trimmed,

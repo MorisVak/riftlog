@@ -65,66 +65,91 @@ export type MatchDetailVM = HistoryRowVM & {
   missingTimelines: boolean;
 };
 
-const TITLE: Record<Result, MatchDetailVM['title']> = {
+export const TITLE: Record<Result, MatchDetailVM['title']> = {
   win: 'Victory',
   loss: 'Defeat',
   draw: 'Draw',
 };
 
-const resultFor = (winner: string | null): Result =>
+export const resultFor = (winner: string | null): Result =>
   winner === 'p1' ? 'win' : winner === 'p2' ? 'loss' : 'draw';
+
+/** One game's facts, from a saved row or the match still in memory. */
+export type GameInput = {
+  id: string;
+  /** 1-based. */
+  n: number;
+  scores: { p1: number; p2: number };
+  winnerId: string | null;
+  startedAt: string;
+  endedAt: string | null;
+  /** Raw recorded points (jsonb or `Game.events`); validated here. */
+  events: unknown;
+  notes: string | null;
+};
+
+/**
+ * A game's line on the Games card (and its score graph). Shared by the match
+ * detail (saved rows) and the match-complete screen (the match in memory),
+ * so the two can't disagree.
+ */
+export function toDetailGameVM(g: GameInput, opponent: string): DetailGameVM {
+  const unfinished = g.endedAt == null;
+  const result = unfinished ? 'unfinished' : resultFor(g.winnerId);
+  const letter =
+    result === 'unfinished' ? null : result === 'win' ? 'W' : result === 'loss' ? 'L' : 'D';
+
+  const events = toPointEvents(g.events);
+  let graph: GameGraphVM | null = null;
+  if (events.length > 0) {
+    const series = scoreSeries(events);
+    const lastAt = Math.max(...events.map((e) => e.atMs));
+    const ran = g.endedAt != null ? Date.parse(g.endedAt) - Date.parse(g.startedAt) : lastAt;
+    const durationMs = Math.max(lastAt, ran, 1);
+    const youFinal = series.p1.at(-1)?.score ?? 0;
+    const themFinal = series.p2.at(-1)?.score ?? 0;
+    const durationLabel = formatClock(durationMs / 1000);
+    graph = {
+      you: series.p1,
+      them: series.p2,
+      durationMs,
+      maxScore: Math.max(youFinal, themFinal, 1),
+      durationLabel,
+      summary: `Score over ${durationLabel}: you reached ${youFinal}, ${opponent} ${themFinal}.`,
+    };
+  }
+
+  return {
+    id: g.id,
+    n: g.n,
+    you: g.scores.p1,
+    them: g.scores.p2,
+    share: pointShare(g.scores),
+    result,
+    letter,
+    graph,
+    notes: g.notes,
+  };
+}
 
 export function toMatchDetailVM(m: MatchWithGames): MatchDetailVM {
   const row = toHistoryRowVM(m);
 
-  const detailGames: DetailGameVM[] = m.games.map((g) => {
+  const detailGames = m.games.map((g) => {
     const s = (g.scores_at_end ?? {}) as Partial<Record<PlayerId, number>>;
-    const scores = { p1: s.p1 ?? 0, p2: s.p2 ?? 0 };
-    const unfinished = g.ended_at == null;
-    const result = unfinished ? 'unfinished' : resultFor(g.winner_id);
-    const letter =
-      result === 'unfinished'
-        ? null
-        : result === 'win'
-          ? 'W'
-          : result === 'loss'
-            ? 'L'
-            : 'D';
-
-    const events = toPointEvents(g.events);
-    let graph: GameGraphVM | null = null;
-    if (events.length > 0) {
-      const series = scoreSeries(events);
-      const lastAt = Math.max(...events.map((e) => e.atMs));
-      const ran =
-        g.ended_at != null
-          ? Date.parse(g.ended_at) - Date.parse(g.started_at)
-          : lastAt;
-      const durationMs = Math.max(lastAt, ran, 1);
-      const youFinal = series.p1.at(-1)?.score ?? 0;
-      const themFinal = series.p2.at(-1)?.score ?? 0;
-      const durationLabel = formatClock(durationMs / 1000);
-      graph = {
-        you: series.p1,
-        them: series.p2,
-        durationMs,
-        maxScore: Math.max(youFinal, themFinal, 1),
-        durationLabel,
-        summary: `Score over ${durationLabel}: you reached ${youFinal}, ${row.opponent} ${themFinal}.`,
-      };
-    }
-
-    return {
-      id: g.id,
-      n: g.game_index + 1,
-      you: scores.p1,
-      them: scores.p2,
-      share: pointShare(scores),
-      result,
-      letter,
-      graph,
-      notes: g.notes ?? null,
-    };
+    return toDetailGameVM(
+      {
+        id: g.id,
+        n: g.game_index + 1,
+        scores: { p1: s.p1 ?? 0, p2: s.p2 ?? 0 },
+        winnerId: g.winner_id,
+        startedAt: g.started_at,
+        endedAt: g.ended_at,
+        events: g.events,
+        notes: g.notes ?? null,
+      },
+      row.opponent,
+    );
   });
 
   return {
