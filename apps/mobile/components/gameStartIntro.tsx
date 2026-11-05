@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMatch } from '@/contexts/matchContext';
 import { formatClock } from '@/lib/clock';
 import { splitCardName, type CardRef } from '@riftlog/core';
@@ -130,6 +131,16 @@ const IntroOverlay = ({
   // held in landscape needs no turn.
   const { width, height } = useWindowDimensions();
   const W = Math.max(width, height);
+  const landscape = width > height;
+  // The names' corners must clear the notch / status bar / home indicator.
+  // Turned, the box's left and right ends are the screen's bottom and top;
+  // the same inset on both keeps the two names mirrored, a bit in from it.
+  const insets = useSafeAreaInsets();
+  const edge =
+    (landscape
+      ? Math.max(insets.left, insets.right)
+      : Math.max(insets.top, insets.bottom)) + 28;
+  const bottom = (landscape ? insets.bottom : 0) + 24;
 
   const overlayStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
   const leftStyle = useAnimatedStyle(() => ({
@@ -166,7 +177,7 @@ const IntroOverlay = ({
       >
         <View
           style={
-            width > height
+            landscape
               ? { width, height }
               : { width: height, height: width, transform: [{ rotate: '-90deg' }] }
           }
@@ -234,8 +245,8 @@ const IntroOverlay = ({
 
           {/* The names in the bottom corners. */}
           <Animated.View
-            style={textStyle}
-            className="absolute bottom-0 left-0 right-0 flex-row items-end gap-6 px-10 pb-6"
+            style={[textStyle, { paddingHorizontal: edge, paddingBottom: bottom }]}
+            className="absolute bottom-0 left-0 right-0 flex-row items-end gap-6"
           >
             <SideName legend={you.legend} name={you.name} align="left" />
             <SideName legend={opponent.legend} name={opponent.name} align="right" />
