@@ -2,8 +2,10 @@ import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
   interpolate,
+  interpolateColor,
   useAnimatedStyle,
   useSharedValue,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
@@ -14,6 +16,8 @@ import React from 'react';
 
 type ScoringComponentProps = {
   playerId: PlayerId;
+  /** A point was taken back: the half plays its "hit" (a red flash). */
+  onHit?: () => void;
 };
 
 /**
@@ -66,6 +70,15 @@ const ACTIONS: {
     textClass: 'text-special',
   },
 ];
+
+// The take-back "hit" on the numeral: a quick sideways shake while it flashes
+// red. Raw values mirror `ink-primary` and `loss-text` (an animated color
+// can't take a class).
+const INK_PRIMARY = '#E4E5F2';
+const LOSS_TEXT = '#FB8181';
+const SHAKE_PX = 12;
+const SHAKE_STEP_MS = 45;
+const HIT_COLOR_MS = 380;
 
 // The "+1" that lifts off the pressed button: how far it travels, and how long
 // it takes to rise and fade out.
@@ -139,8 +152,17 @@ const ActionButton = ({
   );
 };
 
-const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
+const ScoringComponent = ({ playerId, onHit }: ScoringComponentProps) => {
   const { match, incrementScore, decrementScore } = useMatch();
+
+  // The hit: the numeral shakes and flashes red, so taking a point back
+  // feels different from scoring one (like a hit in a game).
+  const shake = useSharedValue(0);
+  const flash = useSharedValue(0);
+  const numeralStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(flash.value, [0, 1], [INK_PRIMARY, LOSS_TEXT]),
+    transform: [{ translateX: shake.value }],
+  }));
 
   // Landscape halves are short, so the numeral shrinks to keep the buttons
   // under it on screen.
@@ -158,8 +180,22 @@ const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
   };
 
   const onUndo = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // At 0 there's nothing to take back (and nothing is recorded).
+    if (player.gameScore <= 0) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     decrementScore(playerId);
+    shake.value = withSequence(
+      withTiming(-SHAKE_PX, { duration: SHAKE_STEP_MS }),
+      withTiming(SHAKE_PX, { duration: SHAKE_STEP_MS }),
+      withTiming(-SHAKE_PX * 0.6, { duration: SHAKE_STEP_MS }),
+      withTiming(SHAKE_PX * 0.6, { duration: SHAKE_STEP_MS }),
+      withTiming(0, { duration: SHAKE_STEP_MS }),
+    );
+    flash.value = withSequence(
+      withTiming(1, { duration: 60 }),
+      withTiming(0, { duration: HIT_COLOR_MS, easing: Easing.out(Easing.quad) }),
+    );
+    onHit?.();
   };
 
   return (
@@ -172,13 +208,12 @@ const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
         accessibilityLabel={`Remove a point from ${player.name}`}
         className="active:opacity-80"
       >
-        <Text
-          className={`font-mono leading-none text-ink-primary ${
-            landscape ? 'text-[80px]' : 'text-[150px]'
-          }`}
+        <Animated.Text
+          style={numeralStyle}
+          className={`font-mono leading-none ${landscape ? 'text-[80px]' : 'text-[150px]'}`}
         >
           {player.gameScore}
-        </Text>
+        </Animated.Text>
       </Pressable>
 
       <View className={`flex-row gap-3 ${landscape ? 'mt-2' : 'mt-7'}`}>

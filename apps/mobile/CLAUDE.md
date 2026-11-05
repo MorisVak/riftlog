@@ -502,6 +502,14 @@ game counter, nothing taking board space from either player:
   hexagons, pause and ✕. Both halves use the wider side safe-area inset so they
   stay mirror images, clear of the notch. Layout reads `useWindowDimensions`
   (`width > height`), not the orientation API.
+- **Each half shows its player's legend** behind it (`LegendBackground` in
+  `components/trackingField.tsx`): the face crop under a 60% `background`
+  layer and a vignette, turning with the half so it faces its player; the
+  score and buttons stay the focus. The player's name is larger and bold on
+  a soft pill. **Taking a point back plays a "hit"**: the half flashes red
+  (`useHit`), the numeral shakes and flashes `loss-text`
+  (`scoringComponent.tsx`), with a heavy haptic, so a take-back feels
+  different from a point scored. At 0 a tap does nothing (and plays nothing).
 - **Game-start intro** (`components/gameStartIntro.tsx`, over `PlayField`):
   a versus animation — both **legends** slide in from the sides (yours from
   the left) and meet at a slanted cut, like the match detail's banner; "VS"
