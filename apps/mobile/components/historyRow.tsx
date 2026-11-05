@@ -169,18 +169,14 @@ const HistoryRow = ({
         </View>
       </View>
 
-      {/* On a dark pill over the legend art, so it reads on any art. */}
+      {/* The score on a dark pill over the legend art, so it reads on any
+          art. No date: History groups the rows under a heading per day. */}
       <View
-        className={`items-end ${
-          vm.yourLegend
-          ? 'my-3 rounded-md bg-background/70 px-1.5 py-0.5'
-          : 'py-3'
-        }`}
+        className={
+          vm.yourLegend ? 'my-3 rounded-md bg-background/70 px-1.5 py-0.5' : 'py-3'
+        }
       >
         <Text className={`font-mono text-[15px] ${r.text}`}>{vm.score}</Text>
-        <Text className="mt-0.5 text-[11px] text-ink-secondary">
-          {vm.date}
-        </Text>
       </View>
 
       {/* Opens the match detail; no chevron while selecting. */}

@@ -43,6 +43,8 @@ export type HistoryRowVM = {
   format: 'BO1' | 'BO3';
   score: string;
   date: string;
+  /** When the match ended (ISO) — what History groups by. */
+  endedAt: string;
   games: HistoryGameVM[];
   /** Clock summary for a timed match; null when the match was untimed. */
   timer: HistoryTimerVM | null;
@@ -191,6 +193,7 @@ export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
       month: 'short',
       day: 'numeric',
     }),
+    endedAt: m.ended_at,
     games,
     timer,
     deck: m.deck
@@ -203,4 +206,64 @@ export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
         }
       : null,
   };
+}
+
+/** One day of History: its heading, that day's record, and its matches. */
+export type HistoryDayVM = {
+  key: string;
+  /** "Today", "Yesterday", or e.g. "Wed, Nov 5" ("…, 2025" in another year). */
+  title: string;
+  /** e.g. "3 wins · 1 loss" — only the results that happened that day. */
+  record: string;
+  data: HistoryRowVM[];
+};
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/**
+ * Groups rows (newest first) by the local day they ended, keeping the order.
+ * A day's record is your own results that day — Riot-policy safe.
+ */
+export function groupByDay(vms: HistoryRowVM[], now: Date = new Date()): HistoryDayVM[] {
+  const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  const today = dayKey(now);
+  const y = new Date(now);
+  y.setDate(y.getDate() - 1);
+  const yesterday = dayKey(y);
+
+  const days: HistoryDayVM[] = [];
+  for (const vm of vms) {
+    const d = new Date(vm.endedAt);
+    const key = dayKey(d);
+    let day = days.at(-1);
+    if (!day || day.key !== key) {
+      const title =
+        key === today
+          ? 'Today'
+          : key === yesterday
+            ? 'Yesterday'
+            : d.toLocaleDateString(undefined, {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                ...(d.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}),
+              });
+      day = { key, title, record: '', data: [] };
+      days.push(day);
+    }
+    day.data.push(vm);
+  }
+  for (const day of days) {
+    const w = day.data.filter((v) => v.result === 'win').length;
+    const l = day.data.filter((v) => v.result === 'loss').length;
+    const dr = day.data.length - w - l;
+    day.record = [
+      w > 0 ? plural(w, 'win', 'wins') : null,
+      l > 0 ? plural(l, 'loss', 'losses') : null,
+      dr > 0 ? plural(dr, 'draw', 'draws') : null,
+    ]
+      .filter((part) => part !== null)
+      .join(' · ');
+  }
+  return days;
 }

@@ -17,8 +17,9 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
     avatar) so settings are in plain sight.
   - `(tabs)/index.tsx` — Home; also hosts the whole match flow by `phase`
   - `(tabs)/history.tsx` — match history (account-gated)
-  - `(tabs)/decks.tsx` — your decks ("Decks": count, Select, Import deck,
-    search + sort, swipe / multi-select delete) (account-gated)
+  - `(tabs)/decks.tsx` — your decks: the title row carries Select and
+    Import (as History's carries Select), then search + sort, rows with
+    swipe / multi-select delete (account-gated)
   - `(tabs)/profile.tsx` — profile header, sign out, default deck, Feedback,
     Riot's statements (account-gated)
   - `login.tsx` / `verify-otp.tsx` — modal auth routes
@@ -940,6 +941,12 @@ Rules that are easy to get wrong:
 - **Home's preview row mirrors the History row.** Both render the same
   `HistoryRowVM` and share `components/matchMeta.tsx` for the format + clock
   line, so they can't drift. Home's copy just drops the swipe-delete.
+- **History is grouped by day** (`groupByDay` in `lib/historyView.ts`, a
+  `SectionList`): a heading per day — "Today", "Yesterday", "Tue, Nov 3"
+  (with the year when it isn't this one) — and that day's record on the
+  right ("3 wins · 1 loss", only results that happened). A tournament day
+  reads as one block, so History's rows don't repeat the date (Home's
+  preview rows still show it). The filter chips are 36pt tall.
 - **Tapping a match row — History or Home — opens the match detail**
   (`/matches/[id]`). There is no inline expansion: it was tried in several
   forms and read as clutter that duplicated the detail screen, and animating

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
+  SectionList,
   Pressable,
   Text,
   TouchableOpacity,
@@ -24,7 +24,7 @@ import {
   fetchMatchHistory,
   type MatchWithGames,
 } from '@/lib/matchPersistence';
-import { toHistoryRowVM, type HistoryRowVM } from '@/lib/historyView';
+import { groupByDay, toHistoryRowVM, type HistoryRowVM } from '@/lib/historyView';
 import HistoryRow from '@/components/historyRow';
 import AuthGate from '@/components/authGate';
 import { useAuth } from '@/contexts/authContext';
@@ -75,12 +75,15 @@ const FilterChip = ({
 }) => (
   <Pressable
     onPress={onPress}
-    className={`rounded-full border px-3.5 py-1.5 ${
+    accessibilityRole="button"
+    accessibilityState={{ selected: active }}
+    hitSlop={{ top: 6, bottom: 6 }}
+    className={`h-9 justify-center rounded-full border px-4 ${
       active ? 'border-accent bg-accent' : 'border-border bg-surface'
     }`}
   >
     <Text
-      className={`font-display text-[13px] font-semibold ${
+      className={`font-display text-[14px] font-semibold ${
         active ? 'text-background' : 'text-ink-secondary'
       }`}
     >
@@ -281,6 +284,7 @@ const History = () => {
     () => vms.filter((vm) => matches(vm, filter)),
     [vms, filter],
   );
+  const sections = useMemo(() => groupByDay(visible), [visible]);
 
   const openMatch = useCallback((id: string) => router.push(`/matches/${id}`), []);
 
@@ -367,21 +371,30 @@ const History = () => {
     );
   } else {
     body = (
-      <FlatList
-        data={visible}
-        // Rows read selection state that isn't in `data`.
+      <SectionList
+        sections={sections}
+        // Rows read selection state that isn't in `sections`.
         extraData={selection}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
-          paddingTop: topPad,
+          // The first day's heading brings its own top space.
+          paddingTop: topPad - 12,
           paddingHorizontal: 16,
           paddingBottom: 24,
         }}
+        stickySectionHeadersEnabled={false}
         ItemSeparatorComponent={() => <View className="h-2" />}
+        // One heading per day: the matches chunk into sessions (a tournament
+        // reads as one block), and the rows needn't repeat the date.
+        renderSectionHeader={({ section }) => (
+          <View className="flex-row items-baseline justify-between px-0.5 pb-2 pt-5">
+            <Text className="font-display-bold text-[15px] text-ink-primary">{section.title}</Text>
+            <Text className="text-[12px] text-ink-tertiary">{section.record}</Text>
+          </View>
+        )}
         showsVerticalScrollIndicator={false}
         // Each row carries legend art: keep only a few screens of rows
-        // mounted (the default is ~21 screens — every row), so expanding
-        // one, which moves the rows below every frame, stays smooth.
+        // mounted (the default is ~21 screens — every row).
         initialNumToRender={10}
         maxToRenderPerBatch={8}
         windowSize={5}
