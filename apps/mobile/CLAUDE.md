@@ -494,8 +494,7 @@ game counter, nothing taking board space from either player:
   match screens, which unlock rotation (`expo-screen-orientation`); it re-locks
   once the match is over. Never unlock it for menus. The between-games screen
   puts the result and the actions side by side in landscape, with its two
-  clocks in opposite corners; the note editor's modal allows landscape so
-  opening it doesn't spin the screen. In landscape the players sit at the long sides: each half keeps the
+  clocks in opposite corners. In landscape the players sit at the long sides: each half keeps the
   numeral over its buttons (the numeral shrinks to 80px to fit), the name sits
   in one corner and **each player gets their own clock** in the other corner
   (END under yours) — a single clock on the divider only faces one of them, so
@@ -537,8 +536,10 @@ Conventions:
   score between them — and the date / clock. Below, one rhythm: section
   label, one grouped card. **Games** is a single card with a line per game
   (`gameCard.tsx`: "G n", scores, a bar, W/L/D), **Deck** a tappable card
-  with your legend's art and an "Older version" chip when edited since (a
-  chip, not a sentence), **Notes** a single card of in-place note fields.
+  that looks like a deck, not a match row (the legend as a small upright
+  card, the deck name with an "Older version" chip when edited since, the
+  legend's name with its domains, "Decklist ›"), **Notes** a single card of
+  in-place note fields.
   The per-game bars (fill = your share of points, `pointShare` in core) that
   expand into a score graph (`components/match/scoreGraph.tsx`, step lines
   drawn from plain Views — no SVG dependency), and your deck. The graph uses
@@ -551,18 +552,19 @@ Conventions:
   direct-labeled with their final score, and the legend explains the action
   colors.
   The VM builds on `toHistoryRowVM` so History and the detail can't disagree.
-- **Notes** (`Game.notes`, `Match.notes`). On the **match detail** they're
-  written **in place** — `components/match/inlineNote.tsx`: a label and a
-  growing field, saved to Postgres (`updateGameNote` / `updateMatchNote`)
-  when it loses focus, only if changed; a tap on empty space ends editing
-  (`Keyboard.dismiss`, which also covers a hardware keyboard). The
-  between-games and match-complete screens still use the modal editor,
-  `components/match/noteEditor.tsx` (page-sheet `Modal`, Save / Cancel,
-  2000-char counter) with `noteRow.tsx` rows (`setGameNote` /
-  `setMatchNote` in `matchContext`, signed-in only). **A Bo1 has a round
-  note only** — its one game *is* the round, so the match-complete screen
-  and the match detail hide the game note (the detail still shows one that
-  an older Bo1 already has). Text is stored via core's `normalizeNote` (trimmed,
+- **Notes** (`Game.notes`, `Match.notes`) are **written in place
+  everywhere** — `components/match/inlineNote.tsx`: a label and a growing
+  field, saved when it loses focus and only if changed. No modal editor
+  (it was removed). On the **match detail** they save to Postgres
+  (`updateGameNote` / `updateMatchNote`); on the **between-games** screen
+  (in a small card, the screen shifts up for the keyboard) and the
+  **match-complete** screen they go through `setGameNote` / `setMatchNote` in
+  `matchContext` (signed-in only). Each screen ends editing on a tap on
+  empty space (`Keyboard.dismiss`, which also covers a hardware keyboard);
+  on match-complete a tap on Done first just closes the keyboard, so a note
+  is never lost. **A Bo1 has a round note only** — its one game *is* the
+  round, so the match-complete screen and the match detail hide the game
+  note (the detail still shows one that an older Bo1 already has). Text is stored via core's `normalizeNote` (trimmed,
   blank → null). **The match is already saved when the match-complete screen
   shows**, so `MatchSync` re-syncs a settled match whenever its notes change
   (`notesKey`), and every completed-match write goes through one promise
