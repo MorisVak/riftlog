@@ -200,7 +200,9 @@ copy, `--limit N` for a trial; resumable. The importer never touches
 `storage_path`, so re-imports keep the art.
 
 **Adding new cards later** (a new set, spoilers once Riftcodex or the gallery
-has them): dry-run the import, `--apply`, then `pnpm catalog:images --apply`.
+has them): dry-run the import, `--apply`, then `pnpm catalog:images --apply`,
+then `pnpm catalog:legend-focus --sheet <png>` for new legends' backdrop crops
+(check the sheet, commit the JSON).
 
 **Importer** (details in `tools/catalog-import/CLAUDE.md`):
 

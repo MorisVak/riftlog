@@ -15,6 +15,7 @@
     "db:push:prod": "pnpm dlx supabase db push --remote",
     "catalog:import": "pnpm --filter @riftlog/catalog-import run import",
     "catalog:images": "pnpm --filter @riftlog/catalog-import run images",
+    "catalog:legend-focus": "swift tools/catalog-import/legend-focus.swift",
     "db:types": "{ printf '%s\\n' '// GENERATED FILE — DO NOT EDIT.' '// Regenerate with: pnpm db:types (Supabase linked schema, see supabase/migrations).' ''; pnpm dlx supabase gen types typescript --linked; } > packages/core/src/db/database.types.ts",
     "clean": "pnpm -r exec rm -rf node_modules dist .expo .turbo && rm -rf node_modules",
     "test": "pnpm -r --if-present test"

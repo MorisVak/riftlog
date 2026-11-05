@@ -5,6 +5,7 @@ import { deckDomains } from '@riftlog/core';
 import type { Deck } from '@/lib/decks';
 import { DomainChips } from '@/components/deck/domain';
 import Icon from '@/components/icon';
+import { CardBackdrop } from '@/components/deck/cardArt';
 import SwipeToDelete from '@/components/swipeToDelete';
 import { SelectionGutter } from '@/components/selectCheck';
 
@@ -101,12 +102,15 @@ const DeckRow = ({
               }}
               delayLongPress={350}
               // Opaque on purpose: the red action sits behind this card.
-              className={`flex-row items-center gap-3 px-4 py-3.5 active:bg-elevated ${
+              className={`relative flex-row items-center gap-3 overflow-hidden px-4 py-3.5 active:bg-elevated ${
                 selected ? 'bg-elevated' : 'bg-surface'
               }`}
             >
+              {deck.list.legend && (
+                <CardBackdrop card={deck.list.legend} fill={selected ? 'elevated' : 'surface'} />
+              )}
               <View className="flex-1">
-                <View className="flex-row items-baseline justify-between gap-2">
+                <View className="flex-row items-center justify-between gap-2">
                   <View className="flex-1 flex-row items-center gap-2">
                     <Text
                       className="flex-shrink font-display-bold text-[15px] text-ink-primary"
@@ -122,9 +126,12 @@ const DeckRow = ({
                       </View>
                     )}
                   </View>
-                  <Text className="font-mono-medium text-[11px] text-ink-tertiary">
-                    {shownDate}
-                  </Text>
+                  {/* On a pill: it sits over the legend's art. */}
+                  <View className="rounded-md bg-background/70 px-1.5 py-0.5">
+                    <Text className="font-mono-medium text-[11px] text-ink-secondary">
+                      {shownDate}
+                    </Text>
+                  </View>
                 </View>
                 <Text
                   className="mt-0.5 text-[13px] text-ink-secondary"

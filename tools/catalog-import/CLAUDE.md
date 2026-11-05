@@ -18,6 +18,7 @@ From the repo root:
     pnpm catalog:import --source gallery --only-set RAD --from-snapshot .cache/gallery-<ts>.html
     pnpm catalog:images                            # card art: what would be copied
     pnpm catalog:images --apply [--limit N]        # copy art into the bucket
+    pnpm catalog:legend-focus [--sheet out.png]    # legend backdrop crops (macOS)
 
 Paths are relative to where you run the command. The script is invoked with
 `pnpm --filter … run import` because `import` is also a pnpm command.
@@ -89,3 +90,18 @@ overnumbered).
 `pnpm --filter @riftlog/catalog-import test` — Vitest on a small real sample
 (`src/__fixtures__/riftcodex-sample.json`): mapping, overrides, base printing,
 promo parents, rich text, plan rules, snapshots.
+
+## Legend backdrop crops
+
+`legend-focus.swift` (run with `pnpm catalog:legend-focus`; macOS only, it
+uses Apple's Vision framework — nothing to install) works out where each
+legend printing's art is cropped as a deck card's backdrop in the app, and
+writes `apps/mobile/lib/legendArtFocus.json` (commit it). Per printing: the
+largest face in the illustration (retried on the illustration alone at 2×),
+else an upper body's head, else the most eye-catching area, else a default.
+It reads public data only (publishable key from `apps/mobile/.env`, art from
+the public bucket). `--sheet out.png` draws every crop on one contact sheet —
+look at it after a run. Fix a bad crop in
+`apps/mobile/lib/legendArtFocus.manual.json` (same shape, `source: "manual"`).
+Re-run after adding a set with new legends; until then they get the default
+crop.
