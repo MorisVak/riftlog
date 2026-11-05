@@ -67,12 +67,6 @@ const defaultDeckName = (legendName: string | undefined): string =>
 const legendKey = (list: DeckList): string | null =>
   list.legend ? normalizeCardName(list.legend.name) : null;
 
-/** What a pasted deck code turned into. */
-type CodeResult =
-  | { kind: 'ok'; parsed: ParsedDeck }
-  | { kind: 'no_catalog' }
-  | { kind: 'error'; error: 'invalid' | 'newer_format' };
-
 const CODE_MESSAGES: Record<'no_catalog' | 'invalid' | 'newer_format', string> = {
   no_catalog:
     "The card catalog hasn't loaded yet, and it's needed to sort a deck code. Connect to the internet and try again.",
@@ -81,29 +75,28 @@ const CODE_MESSAGES: Record<'no_catalog' | 'invalid' | 'newer_format', string> =
 };
 
 /**
- * Import a deck by pasting a plain-text decklist (Piltover Archive →
- * Export → Text) or a deck code. Parsing is live and local; the one write is
- * `createDeck`, which saves the deck and its first immutable version.
+ * Import a deck, or with a `deckId` param edit one's list — one screen, one
+ * way to do it in both: a decklist box (Piltover Archive → Export → Text),
+ * and an "Import deck code" button above it that opens a code field. A good
+ * code (typed, pasted there, or pasted into the decklist box) fills the box
+ * with the list it stands for, sorted by the card catalog's types
+ * (`deckListFromCode`; printings the catalog doesn't know go to an
+ * "Unsorted" section), and the code stays visible. Parsing is live and local.
  *
- * A deck code is recognised by its shape whichever tab is picked (the tabs
- * only change the hints). It carries printings without sections, so it's
- * sorted by the card catalog's types (`deckListFromCode`); printings the
- * catalog doesn't know go to an "Unsorted" section. It's saved with
- * import_source 'piltover_code' and the code itself.
+ * Text carries names only, so on save every card gets its printing back
+ * (`withPrintingsFrom`): from the pasted code first, else (editing) from the
+ * deck as it was — a text edit doesn't drop alt arts; only new cards get the
+ * base printing.
  *
- * With a `deckId` param the same screen EDITS that deck's list: the box
- * starts with the current list as text (`formatDeckText`), so changing a
- * couple of cards is editing a line, and a whole new list is Clear + paste.
- * Saving goes through `updateDeckList`, which adds a new immutable version —
- * matches already played keep the list they were played with. The name isn't
- * edited here; the deck screen renames. There are no tabs: "Import deck code"
- * opens a code field above the list; a good code (typed, pasted, or pasted
- * into the list box) fills the box with the list it stands for, and the code
- * stays visible. Text carries names only, so on save every card gets its
- * printing back (`withPrintingsFrom`): from the pasted code first, else from
- * the deck as it was — a text edit no longer drops alt arts; only new cards
- * get the base printing. A list with the same cards but other printings counts
- * as a change. If the legend changes, Save asks first.
+ * Importing saves through `createDeck` (the deck and its first immutable
+ * version); a list that is still exactly a pasted code's is saved with
+ * import_source 'piltover_code' and the code. Editing saves through
+ * `updateDeckList`, a new immutable version — matches already played keep
+ * the list they were played with. The box starts with the current list as
+ * text (`formatDeckText`), so a change is editing a line and a new list is
+ * Clear + paste; the name isn't edited here (the deck screen renames). A list
+ * with the same cards but other printings counts as a change. If the legend
+ * changes, Save asks first.
  */
 const ImportDeck = () => {
   // The preview checks cards against the catalog; make sure it's current.
@@ -115,10 +108,9 @@ const ImportDeck = () => {
   // Edit mode: the list being edited, once loaded ('error' if it couldn't be).
   const [original, setOriginal] = useState<DeckList | 'error' | null>(null);
   const [text, setText] = useState('');
-  // Edit mode: the list from the last deck code put in the box, whose
-  // printings win on save.
+  // The list from the last deck code imported, whose printings win on save.
   const [codeList, setCodeList] = useState<DeckList | null>(null);
-  // Edit mode's "Import deck code" panel: open?, the code, and how it went.
+  // The "Import deck code" panel: open?, the code, and how it went.
   const [codeOpen, setCodeOpen] = useState(false);
   const [codeInput, setCodeInput] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
@@ -127,8 +119,6 @@ const ImportDeck = () => {
   // name", which the field shows as its placeholder.
   const [nameInput, setNameInput] = useState('');
   const [saving, setSaving] = useState(false);
-  // Which hints to show; what the paste IS is decided by its shape.
-  const [mode, setMode] = useState<'text' | 'code'>('text');
   const { index } = useCatalog();
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -154,28 +144,15 @@ const ImportDeck = () => {
   const originalList =
     original !== null && original !== 'error' ? original : null;
 
-  // Edit mode turns a code into its list right away (see applyText), so only
-  // the import screen parses codes here.
-  const isCode = !editing && looksLikeDeckCode(text);
-  const codeResult = useMemo((): CodeResult | null => {
-    if (!isCode) return null;
-    try {
-      const decoded = decodeDeckCode(text);
-      if (!index) return { kind: 'no_catalog' };
-      return { kind: 'ok', parsed: { list: deckListFromCode(decoded, index), diagnostics: [] } };
-    } catch (e) {
-      return { kind: 'error', error: e instanceof DeckCodeError ? e.kind : 'invalid' };
-    }
-  }, [isCode, text, index]);
+  // A code never stays in the box: applyText turns it into its list.
   const parsed = useMemo((): ParsedDeck | null => {
     if (text.trim() === '') return null;
-    if (isCode) return codeResult?.kind === 'ok' ? codeResult.parsed : null;
     const fromText = parseDeckText(text);
-    if (!editing || original === null || original === 'error') return fromText;
     // Give every card its printing back: the pasted code's, else the deck's.
     const fromCode = codeList ? withPrintingsFrom(fromText.list, codeList) : fromText.list;
-    return { ...fromText, list: withPrintingsFrom(fromCode, original) };
-  }, [text, isCode, codeResult, editing, original, codeList]);
+    const list = originalList ? withPrintingsFrom(fromCode, originalList) : fromCode;
+    return { ...fromText, list };
+  }, [text, codeList, originalList]);
   const sourceLines = useMemo(() => text.split(/\r\n|\r|\n/), [text]);
 
   const defaultName = defaultDeckName(parsed?.list.legend?.name);
@@ -222,7 +199,7 @@ const ImportDeck = () => {
   };
 
   /**
-   * Edit mode: read a deck code and, if it's good, fill the decklist box with
+   * Read a deck code and, if it's good, fill the decklist box with
    * the list it stands for (its printings kept for the save). The code stays
    * in its own field, so it's clear what was imported.
    */
@@ -252,9 +229,9 @@ const ImportDeck = () => {
     }
   };
 
-  /** Put text in the decklist box; editing, a code pasted there goes to the code field. */
+  /** Put text in the decklist box; a code pasted there goes to the code field. */
   const applyText = (t: string) => {
-    if (editing && looksLikeDeckCode(t)) {
+    if (looksLikeDeckCode(t)) {
       setCodeOpen(true);
       importCode(t);
       return;
@@ -307,10 +284,16 @@ const ImportDeck = () => {
         close();
         return;
       }
+      // Still exactly the pasted code's list: record where it came from.
+      const fromCode =
+        codeList !== null &&
+        codeInput.trim() !== '' &&
+        formatDeckText(parsed.list) === formatDeckText(codeList) &&
+        printingsKey(parsed.list) === printingsKey(codeList);
       const id = await createDeck({
         name: trimmedName,
         list: parsed.list,
-        ...(isCode ? { importSource: 'piltover_code' as const, sourceCode: text.trim() } : {}),
+        ...(fromCode ? { importSource: 'piltover_code' as const, sourceCode: codeInput.trim() } : {}),
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       // Leave the modal, then open the saved deck as a normal screen.
@@ -358,41 +341,6 @@ const ImportDeck = () => {
             </Text>
           )}
 
-          {/* Which hints to show. A pasted code is recognised either way. */}
-          {!editing && (
-            <View className="mb-4 flex-row gap-2">
-              {(
-                [
-                  { key: 'text', icon: 'file-text', label: 'Text' },
-                  { key: 'code', icon: 'hash', label: 'Deck code' },
-                ] as const
-              ).map((o) => {
-                const on = mode === o.key;
-                return (
-                  <TouchableOpacity
-                    key={o.key}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: on }}
-                    accessibilityLabel={o.label}
-                    onPress={() => {
-                      if (on) return;
-                      Haptics.selectionAsync();
-                      setMode(o.key);
-                    }}
-                    className={`flex-1 flex-row items-center justify-center gap-2 rounded-xl border py-3 ${
-                      on ? 'border-accent bg-accent/15' : 'border-border bg-surface active:bg-elevated'
-                    }`}
-                  >
-                    <Icon name={o.icon} size={15} className={on ? 'text-accent' : 'text-ink-secondary'} />
-                    <Text className={`font-display text-sm ${on ? 'text-accent' : 'text-ink-secondary'}`}>
-                      {o.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
-
           {!editing && (
             <>
               <Text className="mb-2 font-display text-base text-ink-secondary">
@@ -416,7 +364,7 @@ const ImportDeck = () => {
             </>
           )}
 
-          {editing && !codeOpen && (
+          {!codeOpen && (
             <TouchableOpacity
               accessibilityRole="button"
               onPress={() => {
@@ -430,7 +378,7 @@ const ImportDeck = () => {
             </TouchableOpacity>
           )}
 
-          {editing && codeOpen && (
+          {codeOpen && (
             <View className="mb-5 rounded-2xl border border-border bg-surface p-4">
               <View className="mb-2 flex-row items-center justify-between">
                 <Text className="font-display text-base text-ink-secondary">Deck code</Text>
@@ -486,7 +434,7 @@ const ImportDeck = () => {
 
           <View className="mb-2 flex-row items-center justify-between">
             <Text className="font-display text-base text-ink-secondary">
-              {mode === 'code' && !editing ? 'Deck code' : 'Decklist'}
+              Decklist
             </Text>
             <View className="flex-row gap-3">
               {text !== '' && (
@@ -527,13 +475,7 @@ const ImportDeck = () => {
               setNotice(null);
               applyText(t);
             }}
-            placeholder={
-              loadingOriginal
-                ? 'Loading deck…'
-                : mode === 'code' && !editing
-                  ? 'Paste your deck code here'
-                  : 'Paste your decklist here'
-            }
+            placeholder={loadingOriginal ? 'Loading deck…' : 'Paste your decklist here'}
             editable={!loadingOriginal}
             multiline
             textAlignVertical="top"
@@ -544,18 +486,7 @@ const ImportDeck = () => {
             className="max-h-64 min-h-[160px] rounded-xl border border-border bg-elevated px-4 py-3 font-mono-medium text-[13px] leading-5 text-ink-primary placeholder:text-ink-tertiary"
           />
 
-          {text.trim() === '' && mode === 'code' && !editing && (
-            <View className="mt-4 flex-row gap-2.5 rounded-2xl border border-border bg-surface p-4">
-              <Icon name="info" size={16} className="mt-0.5 text-accent" />
-              <Text className="flex-1 text-[14px] leading-5 text-ink-primary">
-                In Piltover Archive, open the deck and use Export → Deck code,
-                then paste it here. Riftlog sorts the cards using its card
-                catalog.
-              </Text>
-            </View>
-          )}
-
-          {text.trim() === '' && (mode === 'text' || editing) && (
+          {text.trim() === '' && (
             <View className="mt-4 rounded-2xl border border-border bg-surface px-4 py-3.5">
               <Text className="mb-2.5 font-display text-base text-ink-secondary">
                 Expected format
@@ -584,20 +515,6 @@ const ImportDeck = () => {
                   </View>
                 ))}
               </View>
-            </View>
-          )}
-
-          {codeResult !== null && codeResult.kind !== 'ok' && (
-            <View
-              accessible
-              className="mt-4 flex-row gap-2.5 rounded-2xl border border-border bg-surface p-4"
-            >
-              <Icon name="alert-circle" size={16} className="mt-0.5 text-ink-primary" />
-              <Text className="flex-1 text-[14px] leading-5 text-ink-primary">
-                {codeResult.kind === 'no_catalog'
-                  ? CODE_MESSAGES.no_catalog
-                  : CODE_MESSAGES[codeResult.error]}
-              </Text>
             </View>
           )}
 

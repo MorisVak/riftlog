@@ -695,13 +695,17 @@ pushes `/decks/import?deckId=…`, which pre-fills the box with
 `formatDeckText(list)` — tweak a line to change a few cards, or Clear + paste a
 whole new list. Same parser, preview, and error blocking as an import; Save is
 off until the list actually differs (compared as formatted text). The name
-isn't edited there. **No tabs:** one decklist box, and an **"Import deck
+isn't edited there. **Import and Edit list work the same way — one way to do
+it, no tabs:** one decklist box, and an **"Import deck
 code"** button above it that opens a code field (Paste, close). A good code —
 typed, pasted there, or pasted into the decklist box — fills the box with the
 list it stands for; the code stays visible with "Decklist updated from this
-code.", or a plain error. Text carries names only, so on save each
+code.", or a plain error. A code never stays in the decklist box. Text
+carries names only, so on save each
 card gets its printing back (`withPrintingsFrom`): the pasted code's first,
-else the deck's previous one; only new cards get the base printing. Same
+else (editing) the deck's previous one; only new cards get the base printing.
+An import whose list is still exactly the code's is saved with
+`import_source = 'piltover_code'` and the code. Same
 cards with other printings count as a change. If the legend differs, Save
 asks first ("Change the legend?"). The deck screen re-reads on focus, quietly once shown, so
 it reflects the edit on return.
@@ -782,8 +786,8 @@ set even while selecting: if it disappears mid-press (the long-press is what
 enters selection mode), the release counts as a tap and deselects the row. Name rules live in `DECK_NAME_MAX` / `isValidDeckName`. Parsing is local and pure
 (`parseDeckText` in `@riftlog/core`); the import screen shows each diagnostic
 inside its section and blocks saving only on errors, never on count warnings.
-Pasted deck codes are detected (`looksLikeDeckCode`) and get a pointer to the
-text export — decoding isn't built.
+Deck codes are recognised by shape (`looksLikeDeckCode`) and decoded with
+`decodeDeckCode` + `deckListFromCode` (see "Editing a list" above).
 
 **History rows** (`lib/historyView.ts` → `components/historyRow.tsx`). The
 view-model is the single place row display is decided; keep the components dumb.
