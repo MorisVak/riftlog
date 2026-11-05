@@ -124,7 +124,10 @@ const CardTile = ({ tile, width, section }: { tile: Tile; width: number; section
         <View className="absolute left-1.5 top-1.5 flex-row gap-1">
           {chosen && (
             <View className="rounded-full bg-chosen-tint px-1.5 py-0.5">
-              <Text className="font-display text-[10px] text-chosen">Chosen</Text>
+              {/* Spelled out: "Chosen" alone didn't say chosen *what*. */}
+              <Text className="font-display text-[10px] text-chosen" numberOfLines={1}>
+                Chosen champion
+              </Text>
             </View>
           )}
           {label && (

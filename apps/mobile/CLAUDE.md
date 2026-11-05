@@ -130,7 +130,7 @@ family: a deck edit isn't a result or a scoring action.
 
 **Chosen champion** — `chosen` (gold) and `chosen-tint`: the gold frame on
 the chosen champion's art in the decklist (list and gallery) plus its gold
-"Chosen" chip (`CardRow` / `CardGrid` `chosen`, `CardArt` `chosen`). Its own
+"Chosen champion" chip, spelled out (`CardRow` / `CardGrid` `chosen`, `CardArt` `chosen`). Its own
 token: gold elsewhere means a draw (result) or a hold (scoring action).
 
 **Domains** — `domain-{fury,calm,mind,body,chaos,order}` (base) and
@@ -900,7 +900,7 @@ chips (`LayoutSwitch` in `deckView.tsx`, state per visit — not persisted).
 Gallery draws every section as a 3-column grid (`cardGrid.tsx`, width
 measured with `onLayout`) of `CardArt` `tile`s — today a card-shaped
 placeholder that names the card — with a "×n" badge bottom-right and the
-chosen champion first, tagged "Chosen", as on Piltover Archive. Show changes
+chosen champion first, tagged "Chosen champion", as on Piltover Archive. Show changes
 works in both layouts (gallery: tinted badge + label, cut cards faded).
 
 **Version history.** The deck screen loads every version with the deck

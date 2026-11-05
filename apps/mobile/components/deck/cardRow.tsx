@@ -11,7 +11,7 @@ export type CardChange = { before: number; after: number };
 
 type CardRowProps = {
   card: CardRef;
-  /** The chosen champion: gold frame on the art and a "Chosen" chip. */
+  /** The chosen champion: gold frame on the art and a "Chosen champion" chip. */
   chosen?: boolean;
   /** Hairline above the row; off for the first row of a section. */
   divider?: boolean;
@@ -121,7 +121,10 @@ const CardRow = ({ card, chosen = false, divider = true, change, section }: Card
       </View>
       {chosen ? (
         <View className="rounded-full bg-chosen-tint px-2 py-0.5">
-          <Text className="font-display text-[11px] text-chosen">Chosen</Text>
+          {/* Spelled out: "Chosen" alone didn't say chosen *what*. */}
+          <Text className="font-display text-[11px] text-chosen" numberOfLines={1}>
+            Chosen champion
+          </Text>
         </View>
       ) : null}
       {change ? (
