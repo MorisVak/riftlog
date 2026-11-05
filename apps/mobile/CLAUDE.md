@@ -393,7 +393,8 @@ on its face and zoomed past the card frame and the domain-icon column
 (`tint`: a `mixBlendMode: 'color'` layer of `bg-win` / `bg-loss` / `bg-draw`
 at 35% — never alone: the letter badge and result bar stay), under a scrim
 that's darkest behind the text on the left and at the right edge (score
-pill, chevron). With one legend known it's that one across the row. A press
+pill, chevron), plus a soft dark pill hugging the title and meta line. With
+one legend known it's that one across the row. A press
 lays the overlay. With no name typed the row reads "vs Kennen" (a typed
 name: "vs Alex · Kennen"; a blank name is stored as the default
 "Opponent", which counts as none). Only your own matches are ever read

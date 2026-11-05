@@ -252,22 +252,31 @@ const HistoryRow = ({
                     </View>
 
                     <View className="flex-1 py-3">
-                      {/* "vs" prefix so the single name reads as the opponent, never
-                          as your own. */}
-                      <Text
-                        className="font-display text-[15px] font-semibold text-ink-primary"
-                        numberOfLines={1}
+                      {/* A soft dark pill hugging the text over the legend art. */}
+                      <View
+                        className={
+                          vm.opponentLegend || vm.yourLegend
+                            ? '-ml-2 max-w-full self-start rounded-lg bg-background/55 px-2 py-1'
+                            : ''
+                        }
                       >
-                        <Text className="font-normal text-ink-secondary">vs </Text>
-                        {vm.opponent}
-                        {vm.opponentChampion && (
-                          <Text className="font-normal text-ink-secondary">
-                            {' · '}
-                            {vm.opponentChampion}
-                          </Text>
-                        )}
-                      </Text>
-                      <MatchMeta vm={vm} />
+                        {/* "vs" prefix so the single name reads as the opponent, never
+                            as your own. */}
+                        <Text
+                          className="font-display text-[15px] font-semibold text-ink-primary"
+                          numberOfLines={1}
+                        >
+                          <Text className="font-normal text-ink-secondary">vs </Text>
+                          {vm.opponent}
+                          {vm.opponentChampion && (
+                            <Text className="font-normal text-ink-secondary">
+                              {' · '}
+                              {vm.opponentChampion}
+                            </Text>
+                          )}
+                        </Text>
+                        <MatchMeta vm={vm} />
+                      </View>
                     </View>
 
                     {/* On a dark pill over the legend art, so it reads on any art. */}

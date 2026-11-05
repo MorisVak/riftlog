@@ -52,21 +52,30 @@ const RecentMatchRow = ({ vm, onPress }: Props) => {
             </View>
 
             <View className="ml-3 flex-1">
-              {/* "vs" prefix, same as the History row: the name is the opponent. */}
-              <Text
-                className="font-display text-[15px] font-semibold text-ink-primary"
-                numberOfLines={1}
+              {/* A soft dark pill hugging the text over the legend art. */}
+              <View
+                className={
+                  vm.opponentLegend || vm.yourLegend
+                    ? 'max-w-full self-start rounded-lg bg-background/55 px-2 py-1'
+                    : ''
+                }
               >
-                <Text className="font-normal text-ink-secondary">vs </Text>
-                {vm.opponent}
-                {vm.opponentChampion && (
-                  <Text className="font-normal text-ink-secondary">
-                    {' · '}
-                    {vm.opponentChampion}
-                  </Text>
-                )}
-              </Text>
-              <MatchMeta vm={vm} />
+                {/* "vs" prefix, same as the History row: the name is the opponent. */}
+                <Text
+                  className="font-display text-[15px] font-semibold text-ink-primary"
+                  numberOfLines={1}
+                >
+                  <Text className="font-normal text-ink-secondary">vs </Text>
+                  {vm.opponent}
+                  {vm.opponentChampion && (
+                    <Text className="font-normal text-ink-secondary">
+                      {' · '}
+                      {vm.opponentChampion}
+                    </Text>
+                  )}
+                </Text>
+                <MatchMeta vm={vm} />
+              </View>
             </View>
 
             <View
