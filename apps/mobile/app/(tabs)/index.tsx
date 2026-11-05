@@ -14,10 +14,10 @@ import BetweenGamesScreen from '@/components/betweenGamesScreen';
 import MatchOverview from '@/components/matchOverview';
 import { SCREEN_ENTER } from '@/components/transitions';
 import MatchSetup from '@/components/matchSetup';
-import RecentMatchRow from '@/components/recentMatchRow';
 import DeckPicker from '@/components/deck/deckPicker';
 import HeroCard, { type HeroDeckState } from '@/components/home/heroCard';
-import FormStrip from '@/components/home/formStrip';
+import LastTenStrip from '@/components/home/lastTenStrip';
+import LastMatchCard from '@/components/home/lastMatchCard';
 import DeckStrip from '@/components/home/deckStrip';
 import { useProfile } from '@/contexts/profileContext';
 import { setDefaultDeck } from '@/lib/profile';
@@ -103,8 +103,7 @@ const Home = () => {
   );
 
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
-  // Two: the form strip above already shows the last ten results.
-  const recent = useMemo(() => vms.slice(0, 2), [vms]);
+  const last = vms[0] ?? null;
 
   // "Default deck": the deck a new match starts with — your default deck (the
   // setup sheet preselects it). Choosing one here sets the default, as on
@@ -202,13 +201,6 @@ const Home = () => {
             </Pressable>
           </View>
 
-          {/* Your form — the last ten results and your record. Your own
-              saved matches, so none for a guest. */}
-          {authed && !loading && error === null && vms.length > 0 && (
-            <View className="mb-2">
-              <FormStrip vms={vms} />
-            </View>
-          )}
           {loading ? (
             <View className="items-center py-10">
               <ActivityIndicator color={ACCENT} />
@@ -219,17 +211,14 @@ const Home = () => {
             <View className="rounded-2xl border border-border bg-surface px-6 py-8">
               <Text className="text-center text-sm text-loss-text">{error}</Text>
             </View>
-          ) : recent.length === 0 ? (
+          ) : !last ? (
             <HistoryEmptyState />
           ) : (
+            // The last ten at a glance (each opens its match), then the
+            // latest one as a versus card.
             <View className="gap-2">
-              {recent.map((vm) => (
-                <RecentMatchRow
-                  key={vm.id}
-                  vm={vm}
-                  onPress={() => router.push(`/matches/${vm.id}`)}
-                />
-              ))}
+              <LastTenStrip vms={vms} onOpen={(id) => router.push(`/matches/${id}`)} />
+              <LastMatchCard vm={last} onOpen={() => router.push(`/matches/${last.id}`)} />
             </View>
           )}
         </Animated.View>

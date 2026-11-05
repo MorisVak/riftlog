@@ -408,7 +408,7 @@ and `p2` the opponent (see the p1-perspective rule below).
 Still deferred: the track-turns control. See the match flow before extending
 it.
 
-**Match rows show your legend.** History and Home's recent matches draw your
+**Match rows show your legend.** History's rows draw your
 legend as the row's backdrop — the same `CardBackdrop` as the deck cards, so
 every legend's face comes out the same size — **untinted**: the result
 already shows in the bar, the letter and the score color, and tinting every
@@ -955,30 +955,33 @@ Rules that are easy to get wrong:
   the hero opens the same deck sheet; choosing sets the default). Without a
   default it says "None chosen" + Choose, with no decks "No decks yet" +
   Import, a guest "Ready to play" — the same card without art. Then **Your
-  matches**: the **form strip** (`components/home/formStrip.tsx`: the last
-  ten results as W/L/D tiles, oldest left, plus record and win rate) above
-  the two newest rows, with "See all"; then **Your decks**
+  matches**: **Last 10** (`components/home/lastTenStrip.tsx`: your last ten
+  results as W/L/D tiles, **newest on the left** — read left to right like
+  the match list — each opening its match, plus your record and win rate
+  labelled "all time") and the **last match** as a versus card
+  (`components/home/lastMatchCard.tsx`: `VersusBanner` at 108pt, the loser
+  dimmed, "Last match · date · format" in the corner, tap to open), with
+  "See all"; then **Your decks**
   (`components/home/deckStrip.tsx`): a sideways row of deck tiles — legend
   face, name, your record with that deck (own matches only), "Default"
   tag — most recently played first, up to eight, ending in an Import tile;
   "See all" opens Decks. So Home reads: play → how it's going → what you
   play with. **Home fits one screen without scrolling** on a 6.1" iPhone
   (852pt) — the owner doesn't want Home to scroll; check the height when
-  adding to it (two recent rows, hero 176pt, deck art 72pt, tight section
+  adding to it (hero 176pt, last match 108pt, deck art 72pt, tight section
   spacing). Smaller phones may scroll a little, so a shade sits behind the
   status bar. No
   profile button: Profile is a tab. (A flat purple CTA, a separate deck
   field and a three-number stats box were merged into the hero and the
-  strip.)
+  strip; recent match rows gave way to Last 10 + the last match card — two
+  rows looked too little, three made Home scroll. "Form" was renamed: it
+  read as misleading.)
 - **The default deck can be set in three places**: Home's hero (Change),
   the deck screen's top bar (**Make default** / **Default** pill beside
   Edit list, `components/deck/defaultDeckToggle.tsx`; tap again to remove;
   not on an earlier version), and Profile. All write
   `profiles.default_deck_id`. It was hard to find with Profile and a plain
   field on Home only.
-- **Home's preview row mirrors the History row.** Both render the same
-  `HistoryRowVM` and share `components/matchMeta.tsx` for the format + clock
-  line, so they can't drift. Home's copy just drops the swipe-delete.
 - **History's filters** (`lib/historyFilter.ts`,
   `components/history/filterSheet.tsx`): under the title, a **search**
   (opponent, deck or legend, yours or theirs) and a **Filter** button with
