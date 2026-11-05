@@ -1,4 +1,4 @@
-import { normalizeNote, type Database, type Match } from '@riftlog/core';
+import { normalizeNote, type CardRef, type Database, type Match } from '@riftlog/core';
 import { supabase } from './supabase';
 import { totalPausedMs } from './clock';
 
@@ -19,6 +19,8 @@ export type MatchDeckRef = {
   versionId: string;
   /** The deck has been edited since: its current list isn't the one played. */
   edited: boolean;
+  /** The legend of the version played (from its list). */
+  legend: CardRef | null;
 };
 
 /** A match row with its games embedded (newest match first; games by index). */
@@ -105,7 +107,9 @@ export async function saveCompletedMatch(match: Match): Promise<void> {
 // version), so PostgREST needs the hint to pick one.
 const HISTORY_COLUMNS =
   '*, games(*), ' +
-  'deck_version:deck_versions!matches_deck_version_fkey(id, ' +
+  // `legend` is just that field of the version's list (a JSON path, not the
+  // whole list): the fallback for matches saved before legends were stored.
+  'deck_version:deck_versions!matches_deck_version_fkey(id, legend:list->legend, ' +
   'deck:decks!deck_versions_deck_id_owner_id_fkey(' +
   'id, name, archived_at, current_version_id))';
 
@@ -113,6 +117,7 @@ type HistoryRow = MatchRow & {
   games: GameRow[];
   deck_version: {
     id: string;
+    legend: CardRef | null;
     deck: {
       id: string;
       name: string;
@@ -134,6 +139,7 @@ const withDeck = ({ deck_version, ...row }: HistoryRow): MatchWithGames => {
             archivedAt: deck.archived_at,
             versionId: deck_version.id,
             edited: deck.current_version_id !== deck_version.id,
+            legend: deck_version.legend ?? null,
           }
         : null,
   };

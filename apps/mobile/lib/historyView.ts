@@ -177,7 +177,8 @@ export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
     opponent: typedName || champion || 'Opponent',
     opponentChampion: typedName && champion ? champion : null,
     opponentLegend,
-    yourLegend: p1?.legend ?? null,
+    // Stored with the match; for older matches, the deck version's legend.
+    yourLegend: p1?.legend ?? m.deck?.legend ?? null,
     format: isBo1 ? 'BO1' : 'BO3',
     score,
     date: new Date(m.ended_at).toLocaleDateString(undefined, {
