@@ -37,7 +37,7 @@ const LastTenStrip = ({
   const pad = Math.max(0, LAST_N - recent.length);
 
   return (
-    <View className={bare ? 'px-4 py-3' : 'rounded-2xl border border-border bg-surface px-4 py-3'}>
+    <View className={bare ? 'px-1' : 'rounded-2xl border border-border bg-surface px-4 py-3'}>
       <View
         accessible
         accessibilityLabel={`Last ${recent.length}: ${wins} wins, ${losses} losses${

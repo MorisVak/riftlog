@@ -959,14 +959,17 @@ Rules that are easy to get wrong:
   results as W/L/D tiles, **newest on the left** — read left to right like
   the match list, no "newest first" label needed — each opening its match,
   plus the record of those ten, e.g. "6–4"; all-time stats wait for the
-  stats section) and then **as many match lines as fit** — all in **one
-  card**: the strip on top (`bare`), the matches as plain lines below it
-  (`components/home/matchLine.tsx`, 56pt: result bar + letter, the face of
-  *their* legend, "vs" name, format · deck, score in the result color, date —
-  **no backdrop art**: art rows repeated your legend line after line and
-  looked busy). The section is `flex-1` and measures itself (heading +
-  strip + borders, then `floor` of whole lines — 3–4 on most phones); the
-  leftover is shared above and below it (`justify-center`), so it reads as
+  stats section) and then **as many match lines as fit** — **one container,
+  two parts**: Last 10 on top (`bare`), the matches below it in their own
+  inset panel (`bg-background`, rounded, inside the `bg-surface` card).
+  Each line (`components/home/matchLine.tsx`, 52pt): result bar + letter,
+  the face of the legend **you** played (as History shows it — the
+  opponent's face was tried and made no sense to the owner), "vs" name,
+  format · deck, score in the result color, date. **No backdrop art**: art
+  rows repeated your legend and looked busy. The section is `flex-1` and
+  measures itself (heading + strip + `CARD_CHROME`, then `floor` of whole
+  lines — 4 on a 6.7" phone); the leftover (under one line) is shared above
+  and below it (`justify-center`), so it reads as
   even spacing, never a gap at the bottom. With
   "See all"; then **Your decks**
   (`components/home/deckStrip.tsx`): a sideways row of deck tiles — legend

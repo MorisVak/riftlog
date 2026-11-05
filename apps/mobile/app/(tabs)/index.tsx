@@ -28,6 +28,9 @@ import { playIntro, useRise } from '@/hooks/useScreenIntro';
 import { useInGameScreen } from '@/hooks/useInGameScreen';
 
 const BACKGROUND = '#0D1B2A'; // for Feather icons inside accent fills
+// The matches container's own height around its content: padding (2 × 12),
+// the gap between Last 10 and the panel (12), and both borders (2 × 2).
+const CARD_CHROME = 40;
 // `background` mirrored for the gradient behind the status bar.
 const STATUS_SHADE = ['#0D1B2A', '#0D1B2A00'] as const;
 const ACCENT = '#8B93D9';
@@ -106,11 +109,14 @@ const Home = () => {
   const last = vms[0] ?? null;
   // How many match rows fit the space Home has left (measured).
   // How many match lines fit: the section's height, less its heading, the
-  // Last 10 strip and the card's borders (2pt), in whole lines.
+  // Last 10 strip and the container's chrome (CARD_CHROME), in whole lines.
   const [matchesH, setMatchesH] = useState(0);
   const [headH, setHeadH] = useState(0);
   const [stripH, setStripH] = useState(0);
-  const linesFit = Math.max(1, Math.floor((matchesH - headH - stripH - 2) / MATCH_LINE_H));
+  const linesFit = Math.max(
+    1,
+    Math.floor((matchesH - headH - stripH - CARD_CHROME) / MATCH_LINE_H),
+  );
 
   // "Default deck": the deck a new match starts with — your default deck (the
   // setup sheet preselects it). Choosing one here sets the default, as on
@@ -206,7 +212,7 @@ const Home = () => {
             so it reads as even spacing between the sections, never as a gap
             at the bottom — and nothing is stretched. */}
         <Animated.View
-          style={[recentStyle, { minHeight: headH + stripH + MATCH_LINE_H + 2 }]}
+          style={[recentStyle, { minHeight: headH + stripH + CARD_CHROME + MATCH_LINE_H }]}
           className="flex-1 justify-center"
           onLayout={(e) => setMatchesH(e.nativeEvent.layout.height)}
         >
@@ -233,13 +239,22 @@ const Home = () => {
           ) : !last ? (
             <HistoryEmptyState />
           ) : (
-            <View className="overflow-hidden rounded-2xl border border-border bg-surface">
+            // One container, two parts: Last 10 on top, the matches in an
+            // inset panel below it.
+            <View className="gap-3 rounded-2xl border border-border bg-surface p-3">
               <View onLayout={(e) => setStripH(e.nativeEvent.layout.height)}>
                 <LastTenStrip bare vms={vms} onOpen={(id) => router.push(`/matches/${id}`)} />
               </View>
-              {vms.slice(0, linesFit).map((vm) => (
-                <MatchLine key={vm.id} vm={vm} onPress={() => router.push(`/matches/${vm.id}`)} />
-              ))}
+              <View className="overflow-hidden rounded-xl border border-border/60 bg-background">
+                {vms.slice(0, linesFit).map((vm, i) => (
+                  <MatchLine
+                    key={vm.id}
+                    vm={vm}
+                    first={i === 0}
+                    onPress={() => router.push(`/matches/${vm.id}`)}
+                  />
+                ))}
+              </View>
             </View>
           )}
         </Animated.View>

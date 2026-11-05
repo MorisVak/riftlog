@@ -14,16 +14,24 @@ const RESULT: Record<Result, { bar: string; badge: string; text: string }> = {
 };
 
 /** A line's height, hairline included — Home counts how many fit. */
-export const MATCH_LINE_H = 56;
+export const MATCH_LINE_H = 52;
 
 /**
- * One match as a line in Home's matches card: result bar + letter, the face
- * of *their* legend (yours is already on the hero), "vs" their name, format
- * and deck, then the score in the result color and the date. No backdrop
- * art — a list of art rows repeated your legend line after line. Tap to
- * open the match.
+ * One match as a line in Home's matches panel: result bar + letter, the face
+ * of the legend *you* played (as History's rows show it), "vs" their name,
+ * format and deck, then the score in the result color and the date. No
+ * backdrop art: a list of art rows looked busy. Tap to open the match.
  */
-const MatchLine = ({ vm, onPress }: { vm: HistoryRowVM; onPress: () => void }) => {
+const MatchLine = ({
+  vm,
+  onPress,
+  first = false,
+}: {
+  vm: HistoryRowVM;
+  onPress: () => void;
+  /** The panel's first line: no hairline above it. */
+  first?: boolean;
+}) => {
   const r = RESULT[vm.result];
   return (
     <Pressable
@@ -33,15 +41,15 @@ const MatchLine = ({ vm, onPress }: { vm: HistoryRowVM; onPress: () => void }) =
       } against ${vm.opponent}, ${vm.date}. Open match`}
       onPress={onPress}
       style={{ height: MATCH_LINE_H }}
-      className="flex-row items-center border-t border-border/60 active:bg-elevated"
+      className={`flex-row items-center active:bg-surface ${first ? '' : 'border-t border-border/60'}`}
     >
       <View className={`w-[3px] self-stretch ${r.bar}`} />
       <View className={`ml-3 h-7 w-7 items-center justify-center rounded-md ${r.badge}`}>
         <Text className={`font-display-bold text-[12px] ${r.text}`}>{vm.letter}</Text>
       </View>
       <View className="ml-3 h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-elevated">
-        {vm.opponentLegend ? (
-          <LegendPortrait card={vm.opponentLegend} />
+        {vm.yourLegend ? (
+          <LegendPortrait card={vm.yourLegend} />
         ) : (
           <Icon name="user" size={14} className="text-ink-tertiary" />
         )}
