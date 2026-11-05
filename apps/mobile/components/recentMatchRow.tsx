@@ -27,7 +27,7 @@ type Props = {
  * expandable per-game detail. Tapping opens the History tab with this match
  * already expanded. Score color always rides alongside the letter badge and
  * left bar. Your legend is the row's backdrop (`CardBackdrop`, as on the deck
- * cards, tinted with the result); the text and the score sit on dark pills.
+ * cards); the text and the score sit on dark pills.
  */
 const RecentMatchRow = ({ vm, onPress }: Props) => {
   const r = RESULT[vm.result];
@@ -35,7 +35,7 @@ const RecentMatchRow = ({ vm, onPress }: Props) => {
   // the overlay, not the art and text (that made taps lag).
   const content = (
     <>
-      {vm.yourLegend && <CardBackdrop card={vm.yourLegend} tint={vm.result} />}
+      {vm.yourLegend && <CardBackdrop card={vm.yourLegend} />}
       <View className={`w-1 self-stretch ${r.bar}`} />
       <View className="min-h-[64px] flex-1 flex-row items-center px-3 py-2">
         <View

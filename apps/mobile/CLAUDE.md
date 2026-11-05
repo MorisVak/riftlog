@@ -393,11 +393,10 @@ it.
 
 **Match rows show your legend.** History and Home's recent matches draw your
 legend as the row's backdrop — the same `CardBackdrop` as the deck cards, so
-every legend's face comes out the same size — tinted with the result
-(`tint`: a plain `bg-win` / `bg-loss` / `bg-draw` wash at 22% — **not** a
-`mixBlendMode`: a blend renders every row offscreen on every frame, and
-expanding a row, which moves all rows below it, lagged visibly; never alone:
-the letter badge and result bar stay), with the title +
+every legend's face comes out the same size — **untinted**: the result
+already shows in the bar, the letter and the score color, and tinting every
+row's art too was clutter (an earlier `mixBlendMode` tint also rendered every
+row offscreen each frame and made expanding lag), with the title +
 meta line and the score on soft dark pills. The legend is the one stored on
 p1 with the match; for matches saved before that, the deck version played
 (`fetchMatchHistory` selects just `list->legend`, no backfill), shown in the
@@ -417,16 +416,22 @@ rendered inside a `Pressable`) in `React.memo`:** NativeWind's css-interop
 then throws "Component is not a function (it is Object)" and the app
 renders a blank white screen.
 
-**The expanded History row** (`components/match/matchRowDetail.tsx`): the
-matchup (your legend vs theirs as small face portraits with names, you
-left — the opponent's legend shows here, not in the title), one tile per
-game (result bar, score you–them, letter), the clock for a timed match, the
-deck as a card with your legend's art ("an earlier version" if edited
-since; opens the list as played), and a full-width "View details". It's
-built only once a row is first opened (`opened` in `HistoryRow`) — closed
-rows stay light — and measured absolutely, so it keeps its natural height
-while the animated container is still 0 tall (`detailH` is a dependency of
-the animated style).
+**The expanded History row** (`components/match/matchRowDetail.tsx`) is
+**flat on purpose** — no boxes, only what the row doesn't already show: a
+thin divider, the matchup on one line (your legend vs theirs as small face
+portraits with the champions' names, you left — the opponent's legend shows
+here, not in the title), the games on one line ("G1 8–5 W", letters in the
+result color), the clock for a timed match, then two text links: "Decklist"
+("(as played)" if edited since) and "Details →". The open row gets a soft
+accent frame (`border-accent/50`; selection mode's full accent stays
+distinct); other rows are **not** dimmed, as that would re-render every row
+per tap. (A richer boxed version — matchup panel, game tiles, a deck card
+with art — read as cluttered and repeated the row; if this one doesn't work
+either, the fallback is dropping the expansion and opening the match detail
+on tap.) It's built only once a row is first opened (`opened` in
+`HistoryRow`) and measured absolutely, so it keeps its natural height while
+the animated container is still 0 tall (`detailH` is a dependency of the
+animated style).
 
 **Legends whose face fills their card** (Vex - Gloomist, Kennen): a crop in
 `lib/legendArtFocus.manual.json` may be wider than the art (`w` > 1) to bring

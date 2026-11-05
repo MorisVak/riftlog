@@ -164,8 +164,6 @@ const CardImage = ({
  * a selected / pressed row (tailwind.config.js). Opaque, clear, and a shade
  * for the right edge — gradient stops can't take a class.
  */
-/** Result colors for `tint` (full class names: NativeWind can't build them). */
-const TINTS = { win: 'bg-win', loss: 'bg-loss', draw: 'bg-draw' } as const;
 
 const FADES = {
   surface: { solid: '#18223A', clear: '#18223A00', shade: '#18223AD9' },
@@ -373,22 +371,14 @@ export const LegendPortrait = ({ card }: { card: CardRef }) => {
 };
 
 type Fill = keyof typeof FADES;
-type Tint = 'win' | 'loss' | 'draw';
-
 /**
- * The layers over backdrop art: the result tint, the fade into the card's
- * fill on the left, and a shade on the right edge for the date and chevron.
+ * The layers over backdrop art: the fade into the card's fill on the left,
+ * and a shade on the right edge for the date and chevron.
  */
-const BackdropOverlays = ({ fill, tint }: { fill: Fill; tint?: Tint }) => {
+const BackdropOverlays = ({ fill }: { fill: Fill }) => {
   const fade = FADES[fill];
   return (
     <>
-      {tint && (
-        // A plain wash of the result's color, not a blend mode: a blend
-        // renders every row offscreen on every frame, which made History
-        // lag when a row expands. Light enough for the art to come through.
-        <View style={{ opacity: 0.22 }} className={`absolute inset-0 ${TINTS[tint]}`} />
-      )}
       <LinearGradient
         colors={[fade.solid, fade.clear]}
         locations={[0.05, 0.75]}
@@ -419,16 +409,10 @@ const BACKDROP_BOX = 'absolute bottom-0 right-0 top-0 overflow-hidden';
 export const CardBackdrop = ({
   card,
   fill = 'surface',
-  tint,
 }: {
   card: CardRef;
   /** The card's background, so the fade meets it seamlessly. */
   fill?: Fill;
-  /**
-   * A match row's result: the art is colored with it. Never the only
-   * signal — the row also has its letter badge and result bar.
-   */
-  tint?: Tint;
 }) => {
   const printing = useArtPrinting(card);
   if (!printing) return null;
@@ -440,11 +424,9 @@ export const CardBackdrop = ({
       className={`${BACKDROP_BOX} w-[70%]`}
     >
       <FocusedArt printing={printing} focusAt={FOCUS_AT} edgeFade={FADES[fill]} />
-      <BackdropOverlays fill={fill} tint={tint} />
+      <BackdropOverlays fill={fill} />
     </View>
   );
 };
-
-
 
 export default CardArt;

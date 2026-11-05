@@ -176,7 +176,6 @@ const HistoryRow = ({
         <CardBackdrop
           card={vm.yourLegend}
           fill={selected ? 'elevated' : 'surface'}
-          tint={vm.result}
         />
       )}
 
@@ -253,7 +252,9 @@ const HistoryRow = ({
           .delay(Math.min(index, 8) * 35)
           .withInitialValues({ transform: [{ translateY: 6 }] })}
         className={`flex-1 overflow-hidden rounded-xl border bg-surface ${
-          selected ? 'border-accent' : 'border-border'
+          // Selected (selection mode): full accent. Open: a softer accent
+          // frame, so the expanded row stands apart from the rest.
+          selected ? 'border-accent' : expanded ? 'border-accent/50' : 'border-border'
         }`}
       >
         {/* Delete action sits BEHIND the card; the card slides left to reveal it. */}
