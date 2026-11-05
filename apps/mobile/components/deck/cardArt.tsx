@@ -149,6 +149,10 @@ const CardImage = ({
           source={{ uri }}
           style={{ width: '100%', height: '100%' }}
           contentFit="cover"
+          // Decoded art stays in memory: a card shown again (a list
+          // scrolled back, a screen revisited) appears at once instead of
+          // being read from disk and decoded again.
+          cachePolicy="memory-disk"
           transition={120}
           recyclingKey={`${printing.code}-${attempt}`}
           onError={() => setAttempt((a) => a + 1)}
@@ -305,14 +309,20 @@ const FocusedArt = ({
   return (
     <View
       className="absolute inset-0 overflow-hidden"
-      onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+      onLayout={(e) => {
+        const { width: w, height: h } = e.nativeEvent.layout;
+        // Only a real change re-renders (a re-layout reports the same size).
+        setBox((cur) => (cur && cur.w === w && cur.h === h ? cur : { w, h }));
+      }}
     >
       {art && uri && (
         <Image
           source={{ uri }}
           style={{ position: 'absolute', ...art, opacity: 0.85 }}
           contentFit="cover"
-          transition={160}
+          // See CardArt: decoded art stays in memory between showings.
+          cachePolicy="memory-disk"
+          transition={120}
           recyclingKey={key}
           onError={onError}
         />
