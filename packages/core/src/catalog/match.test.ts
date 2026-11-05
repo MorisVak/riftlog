@@ -7,7 +7,7 @@ const set = (code: string, released_on: string, id: number | null) =>
   ({ code, name: code, released_on, deck_code_set_id: id, status: 'released' }) as const;
 const card = (id: string, name: string, name_key: string, type: string) => ({
   id, name, name_key, type, supertype: null, domains: [], energy: null, might: null, power: null,
-  current_text: '', status: 'released' as const,
+  tags: [], current_text: '', status: 'released' as const,
 });
 const printing = (code: string, card_id: string, extra: Partial<CatalogPrinting> = {}): CatalogPrinting => ({
   code, card_id, set_code: code.split('-')[0] ?? '', variant: '', alt_art: false, overnumbered: false,

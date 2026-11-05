@@ -1,45 +1,95 @@
 import React from 'react';
-import { Modal, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
-import type { CardRef, Domain } from '@riftlog/core';
+import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import type { CardRef, CatalogCard, CatalogPrinting, Domain } from '@riftlog/core';
 import Icon from '@/components/icon';
 import CardArt from '@/components/deck/cardArt';
 import CardText from '@/components/deck/cardText';
-import { DomainIcons, RuneIcon, asDomain, domainLabel } from '@/components/deck/domain';
+import { DomainChip, RuneIcon, asDomain, domainLabel } from '@/components/deck/domain';
 import RarityIcon from '@/components/deck/rarity';
+import { useCatalog } from '@/contexts/catalogContext';
 import { useCardMatch } from '@/hooks/useCardMatch';
 
 /**
- * A card's details: art (with the flag on), name, type line, stats and the
- * current rules text from the catalog. Opened from any deck surface through
- * `useCardSheet().openCard(card)`.
+ * A card's details as a popup over the current screen: art, name, chips
+ * (type, rarity, domains, tags), a stat row, the rules text and the
+ * printing's details. Opened from any deck surface through
+ * `useCardSheet().openCard(card)`; closes on ✕ or a tap outside.
  */
-const CardSheet = ({ card, onClose }: { card: CardRef | null; onClose: () => void }) => (
-  <Modal visible={card !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-    <View className="flex-1 bg-background">
-      <View className="flex-row items-center justify-between border-b border-border px-4 py-2">
-        <View className="min-w-[72px]" />
-        <Text className="font-display-bold text-[16px] text-ink-primary">Card</Text>
-        <TouchableOpacity
+const CardSheet = ({ card, onClose }: { card: CardRef | null; onClose: () => void }) => {
+  const { width, height } = useWindowDimensions();
+  const popupWidth = Math.min(width - 32, 420);
+  return (
+    <Modal
+      visible={card !== null}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View className="flex-1 items-center justify-center">
+        <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Close card"
           onPress={onClose}
-          className="h-11 min-w-[72px] items-end justify-center"
+          className="absolute inset-0 bg-background/80"
+        />
+        <View
+          style={{ width: popupWidth, maxHeight: height * 0.86 }}
+          className="overflow-hidden rounded-3xl border border-border bg-elevated"
         >
-          <Text className="font-display text-[16px] text-accent">Done</Text>
-        </TouchableOpacity>
+          {card && <CardDetails card={card} artWidth={popupWidth - 48} />}
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            onPress={onClose}
+            hitSlop={8}
+            className="absolute right-3 top-3 h-9 w-9 items-center justify-center rounded-full bg-background/70"
+          >
+            <Icon name="x" size={18} className="text-ink-primary" />
+          </TouchableOpacity>
+        </View>
       </View>
-      {card && <CardDetails card={card} />}
-    </View>
-  </Modal>
+    </Modal>
+  );
+};
+
+const Chip = ({ children, a11y }: { children: React.ReactNode; a11y?: string }) => (
+  <View
+    accessible={a11y !== undefined}
+    accessibilityLabel={a11y}
+    className="flex-row items-center gap-1.5 rounded-full bg-surface px-3 py-1"
+  >
+    {children}
+  </View>
 );
 
-const CardDetails = ({ card }: { card: CardRef }) => {
-  const { width } = useWindowDimensions();
+const ChipText = ({ children }: { children: React.ReactNode }) => (
+  <Text className="font-display text-[13px] text-ink-primary">{children}</Text>
+);
+
+const Heading = ({ children }: { children: React.ReactNode }) => (
+  <Text className="mb-2 font-display text-base text-ink-secondary">{children}</Text>
+);
+
+const Stat = ({ label, a11y, children }: { label: string; a11y: string; children: React.ReactNode }) => (
+  <View accessible accessibilityLabel={a11y} className="flex-1 items-center">
+    <Text className="text-[13px] text-ink-secondary">{label}</Text>
+    <View className="mt-1 h-9 flex-row items-center justify-center gap-1">{children}</View>
+  </View>
+);
+
+const StatNumber = ({ children, muted }: { children: React.ReactNode; muted?: boolean }) => (
+  <Text className={`font-display-bold text-[30px] ${muted ? 'text-ink-tertiary' : 'text-ink-primary'}`}>
+    {children}
+  </Text>
+);
+
+const CardDetails = ({ card, artWidth }: { card: CardRef; artWidth: number }) => {
   const { match } = useCardMatch(card);
-  const artWidth = Math.min(width - 32, 300);
 
   if (!match || match.kind === 'unknown') {
     return (
-      <ScrollView contentContainerClassName="items-center gap-4 px-4 pb-10 pt-6">
+      <ScrollView contentContainerClassName="items-center gap-4 px-6 pb-8 pt-6">
         <CardArt card={card} variant="sheet" width={artWidth} />
         <Text className="text-center font-display-bold text-[22px] text-ink-primary">{card.name}</Text>
         <View className="flex-row items-center gap-2">
@@ -53,74 +103,133 @@ const CardDetails = ({ card }: { card: CardRef }) => {
   }
 
   const { card: info, printing } = match;
-  const typeLine = [info.type, info.supertype, info.domains.join(', ')].filter(Boolean).join(' · ');
   const domains = info.domains.map(asDomain).filter((d): d is Domain => d !== null);
-  const power = info.power ?? 0;
-  const hasCost = info.energy !== null || power > 0;
-  // Spoken: "Cost: 3 energy, 1 Calm or Chaos rune".
-  const runeWords = domains.length > 0 ? domains.map(domainLabel).join(' or ') : 'any';
-  const costLabel = [
-    info.energy !== null ? `${info.energy} energy` : null,
-    power > 0 ? `${power} ${runeWords} rune${power === 1 ? '' : 's'}` : null,
-  ]
-    .filter(Boolean)
-    .join(', ');
 
   return (
-    <ScrollView contentContainerClassName="px-4 pb-10 pt-6">
+    <ScrollView contentContainerClassName="px-6 pb-8 pt-6">
       <View className="items-center">
         <CardArt card={card} variant="sheet" width={artWidth} />
       </View>
-      <Text className="mt-5 font-display-bold text-[22px] leading-7 text-ink-primary">{info.name}</Text>
-      <View className="mt-1 flex-row items-center gap-1.5">
-        <DomainIcons domains={info.domains} size={16} />
-        <Text className="flex-1 font-display text-[14px] text-ink-secondary">{typeLine}</Text>
+      <Text className="mt-5 text-center font-display-bold text-[22px] leading-7 text-ink-primary">
+        {info.name}
+      </Text>
+
+      <View className="mt-4 flex-row flex-wrap justify-center gap-2">
+        <Chip>
+          <ChipText>{[info.supertype, info.type].filter(Boolean).join(' ')}</ChipText>
+        </Chip>
+        {printing?.rarity && (
+          <Chip a11y={`Rarity: ${printing.rarity}`}>
+            <RarityIcon rarity={printing.rarity} size={14} />
+            <ChipText>{printing.rarity}</ChipText>
+          </Chip>
+        )}
+        {domains.map((d) => (
+          <DomainChip key={d} domain={d} />
+        ))}
       </View>
-      {(hasCost || info.might !== null) && (
-        <View className="mt-4 flex-row gap-8">
-          {hasCost && (
-            <View accessible accessibilityLabel={`Cost: ${costLabel}`} className="items-start">
-              <View className="h-7 flex-row items-center gap-1.5">
-                {info.energy !== null && (
-                  <Text className="font-display-bold text-[24px] text-ink-primary">{info.energy}</Text>
-                )}
-                {Array.from({ length: power }, (_, i) => (
-                  <RuneIcon key={i} domains={domains} size={22} />
-                ))}
-              </View>
-              <Text className="mt-0.5 text-[12px] text-ink-tertiary">Cost</Text>
+      {info.tags.length > 0 && (
+        <View className="mt-2 flex-row flex-wrap justify-center gap-2">
+          {info.tags.map((t) => (
+            <View key={t} className="rounded-md border border-border px-2 py-0.5">
+              <Text className="text-[12px] text-ink-secondary">{t}</Text>
             </View>
-          )}
-          {info.might !== null && (
-            <View accessible accessibilityLabel={`Might: ${info.might}`} className="items-start">
-              <View className="h-7 justify-center">
-                <Text className="font-display-bold text-[24px] text-ink-primary">{info.might}</Text>
-              </View>
-              <Text className="mt-0.5 text-[12px] text-ink-tertiary">Might</Text>
-            </View>
-          )}
+          ))}
         </View>
       )}
+
+      <Stats info={info} domains={domains} />
+
       {match.kind === 'conflict' && (
-        <View className="mt-3 flex-row items-start gap-2 rounded-xl bg-surface p-3">
+        <View className="mt-4 flex-row items-start gap-2 rounded-xl bg-surface p-3">
           <Icon name="alert-triangle" size={14} className="mt-0.5 text-ink-primary" />
           <Text className="flex-1 text-[13px] leading-5 text-ink-primary">
             Listed as “{match.listedAs}”, but its code is this card.
           </Text>
         </View>
       )}
-      <View className="mt-4 rounded-2xl border border-border bg-surface p-4">
-        <CardText text={info.current_text} />
-      </View>
-      {printing && (
-        <View className="mt-3 flex-row items-center gap-1.5">
-          <RarityIcon rarity={printing.rarity} size={14} />
-          <Text className="flex-1 text-[12px] text-ink-tertiary">
-            {[printing.code, printing.artist ? `Art: ${printing.artist}` : null].filter(Boolean).join(' · ')}
-          </Text>
+
+      {info.current_text !== '' && (
+        <View className="mt-5">
+          <Heading>Card text</Heading>
+          <CardText text={info.current_text} />
         </View>
       )}
+
+      {printing && <PrintingInfo printing={printing} />}
     </ScrollView>
+  );
+};
+
+/**
+ * Energy · Power · Might, as on Piltover Archive. Power shows one rune per
+ * point (dual for two-domain cards, rainbow with no domain). A gear's might
+ * is the bonus it gives, so it reads "+3".
+ */
+const Stats = ({ info, domains }: { info: CatalogCard; domains: Domain[] }) => {
+  const hasCost = info.energy !== null;
+  const power = info.power ?? 0;
+  if (!hasCost && info.might === null) return null;
+  const runeWords = domains.length > 0 ? domains.map(domainLabel).join(' or ') : 'any';
+  const isGear = info.type === 'Gear';
+  return (
+    <View className="mt-5 flex-row rounded-2xl bg-surface px-2 py-3">
+      {hasCost && (
+        <Stat label="Energy" a11y={`Energy: ${info.energy}`}>
+          <StatNumber>{info.energy}</StatNumber>
+        </Stat>
+      )}
+      {hasCost && (
+        <Stat
+          label="Power"
+          a11y={power > 0 ? `Power: ${power} ${runeWords} rune${power === 1 ? '' : 's'}` : 'Power: 0'}
+        >
+          {power > 0 ? (
+            Array.from({ length: power }, (_, i) => <RuneIcon key={i} domains={domains} size={26} />)
+          ) : (
+            <StatNumber muted>0</StatNumber>
+          )}
+        </Stat>
+      )}
+      {info.might !== null && (
+        <Stat
+          label="Might"
+          a11y={isGear ? `Might bonus: plus ${info.might}` : `Might: ${info.might}`}
+        >
+          <StatNumber>{isGear ? `+${info.might}` : info.might}</StatNumber>
+        </Stat>
+      )}
+    </View>
+  );
+};
+
+const PrintingInfo = ({ printing }: { printing: CatalogPrinting }) => {
+  const { index } = useCatalog();
+  const set = index?.setByCode.get(printing.set_code);
+  const variant = [
+    printing.alt_art && 'Alternate art',
+    printing.overnumbered && 'Overnumbered',
+    printing.signed && 'Signed',
+    printing.promo && 'Promo',
+  ].filter(Boolean);
+  const rows: [string, string][] = [
+    ['Card number', printing.code],
+    ['Set', set ? set.name : printing.set_code],
+    ...(variant.length > 0 ? [['Printing', variant.join(', ')] as [string, string]] : []),
+    ...(printing.artist ? [['Artist', printing.artist] as [string, string]] : []),
+  ];
+  return (
+    <View className="mt-6 rounded-2xl bg-surface p-4">
+      <Heading>Card information</Heading>
+      <View className="gap-1.5">
+        {rows.map(([label, value]) => (
+          <View key={label} className="flex-row gap-2">
+            <Text className="w-[96px] text-[13px] text-ink-tertiary">{label}</Text>
+            <Text className="flex-1 text-[13px] text-ink-primary">{value}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
   );
 };
 

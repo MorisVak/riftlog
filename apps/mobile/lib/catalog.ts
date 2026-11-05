@@ -18,9 +18,9 @@ const PAGE = 1000; // PostgREST's default row cap per request
 /**
  * Bump when the columns fetched below change, so a cache written by an older
  * app (without the new column) counts as missing and is refetched once.
- * 2: printings gained `rarity`.
+ * 2: printings gained `rarity`. 3: cards gained `tags`.
  */
-const CACHE_FORMAT = 2;
+const CACHE_FORMAT = 3;
 
 /** The cached catalog, or null if there is none (or it's unreadable). */
 export async function readCachedCatalog(): Promise<Catalog | null> {
@@ -83,7 +83,7 @@ async function fetchCatalog(version: number): Promise<Catalog> {
     fetchAll((from, to) =>
       supabase
         .from('cards')
-        .select('id, name, name_key, type, supertype, domains, energy, might, power, current_text, status')
+        .select('id, name, name_key, type, supertype, domains, energy, might, power, tags, current_text, status')
         .order('id')
         .range(from, to),
     ),

@@ -28,6 +28,8 @@ export type CatalogCard = {
   energy: number | null;
   might: number | null;
   power: number | null;
+  /** Riftcodex / Riot tags, e.g. ["Equipment", "Riven"]. */
+  tags: string[];
   current_text: string;
   status: 'spoiler' | 'released';
 };
@@ -59,6 +61,7 @@ export type Catalog = {
 
 export type CatalogIndex = {
   version: number;
+  setByCode: Map<string, CatalogSet>;
   cardById: Map<string, CatalogCard>;
   cardByKey: Map<string, CatalogCard>;
   /**
@@ -103,6 +106,7 @@ export function buildCatalogIndex(catalog: Catalog): CatalogIndex {
   }
   return {
     version: catalog.version,
+    setByCode: new Map(catalog.sets.map((s) => [s.code, s])),
     cardById: new Map(catalog.cards.map((c) => [c.id, c])),
     cardByKey: new Map(catalog.cards.map((c) => [c.name_key, c])),
     cardByLooseKey: looseIndex(catalog.cards),
