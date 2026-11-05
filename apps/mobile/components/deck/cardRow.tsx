@@ -11,7 +11,7 @@ export type CardChange = { before: number; after: number };
 
 type CardRowProps = {
   card: CardRef;
-  /** The chosen champion: gold frame on the art and a "Chosen champion" chip. */
+  /** The chosen champion: gold frame on the art and a "CC" (chosen champion) chip. */
   chosen?: boolean;
   /** Hairline above the row; off for the first row of a section. */
   divider?: boolean;
@@ -27,9 +27,7 @@ type CardRowProps = {
 
 /** "Unit · Fury" for a matched card. */
 const typeLine = (match: CardMatch | null): string | null =>
-  match && match.kind !== 'unknown'
-    ? [match.card.type, ...match.card.domains].join(' · ')
-    : null;
+  match && match.kind !== 'unknown' ? [match.card.type, ...match.card.domains].join(' · ') : null;
 
 /** The flag on a problem card, in words (never an icon or color alone). */
 export const issueLabel = (issue: CardIssue): string =>
@@ -121,16 +119,18 @@ const CardRow = ({ card, chosen = false, divider = true, change, section }: Card
       </View>
       {chosen ? (
         <View className="rounded-full bg-chosen-tint px-2 py-0.5">
-          {/* Spelled out: "Chosen" alone didn't say chosen *what*. */}
-          <Text className="font-display text-[11px] text-chosen" numberOfLines={1}>
-            Chosen champion
+          {/* "CC" — the players' short form; spoken in full for screen readers. */}
+          <Text
+            accessibilityLabel="Chosen champion"
+            className="font-display text-[11px] text-chosen"
+            numberOfLines={1}
+          >
+            CC
           </Text>
         </View>
       ) : null}
       {change ? (
-        <Text
-          className={`font-mono-medium text-[12px] ${up ? 'text-added' : 'text-cut'}`}
-        >
+        <Text className={`font-mono-medium text-[12px] ${up ? 'text-added' : 'text-cut'}`}>
           {changeLabel(change)}
         </Text>
       ) : null}

@@ -69,7 +69,15 @@ const CardGrid = ({
   );
 };
 
-const CardTile = ({ tile, width, section }: { tile: Tile; width: number; section?: ListSection }) => {
+const CardTile = ({
+  tile,
+  width,
+  section,
+}: {
+  tile: Tile;
+  width: number;
+  section?: ListSection;
+}) => {
   const { card, chosen = false, change } = tile;
   const { issue } = useCardMatch(card, section);
   const { openCard } = useCardSheet();
@@ -124,19 +132,19 @@ const CardTile = ({ tile, width, section }: { tile: Tile; width: number; section
         <View className="absolute left-1.5 top-1.5 flex-row gap-1">
           {chosen && (
             <View className="rounded-full bg-chosen-tint px-1.5 py-0.5">
-              {/* Spelled out: "Chosen" alone didn't say chosen *what*. */}
-              <Text className="font-display text-[10px] text-chosen" numberOfLines={1}>
-                Chosen champion
+              {/* "CC" — the players' short form; spoken in full for screen readers. */}
+              <Text
+                accessibilityLabel="Chosen champion"
+                className="font-display text-[10px] text-chosen"
+                numberOfLines={1}
+              >
+                CC
               </Text>
             </View>
           )}
           {label && (
-            <View
-              className={`rounded-full px-1.5 py-0.5 ${up ? 'bg-added-tint' : 'bg-cut-tint'}`}
-            >
-              <Text
-                className={`font-mono-medium text-[10px] ${up ? 'text-added' : 'text-cut'}`}
-              >
+            <View className={`rounded-full px-1.5 py-0.5 ${up ? 'bg-added-tint' : 'bg-cut-tint'}`}>
+              <Text className={`font-mono-medium text-[10px] ${up ? 'text-added' : 'text-cut'}`}>
                 {label}
               </Text>
             </View>
