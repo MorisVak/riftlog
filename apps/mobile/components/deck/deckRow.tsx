@@ -6,6 +6,7 @@ import type { Deck } from '@/lib/decks';
 import { DomainChips } from '@/components/deck/domain';
 import Icon from '@/components/icon';
 import { CardBackdrop } from '@/components/deck/cardArt';
+import PressOverlay from '@/components/pressOverlay';
 import SwipeToDelete from '@/components/swipeToDelete';
 import { SelectionGutter } from '@/components/selectCheck';
 
@@ -102,55 +103,62 @@ const DeckRow = ({
               }}
               delayLongPress={350}
               // Opaque on purpose: the red action sits behind this card.
-              className={`relative flex-row items-center gap-3 overflow-hidden px-4 py-3.5 active:bg-elevated ${
+              // No active:bg-*: the backdrop covers the background, so the
+              // press shows as an overlay over everything instead.
+              className={`relative flex-row items-center gap-3 overflow-hidden px-4 py-3.5 ${
                 selected ? 'bg-elevated' : 'bg-surface'
               }`}
             >
-              {deck.list.legend && (
-                <CardBackdrop card={deck.list.legend} fill={selected ? 'elevated' : 'surface'} />
-              )}
-              <View className="flex-1">
-                <View className="flex-row items-center justify-between gap-2">
-                  <View className="flex-1 flex-row items-center gap-2">
+              {({ pressed }) => (
+                <>
+                  {deck.list.legend && (
+                    <CardBackdrop card={deck.list.legend} fill={selected ? 'elevated' : 'surface'} />
+                  )}
+                  <View className="flex-1">
+                    <View className="flex-row items-center justify-between gap-2">
+                      <View className="flex-1 flex-row items-center gap-2">
+                        <Text
+                          className="flex-shrink font-display-bold text-[15px] text-ink-primary"
+                          numberOfLines={1}
+                        >
+                          {deck.name}
+                        </Text>
+                        {isDefault && (
+                          <View className="rounded-full bg-accent/15 px-2 py-0.5">
+                            <Text className="font-display text-[11px] text-accent">
+                              Default
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      {/* On a pill: it sits over the legend's art. */}
+                      <View className="rounded-md bg-background/70 px-1.5 py-0.5">
+                        <Text className="font-mono-medium text-[11px] text-ink-secondary">
+                          {shownDate}
+                        </Text>
+                      </View>
+                    </View>
                     <Text
-                      className="flex-shrink font-display-bold text-[15px] text-ink-primary"
+                      className="mt-0.5 text-[13px] text-ink-secondary"
                       numberOfLines={1}
                     >
-                      {deck.name}
+                      {deck.list.legend?.name ?? 'No legend'}
                     </Text>
-                    {isDefault && (
-                      <View className="rounded-full bg-accent/15 px-2 py-0.5">
-                        <Text className="font-display text-[11px] text-accent">
-                          Default
-                        </Text>
+                    {domains && (
+                      <View className="mt-2">
+                        <DomainChips domains={domains} />
                       </View>
                     )}
                   </View>
-                  {/* On a pill: it sits over the legend's art. */}
-                  <View className="rounded-md bg-background/70 px-1.5 py-0.5">
-                    <Text className="font-mono-medium text-[11px] text-ink-secondary">
-                      {shownDate}
-                    </Text>
-                  </View>
-                </View>
-                <Text
-                  className="mt-0.5 text-[13px] text-ink-secondary"
-                  numberOfLines={1}
-                >
-                  {deck.list.legend?.name ?? 'No legend'}
-                </Text>
-                {domains && (
-                  <View className="mt-2">
-                    <DomainChips domains={domains} />
-                  </View>
-                )}
-              </View>
-              {!selecting && (
-                <Icon
-                  name="chevron-right"
-                  size={18}
-                  className="text-ink-tertiary"
-                />
+                  {!selecting && (
+                    <Icon
+                      name="chevron-right"
+                      size={18}
+                      className="text-ink-tertiary"
+                    />
+                  )}
+                  <PressOverlay pressed={pressed} />
+                </>
               )}
             </Pressable>
           )}
