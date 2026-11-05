@@ -366,8 +366,11 @@ pick's art as its backdrop, opening a page sheet with every catalog legend as
 a searchable art grid). Start stays off — "Choose their legend first" — until
 one is picked, except when there's no catalog to pick from (first launch
 offline), so a match can always start. It's stored on p2 as `Player.legend`
-(a `CardRef`) inside `matches.players`, and p1's legend is copied from the
-chosen deck — no migration, older matches simply have none. History and Home's
+(a `CardRef`) inside `matches.players`. p1's legend is the chosen deck's;
+with no deck (or one you haven't uploaded yet) setup shows an optional **Your
+legend** picker instead (`LegendPicker` with `optional`, which adds "Clear"),
+hidden while a deck is picked — the deck's legend wins. No migration, older
+matches simply have none. History and Home's
 recent matches show the opponent's legend as the row backdrop
 (`CardBackdrop`, score/date on a dark pill, press overlay), **tinted with the
 result** (`tint`: a `mixBlendMode: 'color'` layer of `bg-win` / `bg-loss` /

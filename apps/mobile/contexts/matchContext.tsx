@@ -46,6 +46,11 @@ export type MatchConfig = {
    * from `deck`.
    */
   opponentLegend: CardRef | null;
+  /**
+   * Your legend when no deck is chosen (optional in setup) — for a deck you
+   * haven't uploaded yet. A chosen deck's legend wins over it.
+   */
+  yourLegend: CardRef | null;
 };
 
 /**
@@ -153,13 +158,15 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
       id: randomUUID(),
       bestOf: config.bestOf,
       players: [
-        config.deck
-          ? {
-              ...makePlayer('p1', nameFor(0)),
-              deck: config.deck,
-              ...(config.deck.list.legend ? { legend: config.deck.list.legend } : {}),
-            }
-          : makePlayer('p1', nameFor(0)),
+        (() => {
+          // Your legend: the deck's, else the one picked without a deck.
+          const legend = config.deck?.list.legend ?? config.yourLegend;
+          return {
+            ...makePlayer('p1', nameFor(0)),
+            ...(config.deck ? { deck: config.deck } : {}),
+            ...(legend ? { legend } : {}),
+          };
+        })(),
         config.opponentLegend
           ? { ...makePlayer('p2', nameFor(1)), legend: config.opponentLegend }
           : makePlayer('p2', nameFor(1)),

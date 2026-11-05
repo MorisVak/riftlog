@@ -104,6 +104,10 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
   const [custom, setCustom] = useState(DEFAULT_CUSTOM);
   const [deck, setDeck] = useState<Deck | null>(null);
   const [opponentLegend, setOpponentLegend] = useState<CardRef | null>(null);
+  // Your legend without a deck (one you haven't uploaded yet). Optional; a
+  // chosen deck's legend wins, so the field hides while a deck is picked.
+  const [yourLegend, setYourLegend] = useState<CardRef | null>(null);
+  const deckChosen = signedIn && deck !== null;
   // Required — unless there's no catalog to pick from (first launch offline).
   const legendsAvailable = useLegends().length > 0;
   const needsLegend = legendsAvailable && opponentLegend === null;
@@ -142,6 +146,7 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
       timeLimitSeconds,
       deck: signedIn && deck ? toDeckSnapshot(deck) : null,
       opponentLegend,
+      yourLegend: deckChosen ? null : yourLegend,
     };
     startMatch(config);
     onClose();
@@ -382,6 +387,23 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
                 />
               </View>
             )}
+            {!deckChosen && (
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-baseline justify-between">
+                  <Text className="font-display text-base text-ink-secondary">
+                    Your legend
+                  </Text>
+                  <Text className="text-xs text-ink-tertiary">Optional</Text>
+                </View>
+                <LegendPicker
+                  value={yourLegend}
+                  onChange={setYourLegend}
+                  title="Your legend"
+                  placeholder="Choose your legend"
+                  optional
+                />
+              </View>
+            )}
             <Text className="mb-2 font-display text-base text-ink-secondary">
               Opponent
             </Text>
@@ -397,7 +419,12 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
               Their legend
             </Text>
             <View className="mb-6">
-              <LegendPicker value={opponentLegend} onChange={setOpponentLegend} />
+              <LegendPicker
+                value={opponentLegend}
+                onChange={setOpponentLegend}
+                title="Their legend"
+                placeholder="Choose their legend"
+              />
             </View>
 
             {/* Disabled while something required is missing — a timed match set

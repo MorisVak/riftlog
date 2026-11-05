@@ -37,18 +37,28 @@ const GAP = 12;
 const PAD = 16;
 
 /**
- * Match setup's "Their legend": a field showing the pick (its art as the
- * backdrop) that opens a page sheet with every legend as a searchable art grid.
- * One tap picks and closes. There's no "none" — setup requires a legend
- * whenever the catalog is loaded; without one the field says so and setup
- * lets the match start anyway.
+ * A legend field for match setup ("Their legend", "Your legend"): shows the
+ * pick (its art as the backdrop) and opens a page sheet with every legend as
+ * a searchable art grid. One tap picks and closes. `optional` adds "Clear" to
+ * the sheet; without it there's no way back to none — setup requires their
+ * legend whenever the catalog is loaded. With no catalog the field says so
+ * and setup lets the match start anyway.
  */
 const LegendPicker = ({
   value,
   onChange,
+  title,
+  placeholder,
+  optional = false,
 }: {
   value: CardRef | null;
-  onChange: (legend: CardRef) => void;
+  onChange: (legend: CardRef | null) => void;
+  /** The sheet's title and the field's spoken name, e.g. "Their legend". */
+  title: string;
+  /** The empty field's text, e.g. "Choose their legend". */
+  placeholder: string;
+  /** Can be cleared back to none. */
+  optional?: boolean;
 }) => {
   const legends = useLegends();
   const { width } = useWindowDimensions();
@@ -73,7 +83,7 @@ const LegendPicker = ({
     );
   }
 
-  const choose = (legend: CardRef) => {
+  const choose = (legend: CardRef | null) => {
     Haptics.selectionAsync();
     onChange(legend);
     setOpen(false);
@@ -83,7 +93,7 @@ const LegendPicker = ({
     <>
       <TouchableOpacity
         accessibilityRole="button"
-        accessibilityLabel={`Their legend: ${value ? value.name : 'not chosen'}`}
+        accessibilityLabel={`${title}: ${value ? value.name : 'not chosen'}`}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setQuery('');
@@ -106,7 +116,7 @@ const LegendPicker = ({
               )}
             </>
           ) : (
-            <Text className="text-base text-ink-secondary">Choose their legend</Text>
+            <Text className="text-base text-ink-secondary">{placeholder}</Text>
           )}
         </View>
         <Icon name="chevron-right" size={18} className="text-ink-secondary" />
@@ -127,8 +137,19 @@ const LegendPicker = ({
             >
               <Text className="font-display text-[16px] text-ink-secondary">Cancel</Text>
             </TouchableOpacity>
-            <Text className="font-display-bold text-[16px] text-ink-primary">Their legend</Text>
-            <View className="min-w-[72px]" />
+            <Text className="font-display-bold text-[16px] text-ink-primary">{title}</Text>
+            {optional && value ? (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`Clear ${title.toLowerCase()}`}
+                onPress={() => choose(null)}
+                className="h-11 min-w-[72px] items-end justify-center"
+              >
+                <Text className="font-display text-[16px] text-accent">Clear</Text>
+              </TouchableOpacity>
+            ) : (
+              <View className="min-w-[72px]" />
+            )}
           </View>
 
           <View className="border-b border-border/60 px-4 py-3">

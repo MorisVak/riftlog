@@ -126,7 +126,9 @@ games and the match themselves.
    between games in a Bo3 (sideboarding is on the clock) and past zero into
    overtime. The player also picks the **opponent's legend** from an art
    grid of every legend — required to start whenever the card catalog is
-   loaded (under internal testing; it may become optional). History and
+   loaded (under internal testing; it may become optional). Without a deck
+   — say one not uploaded yet — they can pick their own legend instead
+   (optional). History and
    Home show it as the match row's backdrop and, with no opponent name,
    as the opponent's label ("vs Kennen"). Built: format, names, deck, the
    timed toggle + presets, and the opponent's legend.
