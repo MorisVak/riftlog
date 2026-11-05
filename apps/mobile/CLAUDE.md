@@ -343,9 +343,11 @@ A settled Bo3 can therefore have fewer than three games; nothing downstream
 as its content**, in a transparent `Modal` (so it covers the tab bar too; it
 has its own `GestureHandlerRootView`). It slides up on open, and drag the
 handle down, tap outside or ✕ to close. Two layers: the outer takes the
-slide and the drag, the inner is the sheet with `layout={LinearTransition}`,
-so it grows smoothly when the custom wheels open; it's capped below the
-status bar and its content scrolls past that. (A native page sheet is always
+slide and the drag, the inner is the sheet. The custom wheels sit in a
+`Reveal` that animates its own height (0 ↔ measured), so the sheet slides up
+and down with them frame by frame (a layout transition on the sheet wasn't
+visibly smooth). It's capped below the status bar and its content scrolls
+past that. (A native page sheet is always
 full height on iPhone — it left empty space under short content.) Built around
 the **matchup**: two legend portraits side by side — **you left (p1), the
 opponent right**, "VS" between — each a `LegendPortrait` (the legend's art,
@@ -388,7 +390,9 @@ Still deferred: the track-turns control. See the match flow before extending
 it.
 
 **Match rows show your legend.** History and Home's recent matches draw your
-legend (your deck's, or the one picked in setup) across the whole row —
+legend (stored on p1 with the match; for matches saved before that, the
+legend of the deck version played — `fetchMatchHistory` selects just
+`list->legend` from it, no backfill) across the whole row —
 `MatchBackdrop` in `cardArt.tsx`, cropped by height on the face and zoomed
 past the card frame and the domain-icon column (`artRect` with
 `ICON_COLUMN`, `coverInside`) — **tinted with the result** (`tint`: a
@@ -497,9 +501,8 @@ game counter, nothing taking board space from either player:
   (excluding pauses) and the overtime flag are derived in `lib/historyView.ts`.
 - Setup's Clock offers Off, two presets (30 / 60 min) and **Custom**, which
   opens `components/durationPicker.tsx` — minute/second wheels built from a
-  snapping `ScrollView`, not a picker dependency. They slide up into place
-  (`FadeInDown`, which starts below) and the sheet scrolls to them if they
-  open below the fold. A timed match at 00:00 can't
+  snapping `ScrollView`, not a picker dependency. They open by height
+  (`Reveal`), and the sheet scrolls to them if they'd open below the fold. A timed match at 00:00 can't
   start; the Start button disables and says so.
 
 Conventions:
