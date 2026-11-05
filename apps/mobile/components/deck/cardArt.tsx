@@ -199,8 +199,8 @@ const BACKDROP_ASPECT = 2.6;
 /** The printed card frame's width at each edge, as a share of the image. */
 const FRAME_X = 0.07;
 const FRAME_Y = 0.035;
-/** How far a zoomed-out art fades in from its covered edge, in points. */
-const EDGE_FADE_W = 56;
+/** The backdrop's fade into the card's fill, as stops across the box (solid → clear). */
+const FADE_STOPS = [0.05, 0.75] as const;
 
 /** The left margin that also skips the domain-icon column (top-left). */
 const ICON_COLUMN = 0.2;
@@ -246,18 +246,20 @@ function artRect(
   scaleBy: 'width' | 'height',
   /** The image's left margin to keep out — wider to skip the domain icons. */
   frameLeft = FRAME_X,
-  /** Zoom in as far as needed to keep the frame out entirely (match rows). */
-  coverInside = false,
 ): Rect {
   const focus = backdropFocus(code);
   // The crop is BACKDROP_ASPECT wide for its height (legend-focus.swift).
   const scaled = scaleBy === 'width' ? boxW / focus.w : (boxH * BACKDROP_ASPECT) / focus.w;
-  // Without `coverInside` a crop may be wider than the art (a legend whose
-  // face fills its card, e.g. Vex): the art then comes out narrower than the
-  // box, at its end, and `FocusedArt`'s `edgeFade` hides its start.
-  const width = coverInside
-    ? Math.max(scaled, boxW / (1 - frameLeft - FRAME_X), boxH / ((1 - 2 * FRAME_Y) * PORTRAIT))
-    : Math.max(scaled, boxH / ((1 - 2 * FRAME_Y) * PORTRAIT));
+  // The illustration always covers the whole box, frame kept out: a crop
+  // wider than that (a legend whose face fills its card, e.g. Vex - Gloomist)
+  // gets zoomed in until it does. Its face comes out a little larger, but
+  // every backdrop then starts at the box's edge and fades the same way — a
+  // narrower art started partway in and read as cut off.
+  const width = Math.max(
+    scaled,
+    boxW / (1 - frameLeft - FRAME_X),
+    boxH / ((1 - 2 * FRAME_Y) * PORTRAIT),
+  );
   const height = width * PORTRAIT;
   return {
     width,
@@ -289,20 +291,15 @@ const FocusedArt = ({
   printing: CatalogPrinting;
   focusAt: number;
   scaleBy?: 'width' | 'height';
-  /** Zoom past the card frame and its domain-icon column entirely. */
+  /** Keep the domain-icon column out too (portraits), not just the frame. */
   skipFrame?: boolean;
-  /**
-   * The box's fill: when the art starts inside the box (narrower than it),
-   * cover its frame edge with this and fade into the art.
-   */
+  /** The box's fill: the art fades into it toward the left, the same for every legend. */
   edgeFade?: { solid: string; clear: string };
 }) => {
   const { width: screen } = useWindowDimensions();
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
   const art = box
-    ? skipFrame
-      ? artRect(printing.code, box.w, box.h, focusAt, scaleBy, ICON_COLUMN, true)
-      : artRect(printing.code, box.w, box.h, focusAt, scaleBy)
+    ? artRect(printing.code, box.w, box.h, focusAt, scaleBy, skipFrame ? ICON_COLUMN : FRAME_X)
     : null;
   const { uri, key, onError } = useArtUri(printing, art?.width ?? screen);
   return (
@@ -320,31 +317,14 @@ const FocusedArt = ({
           onError={onError}
         />
       )}
-      {art && edgeFade && art.left + FRAME_X * art.width > 0 && (
-        <>
-          <View
-            style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: art.left + FRAME_X * art.width,
-              backgroundColor: edgeFade.solid,
-            }}
-          />
-          <LinearGradient
-            colors={[edgeFade.solid, edgeFade.clear]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={{
-              position: 'absolute',
-              left: art.left + FRAME_X * art.width,
-              top: 0,
-              bottom: 0,
-              width: EDGE_FADE_W,
-            }}
-          />
-        </>
+      {art && edgeFade && (
+        <LinearGradient
+          colors={[edgeFade.solid, edgeFade.clear]}
+          locations={FADE_STOPS}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+        />
       )}
     </View>
   );
@@ -372,27 +352,18 @@ export const LegendPortrait = ({ card }: { card: CardRef }) => {
 
 type Fill = keyof typeof FADES;
 /**
- * The layers over backdrop art: the fade into the card's fill on the left,
- * and a shade on the right edge for the date and chevron.
+ * The shade over backdrop art on the right edge, for the date and chevron.
+ * (The fade on the left is `FocusedArt`'s `edgeFade`.)
  */
 const BackdropOverlays = ({ fill }: { fill: Fill }) => {
   const fade = FADES[fill];
   return (
-    <>
-      <LinearGradient
-        colors={[fade.solid, fade.clear]}
-        locations={[0.05, 0.75]}
-        start={{ x: 0, y: 0.5 }}
-        end={{ x: 1, y: 0.5 }}
-        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
-      />
-      <LinearGradient
-        colors={[fade.clear, fade.shade]}
-        start={{ x: 0.6, y: 0.5 }}
-        end={{ x: 1, y: 0.5 }}
-        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
-      />
-    </>
+    <LinearGradient
+      colors={[fade.clear, fade.shade]}
+      start={{ x: 0.6, y: 0.5 }}
+      end={{ x: 1, y: 0.5 }}
+      style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+    />
   );
 };
 

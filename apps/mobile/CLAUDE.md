@@ -429,11 +429,16 @@ rendered inside a `Pressable`) in `React.memo`:** NativeWind's css-interop
 then throws "Component is not a function (it is Object)" and the app
 renders a blank white screen.
 
-**Legends whose face fills their card** (Vex - Gloomist, Kennen): a crop in
-`lib/legendArtFocus.manual.json` may be wider than the art (`w` > 1) to bring
-the face down to the usual size. The art then comes out narrower than the
-backdrop, at its end, and `FocusedArt`'s `edgeFade` covers its frame edge in
-the card's fill and fades in.
+**Every backdrop fades the same way.** The art always covers the whole
+backdrop box (frame kept out), and the fade into the card's fill
+(`FocusedArt`'s `edgeFade`, stops `FADE_STOPS`) runs across the box — one
+ratio for every legend. Legends whose face fills their card (Vex - Gloomist
+UNL-193, Kennen VEN-197) have crops in `lib/legendArtFocus.manual.json`
+wider than the art (`w` > 1) to shrink the face; a backdrop zooms those in
+until the art covers the box, so their faces come out somewhat larger.
+That's deliberate: letting their art come out narrower (starting partway
+into the box) was tried and read as cut off — the owner wants the same
+fade for all. Setup portraits and banners use the crops as they are.
 
 ### Timed mode
 
