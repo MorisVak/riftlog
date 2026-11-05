@@ -162,6 +162,18 @@ Open items for a public launch, written up at the top of the `SPEC.md`
 roadmap; raise them whenever release prep, the App Store, auth or email comes
 up:
 
+- **History lags when a match row expands (hard todo, owner: "we REALLY
+  need a fix").** Still noticeable on the simulator after the first fixes
+  (no blend-mode tint, a smaller `FlatList` window, `HistoryRow` memoized,
+  row content built outside the `Pressable` callback). Measure first: a
+  release build on a device (`preview` profile) and the perf monitor, to
+  split simulator / dev-mode cost from real cost. Then the likely suspects:
+  the expand animates `height` (a layout prop), so every frame re-lays out
+  the whole list — animate a transform / clip instead, or expand without
+  moving the rows below until it ends; each row decodes the full 744 px card
+  image (a smaller copy sized for the row would do); the `FadeInDown`
+  entering animation on every row; gestures recreated per render. Details
+  in `apps/mobile/CLAUDE.md` ("Match rows show your legend").
 - **In-app account deletion** — not built; Apple Guideline 5.1.1(v)
   requires it. Until then `/privacy` promises deletion by email within 30 days.
 - **Refine the card screen and the look of the card surfaces** — hard
