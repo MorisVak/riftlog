@@ -91,9 +91,16 @@ function renderToken(token: string, key: number): React.ReactNode {
   }
   if (token === ':rb_might:') {
     return (
-      <Text key={key} accessibilityLabel="Might">
-        <MightIcon size={15} />
-      </Text>
+      // Inline views sit on the baseline; drop it to sit with the letters.
+      <View
+        key={key}
+        accessible
+        accessibilityLabel="Might"
+        style={{ transform: [{ translateY: 3 }] }}
+        className="mx-px"
+      >
+        <MightIcon size={14} />
+      </View>
     );
   }
   if (token === ':rb_exhaust:') return <Chip key={key} label="Exhaust" a11y="Exhaust" className="bg-elevated text-ink-primary" />;
