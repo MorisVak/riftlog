@@ -12,38 +12,41 @@ const TILE: Record<Result, { bg: string; text: string }> = {
 const LAST_N = 10;
 
 /**
- * "Last 10": your last ten results as W / L / D tiles, **newest on the
- * left** — read left to right, like the match list (letters, so color is
- * never the only signal) — each opening its match; with your record and win
- * rate overall. Your own matches only (Riot policy). Empty slots stay as
- * outlines until there are ten.
+ * "Last 10": your last ten results as W / L / D tiles, newest on the left
+ * (read left to right, like the match list; letters, so color is never the
+ * only signal), each opening its match, with the record of those ten. Your
+ * own matches only (Riot policy). Empty slots stay as outlines until there
+ * are ten.
  */
 const LastTenStrip = ({ vms, onOpen }: { vms: HistoryRowVM[]; onOpen: (id: string) => void }) => {
   const recent = vms.slice(0, LAST_N);
-  const wins = vms.filter((v) => v.result === 'win').length;
-  const losses = vms.filter((v) => v.result === 'loss').length;
-  const decided = wins + losses;
-  const rate = decided === 0 ? '–' : `${Math.round((wins / decided) * 100)}%`;
+  // The record of these ten — what the tiles show. (All-time stats belong to
+  // the stats section that comes later.)
+  const wins = recent.filter((v) => v.result === 'win').length;
+  const losses = recent.filter((v) => v.result === 'loss').length;
+  const draws = recent.length - wins - losses;
   const pad = Math.max(0, LAST_N - recent.length);
 
   return (
     <View className="rounded-2xl border border-border bg-surface px-4 py-3">
       <View
         accessible
-        accessibilityLabel={`${wins} wins, ${losses} losses, ${rate} win rate overall.`}
+        accessibilityLabel={`Last ${recent.length}: ${wins} wins, ${losses} losses${
+          draws > 0 ? `, ${draws} draws` : ''
+        }.`}
         className="flex-row items-baseline justify-between"
       >
-        <Text className="font-display text-[13px] text-ink-secondary">
-          Last {LAST_N} <Text className="text-ink-tertiary">· newest first</Text>
-        </Text>
-        {/* Your record overall — said so, beside a "Last 10" label. */}
-        <Text className="text-[13px] text-ink-secondary">
-          <Text className="font-mono text-win-text">{wins}</Text>
+        <Text className="font-display text-[13px] text-ink-secondary">Last {LAST_N}</Text>
+        <Text className="font-mono text-[13px] text-ink-secondary">
+          <Text className="text-win-text">{wins}</Text>
           {'–'}
-          <Text className="font-mono text-loss-text">{losses}</Text>
-          {' · '}
-          <Text className="font-mono text-accent">{rate}</Text>
-          <Text className="text-ink-tertiary"> all time</Text>
+          <Text className="text-loss-text">{losses}</Text>
+          {draws > 0 && (
+            <>
+              {'–'}
+              <Text className="text-draw-text">{draws}</Text>
+            </>
+          )}
         </Text>
       </View>
       <View className="mt-2 flex-row gap-1.5">

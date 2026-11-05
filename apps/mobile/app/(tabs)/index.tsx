@@ -145,6 +145,7 @@ const Home = () => {
     <View className="flex-1 bg-background">
       <ScrollView
         contentContainerStyle={{
+          flexGrow: 1,
           paddingTop: insets.top + 6,
           paddingHorizontal: 14,
           paddingBottom: 12,
@@ -174,8 +175,11 @@ const Home = () => {
 
         {/* The hero: Start a match on your default deck's legend, with the
             deck named in its corner and Change beside it. */}
-        <Animated.View style={ctaStyle}>
+        {/* flex-1: the hero takes whatever height is left, so Home always
+            fills the screen without scrolling (within its min / max). */}
+        <Animated.View style={ctaStyle} className="flex-1">
           <DeckPicker
+            className="flex-1"
             value={defaultDeck}
             onChange={chooseDefault}
             noneLabel="No default deck"

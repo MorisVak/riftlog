@@ -54,6 +54,7 @@ const DeckPicker = ({
   defaultDeckId = null,
   preselect = false,
   renderTrigger,
+  className = '',
 }: {
   value: Deck | null;
   onChange: (deck: Deck | null) => void;
@@ -68,6 +69,8 @@ const DeckPicker = ({
    * its "Change" button): call `open` to show the sheet.
    */
   renderTrigger?: (open: () => void) => React.ReactNode;
+  /** Layout for the picker's own wrapper, e.g. `flex-1` to let a trigger grow. */
+  className?: string;
 }) => {
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
@@ -145,7 +148,7 @@ const DeckPicker = ({
   };
 
   return (
-    <View>
+    <View className={className}>
       {renderTrigger ? (
         renderTrigger(openSheet)
       ) : (

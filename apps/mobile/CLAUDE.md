@@ -957,8 +957,9 @@ Rules that are easy to get wrong:
   Import, a guest "Ready to play" — the same card without art. Then **Your
   matches**: **Last 10** (`components/home/lastTenStrip.tsx`: your last ten
   results as W/L/D tiles, **newest on the left** — read left to right like
-  the match list — each opening its match, plus your record and win rate
-  labelled "all time") and the **last match** as a versus card
+  the match list, no "newest first" label needed — each opening its match,
+  plus the record of those ten, e.g. "6–4"; all-time stats wait for the
+  stats section) and the **last match** as a versus card
   (`components/home/lastMatchCard.tsx`: `VersusBanner` at 108pt, the loser
   dimmed, "Last match · date · format" in the corner, tap to open), with
   "See all"; then **Your decks**
@@ -966,11 +967,13 @@ Rules that are easy to get wrong:
   face, name, your record with that deck (own matches only), "Default"
   tag — most recently played first, up to eight, ending in an Import tile;
   "See all" opens Decks. So Home reads: play → how it's going → what you
-  play with. **Home fits one screen without scrolling** on a 6.1" iPhone
-  (852pt) — the owner doesn't want Home to scroll; check the height when
-  adding to it (hero 176pt, last match 108pt, deck art 72pt, tight section
-  spacing). Smaller phones may scroll a little, so a shade sits behind the
-  status bar. No
+  play with. **Home fills exactly one screen**: no scrolling on a 6.1"
+  iPhone (852pt) and no empty space at the bottom either — the hero takes
+  whatever height is left (`flex-1` down through `DeckPicker`'s
+  `className`, min 176pt, max 320pt; the ScrollView's content has
+  `flexGrow: 1`). Check the fixed parts when adding to Home (last match
+  108pt, deck art 72pt, tight section spacing). Smaller phones may scroll
+  a little, so a shade sits behind the status bar. No
   profile button: Profile is a tab. (A flat purple CTA, a separate deck
   field and a three-number stats box were merged into the hero and the
   strip; recent match rows gave way to Last 10 + the last match card — two
