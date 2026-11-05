@@ -7,12 +7,12 @@ import { LoopVideo } from "./LoopVideo";
 import { VIDEOS, type VideoName } from "./videos";
 
 /**
- * Phone frame around a real app screenshot. The status bar is cropped off every
- * shot, so the frame draws its own band with the island — it never covers app
- * content. A landscape shot (wider than tall) gets the band on the right, where
- * the island sits when the phone is turned clockwise. Width/height come from
- * the generated manifest so the page doesn't shift while images load.
- * With `video` instead of `shot`, it shows a looping recording (LoopVideo).
+ * Phone frame around a real app screen, edge to edge: the shot (or clip) is
+ * the whole screen, Dynamic Island included — the Simulator captures it — so
+ * the frame draws nothing over it and leaves no empty band. Width/height
+ * come from the manifests so the page doesn't shift while images load. Used
+ * by the hero and the face-off only; feature tiles show parts of screens
+ * (`DetailShot`), not phones.
  */
 export function PhoneFrame({
   shot,
@@ -29,32 +29,17 @@ export function PhoneFrame({
   priority?: boolean;
 } & ({ shot: ScreenshotName; video?: never } | { video: VideoName; shot?: never })) {
   const { width, height } = video ? VIDEOS[video] : SCREENSHOTS[shot];
-  const landscape = width > height;
 
   return (
     <div
-      className={`relative w-full rounded-[2.25rem] border border-border bg-surface p-2.5 ${
+      className={`relative w-full rounded-[2.5rem] border border-border bg-surface p-2 ${
         glow ? "phone-glow" : ""
       } ${className}`}
     >
+      {/* The screen's corners follow the frame's (outer radius − padding). */}
       <div
-        className={`overflow-hidden rounded-[1.75rem] bg-background ${
-          landscape ? "flex flex-row-reverse items-center" : ""
-        }`}
+        className="overflow-hidden rounded-[2rem] bg-background"
       >
-        {/* Status-bar band with the island */}
-        <div
-          className={`flex shrink-0 items-center justify-center ${
-            landscape ? "w-7" : "h-7"
-          }`}
-          aria-hidden
-        >
-          <span
-            className={`rounded-full bg-accent-deep ring-1 ring-border ${
-              landscape ? "h-20 w-[18px]" : "h-[18px] w-20"
-            }`}
-          />
-        </div>
         {video ? (
           <LoopVideo name={video} label={alt} />
         ) : (

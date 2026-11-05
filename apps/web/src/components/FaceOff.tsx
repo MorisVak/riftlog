@@ -25,7 +25,7 @@ export function FaceOff() {
         <Reveal delay={120} className="mx-auto mt-12 max-w-3xl">
           <PhoneFrame
             video="intro"
-            alt="Recording of the game-start intro held sideways: Riven slides in from the left and Akali from the right, VS appears between them, with Game 2, Best of 3 and both player names"
+            alt="Recording of the game-start intro held sideways: Riven slides in from the left and Akali from the right, VS appears between them, with Game 3, Best of 3 and both player names, then the score board"
             glow
           />
         </Reveal>

@@ -9,6 +9,9 @@
 //        PhoneFrame can set width/height and the page never shifts)
 //        assets/og-board.png                         (the board as PNG for
 //        src/app/opengraph-image.tsx, which can't read WebP)
+//        apps/web/public/screenshots/details/<name>(@2x).webp
+//                                                    (DETAILS: one part of a
+//        screen, for the feature tiles; sizes go in the same manifest)
 //
 // The iOS status bar (time, battery, carrier, notification icons) is cropped
 // off the top; PhoneFrame draws its own island. A landscape shot is captured
@@ -51,11 +54,14 @@ const STATUS_BAR_PT = 54;
 const SHOTS = {
   home: {},
   setup: {},
-  board: {},
+  // The hero's phones show the whole screen, island included (the board
+  // hides the status bar, and simctl captures the island), so PhoneFrame
+  // draws no band of its own: `cropTopPt: 0`.
+  board: { cropTopPt: 0 },
   // The board held sideways. Captured with cmd+← in the Simulator, so the
   // island is at the top of the raw file and the content turns upright
   // counter-clockwise (270°); a cmd+→ capture would need 90.
-  "board-landscape": { rotate: 270 },
+  "board-landscape": { cropTopPt: 0, rotate: 270 },
   "who-won": {},
   // The opponent's upside-down clock sits right under the status bar.
   "between-games": { cropTopPt: 50 },
@@ -69,6 +75,34 @@ const SHOTS = {
   "deck-gallery": {},
   "card-sheet": {},
   "legend-art": {},
+};
+
+/**
+ * Parts of a screen for the feature tiles: a box in 1x points on the
+ * processed shot (390 wide, status bar already cropped — read it off the
+ * 1x WebP), cut from the raw file so the 2x copy stays sharp. Pick boxes
+ * along natural edges (a card's border, a gap between sections).
+ * @type {Record<string, { from: keyof typeof SHOTS, x: number, y: number, w: number, h: number }>}
+ */
+const DETAILS = {
+  // At the table
+  "setup-legends": { from: "setup", x: 8, y: 158, w: 374, h: 230 },
+  "board-score": { from: "board", x: 30, y: 499, w: 330, h: 335 },
+  "setup-format": { from: "setup", x: 8, y: 545, w: 374, h: 158 },
+  "who-won": { from: "who-won", x: 43, y: 190, w: 304, h: 366 },
+  between: { from: "between-games", x: 8, y: 50, w: 374, h: 452 },
+  // After the match
+  "home-matches": { from: "home", x: 8, y: 224, w: 374, h: 300 },
+  "history-rows": { from: "history", x: 0, y: 110, w: 390, h: 264 },
+  filters: { from: "history-filters", x: 0, y: 35, w: 390, h: 495 },
+  graph: { from: "match-detail", x: 8, y: 295, w: 374, h: 310 },
+  notes: { from: "match-complete", x: 8, y: 500, w: 374, h: 189 },
+  // Your decks
+  "decks-list": { from: "decks", x: 8, y: 105, w: 374, h: 280 },
+  gallery: { from: "deck-gallery", x: 20, y: 55, w: 350, h: 300 },
+  card: { from: "card-sheet", x: 15, y: 20, w: 360, h: 560 },
+  "default-deck": { from: "home", x: 8, y: 50, w: 374, h: 160 },
+  "legend-art": { from: "legend-art", x: 8, y: 100, w: 374, h: 394 },
 };
 
 /** Returns the image with each box blurred beyond reading, as a PNG buffer. */
@@ -94,6 +128,8 @@ async function main() {
 
   const manifest = {};
   const missing = [];
+  /** Each processed portrait shot's blurred raw and status-bar crop, for DETAILS. */
+  const sources = {};
 
   for (const [name, opts] of Object.entries(SHOTS)) {
     const file = [`${name}.png`, `${name}.PNG`].find((f) => files.has(f));
@@ -125,8 +161,13 @@ async function main() {
     }
 
     if (name === "board") {
-      await sharp(input).extract(cropped).resize({ width: 520 }).png().toFile(OG_BOARD);
+      // The link preview keeps the island off.
+      const top = Math.round(STATUS_BAR_PT * deviceScale(meta.width));
+      const og = { left: 0, top, width: meta.width, height: meta.height - top };
+      await sharp(input).extract(og).resize({ width: 520 }).png().toFile(OG_BOARD);
     }
+
+    if (!rotate) sources[name] = { input, cropTop, scale: meta.width / OUT_WIDTH };
 
     manifest[name] = {
       width: outWidth,
@@ -135,11 +176,38 @@ async function main() {
     console.log(`✓ ${name}  (${meta.width}×${meta.height}, cropped ${cropTop}px)`);
   }
 
+  const details = {};
+  await mkdir(path.join(OUT_DIR, "details"), { recursive: true });
+  for (const [name, d] of Object.entries(DETAILS)) {
+    const src = sources[d.from];
+    if (!src) {
+      missing.push(`${name} (needs ${d.from})`);
+      continue;
+    }
+    const box = {
+      left: Math.round(d.x * src.scale),
+      top: src.cropTop + Math.round(d.y * src.scale),
+      width: Math.round(d.w * src.scale),
+      height: Math.round(d.h * src.scale),
+    };
+    for (const [suffix, width] of [["", d.w], ["@2x", d.w * 2]]) {
+      await sharp(src.input)
+        .extract(box)
+        .resize({ width })
+        .webp({ quality: QUALITY, effort: 6 })
+        .toFile(path.join(OUT_DIR, "details", `${name}${suffix}.webp`));
+    }
+    details[name] = { width: d.w, height: d.h };
+    console.log(`✓ detail ${name}  (from ${d.from})`);
+  }
+
   const body =
     "// GENERATED by scripts/process-screenshots.mjs — DO NOT EDIT.\n" +
     "// Re-run: pnpm --filter @riftlog/web screenshots\n\n" +
     `export const SCREENSHOTS = ${JSON.stringify(manifest, null, 2)} as const;\n\n` +
-    "export type ScreenshotName = keyof typeof SCREENSHOTS;\n";
+    "export type ScreenshotName = keyof typeof SCREENSHOTS;\n\n" +
+    `export const DETAILS = ${JSON.stringify(details, null, 2)} as const;\n\n` +
+    "export type DetailName = keyof typeof DETAILS;\n";
   await writeFile(MANIFEST, body);
 
   if (missing.length) console.warn(`\nMissing raw shots: ${missing.join(", ")}`);

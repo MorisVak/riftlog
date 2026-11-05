@@ -8,12 +8,8 @@ import type { ScreenshotName } from "./screenshots.generated";
  * plays and when motion is reduced.
  */
 export const VIDEOS = {
-  /** The game-start versus intro, held sideways (game 2). */
-  intro: { width: 796, height: 390, poster: "board-landscape" },
-  /** Scoring with Conquer / Hold / Special, and a take-back. */
-  scoring: { width: 390, height: 796, poster: "board" },
-  /** END → "Who won game 1?" → the between-games screen. */
-  "game-end": { width: 390, height: 796, poster: "between-games" },
+  /** The game-start versus intro, held sideways (game 3), the whole screen. */
+  intro: { width: 796, height: 367, poster: "board-landscape" },
 } as const satisfies Record<string, { width: number; height: number; poster: ScreenshotName }>;
 
 export type VideoName = keyof typeof VIDEOS;

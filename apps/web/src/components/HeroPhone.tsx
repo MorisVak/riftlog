@@ -9,8 +9,9 @@ type Size = { w: number; h: number };
 /**
  * The hero's score board, with a button that turns the phone sideways to show
  * the landscape board (and back). Hero only — the feature sections stay
- * portrait. The arrow points the way the phone will turn: clockwise into
- * landscape, counter-clockwise back.
+ * portrait. The arrow points the way the phone will turn: counter-clockwise
+ * into landscape (the shot was taken that way, island on the left),
+ * clockwise back.
  *
  * Both frames are mounted, stacked on the same center. Turning rotates the
  * shown frame a quarter turn while the other rotates in from the opposite
@@ -44,12 +45,12 @@ export function HeroPhone() {
     return () => observer.disconnect();
   }, []);
 
-  // Portrait turned clockwise lies as wide as the landscape frame, and
+  // Portrait turned a quarter lies as wide as the landscape frame, and
   // landscape turned back stands as tall as the portrait one.
   const toLandscape = sizes ? sizes.l.w / sizes.p.h : 1;
   const toPortrait = sizes ? sizes.p.h / sizes.l.w : 1;
 
-  const Icon = landscape ? RotateCcw : RotateCw;
+  const Icon = landscape ? RotateCw : RotateCcw;
   const label = landscape ? "Show the board upright" : "Show the board sideways";
 
   return (
@@ -71,7 +72,7 @@ export function HeroPhone() {
           aria-hidden={landscape}
           style={{
             transform: landscape
-              ? `rotate(90deg) scale(${toLandscape})`
+              ? `rotate(-90deg) scale(${toLandscape})`
               : "none",
           }}
           className={`phone-turn w-full max-w-[300px] ${
@@ -80,7 +81,7 @@ export function HeroPhone() {
         >
           <PhoneFrame
             shot="board"
-            alt="Riftlog score board mid-game: 4 to 2, Riven behind your half and Akali behind theirs, a running match clock, and Conquer, Hold and Special buttons for each player"
+            alt="Riftlog score board mid-game: 5 to 3, Riven behind your half and Akali behind theirs, a running match clock, and Conquer, Hold and Special buttons for each player"
             glow
             priority
           />
@@ -94,7 +95,7 @@ export function HeroPhone() {
           style={{
             transform: landscape
               ? "none"
-              : `rotate(-90deg) scale(${toPortrait})`,
+              : `rotate(90deg) scale(${toPortrait})`,
           }}
           className={`phone-turn w-full ${
             landscape ? "opacity-100" : "pointer-events-none opacity-0"
@@ -102,7 +103,7 @@ export function HeroPhone() {
         >
           <PhoneFrame
             shot="board-landscape"
-            alt="Riftlog score board held sideways: 5 to 2, a clock facing each player, and each player's Conquer, Hold and Special buttons under their score"
+            alt="Riftlog score board held sideways: 5 to 3, each player's legend beside their score, a clock facing each player, and Conquer, Hold and Special buttons under each score"
             glow
           />
         </div>

@@ -26,7 +26,7 @@ older training data — check `node_modules/next/dist/docs/` when unsure.
 - `src/components/` — sections (`Hero`, `Sections` → `FeatureSection`,
   `HowYouPlay`, `ComingLater`, `WaitlistCta`), chrome (`SiteHeader`,
   `SiteFooter`, `LegalPage`), and shared bits (`Wordmark`, `WaitlistForm`,
-  `ContactForm`, `PhoneFrame`, `Reveal`). `screenshots.generated.ts` is generated — don't edit.
+  `ContactForm`, `PhoneFrame`, `Reveal`, `LoopVideo`). `screenshots.generated.ts` is generated — don't edit.
 - `src/lib/legal.ts` — `OPERATOR` (the operator's legal details, used by all
   three legal pages), `PRIVACY_VERSION`, `LEGAL_UPDATED`.
 - `src/lib/rpc.ts` — `callStatusRpc`, the one PostgREST call both Server
@@ -108,25 +108,35 @@ dev client flash a blue "Refreshing…" banner — cut around it.
 - **Screenshots:** raw iPhone PNGs go in `screenshots-raw/` (gitignored),
   named per the `SHOTS` list in `scripts/process-screenshots.mjs`;
   `pnpm --filter @riftlog/web screenshots` crops the status bar, blurs
-  `blur` boxes, and writes 1x/2x WebP plus the size manifest. Render them
-  only through `PhoneFrame`. Landscape shots (`board-landscape`,
-  `between-games-landscape`) are captured with Simulator cmd+← (`rotate:
-  270`; a cmd+→ capture needs 90); `PhoneFrame` draws the island band on the
-  right for any shot wider than tall. The hero shows the landscape board via
-  `HeroPhone`'s rotate button.
+  `blur` boxes, and writes 1x/2x WebP plus the size manifest. **Phones are
+  for the hero and the face-off only** (`PhoneFrame`): those shots keep the
+  whole screen (`cropTopPt: 0` — the board hides the status bar and the
+  Simulator captures the Dynamic Island), so the frame draws nothing over
+  them and has no empty band. Cropping one side only once pushed the
+  sideways board off center — never crop a phone shot unevenly. Landscape
+  shots are captured with Simulator cmd+← (`rotate: 270`, island on the
+  left), so the hero's phone turns counter-clockwise into them.
+- **Feature tiles** (`FeatureSection` → `tiles`): each feature is a title,
+  one line, and a tight crop of the part of a screen it talks about — not a
+  phone. Crops are `DETAILS` in the same script: a box in 1x points on the
+  processed shot (read it off the 1x WebP with a grid), cut from the raw so
+  the 2x is sharp, written to `public/screenshots/details/`. Box along
+  natural edges (a card's border, a dialog's edge) so no half-faded UI
+  shows. Tiles pack as CSS columns; a feature with nothing to show is text
+  only. Copy never names third-party sites (deck builders etc.).
 - **Recordings** (`public/videos/<name>.mp4` + `.webm`, listed in
   `src/components/videos.ts`): record with
   `xcrun simctl io booted recordVideo --codec=h264 --force screenshots-raw/<name>.mp4`
   (stop it with `pkill -INT -f "simctl io booted recordVideo"`), find the cut
-  points on a contact sheet (`ffmpeg -i x.mp4 -vf "fps=2,scale=160:-1,tile=10x4"
-  -frames:v 1 sheet.png`), then cut, crop the status bar (162 px at 3x), scale
-  to 2x (780 wide portrait, 1592 landscape after `transpose=2`), and encode
-  H.264 (`-crf 26 -movflags +faststart`, no audio) and VP9 (`-crf 38`).
-  Clips are silent, a few seconds, ~100–250 KB. `PhoneFrame video=…` →
-  `LoopVideo`: plays only while on screen, never with reduced motion (the
-  poster still stands in). The face-off (`intro`) has its own wide strip,
-  `FaceOff`, under the hero. Feature rows size their phones by count
-  (`PHONE_W` in `FeatureSection`) so a row fits the desktop width.
+  points on a contact sheet (`ffmpeg -i x.mp4 -vf "fps=10,scale=-1:160,tile=20x4"
+  -frames:v 1 sheet.png`), then cut and encode H.264 (`-crf 26 -movflags
+  +faststart`, no audio) and VP9 (`-crf 38 -b:v 0`). The face-off (`intro`)
+  is the whole screen (`transpose=2,scale=1592:-2`, no crop) and loops
+  cleanly: it fades in from `#0D1B2A` (0.25 s), plays the intro and a moment
+  of the board, and fades out (0.35 s) — no frozen frame. `LoopVideo` plays
+  only while on screen, never with reduced motion (the poster still stands
+  in). Only the face-off is a clip: recordings of scoring and of ending a
+  game read as confusing and were dropped.
 - **Icons:** `pnpm --filter @riftlog/web icons` renders the badge into the web
   favicons **and** the mobile app icon, Android adaptive layers and splash
   mark. A changed app icon only reaches a device with a new native build.
