@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { SCREENSHOTS } from "./screenshots.generated";
 import { VIDEOS, type VideoName } from "./videos";
 
 /**
@@ -11,7 +12,7 @@ import { VIDEOS, type VideoName } from "./videos";
  */
 export function LoopVideo({ name, label }: { name: VideoName; label: string }) {
   const ref = useRef<HTMLVideoElement>(null);
-  const { width, height, poster } = VIDEOS[name];
+  const { width, height, poster, v } = VIDEOS[name];
 
   useEffect(() => {
     const video = ref.current;
@@ -33,7 +34,7 @@ export function LoopVideo({ name, label }: { name: VideoName; label: string }) {
       ref={ref}
       width={width}
       height={height}
-      poster={`/screenshots/${poster}@2x.webp`}
+      poster={`/screenshots/${poster}@2x.webp?v=${SCREENSHOTS[poster].v}`}
       muted
       loop
       playsInline
@@ -41,8 +42,8 @@ export function LoopVideo({ name, label }: { name: VideoName; label: string }) {
       aria-label={label}
       className="block h-auto w-full min-w-0"
     >
-      <source src={`/videos/${name}.webm`} type="video/webm" />
-      <source src={`/videos/${name}.mp4`} type="video/mp4" />
+      <source src={`/videos/${name}.webm?v=${v}`} type="video/webm" />
+      <source src={`/videos/${name}.mp4?v=${v}`} type="video/mp4" />
     </video>
   );
 }

@@ -44,8 +44,8 @@ export function PhoneFrame({
           <LoopVideo name={video} label={alt} />
         ) : (
           <img
-            src={`/screenshots/${shot}.webp`}
-            srcSet={`/screenshots/${shot}.webp 1x, /screenshots/${shot}@2x.webp 2x`}
+            src={`/screenshots/${shot}.webp?v=${SCREENSHOTS[shot].v}`}
+            srcSet={`/screenshots/${shot}.webp?v=${SCREENSHOTS[shot].v} 1x, /screenshots/${shot}@2x.webp?v=${SCREENSHOTS[shot].v} 2x`}
             width={width}
             height={height}
             alt={alt}

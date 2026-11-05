@@ -116,6 +116,10 @@ dev client flash a blue "Refreshing…" banner — cut around it.
   shot on one side only: that once pushed the sideways board off center.
   Landscape shots are captured with Simulator cmd+← (`rotate: 270`, island
   on the left), so the hero's phone turns counter-clockwise into them.
+  Every phone carries the island — keep it that way (no cropped shots).
+  URLs carry a version (`?v=`, a hash in the manifest; `v` in `videos.ts`
+  for clips — bump it on a re-cut), so a retaken file is never served
+  stale.
 - **Feature rows** (`FeatureSection`): points beside **four phones of one
   size** (`PHONE_W`) — the same in every row; never size phones by count.
   Stills only: clips and mixed-size tiles in the feature sections were

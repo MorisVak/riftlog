@@ -17,7 +17,8 @@
 // them, so every phone looks the same. Only names listed in SHOTS are
 // processed, so a stray file in the raw folder never reaches the site.
 
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
@@ -157,9 +158,17 @@ async function main() {
       await sharp(input).extract(og).resize({ width: 520 }).png().toFile(OG_BOARD);
     }
 
+    // A short hash of the 2x file: PhoneFrame adds it to the URL, so a
+    // retaken shot under the same name is never served stale from a cache.
+    const v = createHash("sha256")
+      .update(await readFile(path.join(OUT_DIR, `${name}@2x.webp`)))
+      .digest("hex")
+      .slice(0, 8);
+
     manifest[name] = {
       width: outWidth,
       height: Math.round((h * outWidth) / w),
+      v,
     };
     console.log(`✓ ${name}  (${meta.width}×${meta.height}${opts.hideStatusBar ? ", status bar hidden" : ""})`);
   }

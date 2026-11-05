@@ -4,67 +4,83 @@
 export const SCREENSHOTS = {
   "home": {
     "width": 390,
-    "height": 845
+    "height": 845,
+    "v": "de88ad39"
   },
   "setup": {
     "width": 390,
-    "height": 845
+    "height": 845,
+    "v": "c9dd0783"
   },
   "board": {
     "width": 390,
-    "height": 845
+    "height": 845,
+    "v": "ebc6d4f3"
   },
   "board-landscape": {
     "width": 796,
-    "height": 367
+    "height": 367,
+    "v": "ca1a0da6"
   },
   "who-won": {
     "width": 390,
-    "height": 845
+    "height": 845,
+    "v": "61abce65"
   },
   "between-games": {
     "width": 390,
-    "height": 845
+    "height": 845,
+    "v": "7295f1b8"
   },
   "between-games-landscape": {
     "width": 796,
-    "height": 367
+    "height": 367,
+    "v": "1a799396"
   },
   "match-complete": {
     "width": 390,
-    "height": 845
+    "height": 845,
+    "v": "f0cc199f"
   },
   "history": {
     "width": 390,
-    "height": 845
+    "height": 845,
+    "v": "c790b65d"
   },
   "history-filters": {
     "width": 390,
-    "height": 845
+    "height": 845,
+    "v": "16d79904"
   },
   "match-detail": {
     "width": 390,
-    "height": 845
+    "height": 845,
+    "v": "229e1355"
   },
   "decks": {
     "width": 390,
-    "height": 845
+    "height": 845,
+    "v": "522ebe99"
   },
   "deck": {
     "width": 390,
-    "height": 845
+    "height": 845,
+    "v": "db59c235"
   },
   "deck-gallery": {
     "width": 390,
-    "height": 845
+    "height": 845,
+    "v": "cc95e80d"
   },
   "card-sheet": {
     "width": 390,
-    "height": 845
+    "height": 845,
+    "v": "d52b8f04"
   },
   "legend-art": {
     "width": 390,
-    "height": 845
+    "height": 845,
+    "v": "adbf7a1f"
   }
 } as const;
 
