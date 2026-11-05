@@ -415,8 +415,11 @@ p1 with the match; for matches saved before that, the deck version played
 The opponent's legend is stored but not shown in the row; the title is just
 their name ("vs Opponent" when blank). Only your own matches are ever read
 back — never aggregated across users (Riot policy). History's `FlatList`
-keeps a small window mounted (`windowSize={5}`, `initialNumToRender={10}`):
-every row carries art, and the default (~21 screens) mounted all of them.
+**builds every row up front** (`initialNumToRender` = the row count, a large
+`windowSize`): all matches arrive in one read anyway, and rows created
+mid-scroll — each with art and, then, its own `FadeInDown` entrance — made
+scrolling stutter. Rows have **no entrance animation** of their own; the
+list fades in as a whole with the screen intro.
 `HistoryRow` is `React.memo` (callbacks from History are stable), so a
 selection change — which re-renders the list via `extraData` — redraws only
 the rows it affects. Rows with a press overlay build their content **outside** the
@@ -944,12 +947,19 @@ Rules that are easy to get wrong:
 - **Home's preview row mirrors the History row.** Both render the same
   `HistoryRowVM` and share `components/matchMeta.tsx` for the format + clock
   line, so they can't drift. Home's copy just drops the swipe-delete.
-- **History is grouped by day** (`groupByDay` in `lib/historyView.ts`, a
-  `SectionList`): a heading per day — "Today", "Yesterday", "Tue, Nov 3"
-  (with the year when it isn't this one) — and that day's record on the
-  right ("3 wins · 1 loss", only results that happened). A tournament day
-  reads as one block, so History's rows don't repeat the date (Home's
-  preview rows still show it). The filter chips are 36pt tall.
+- **History's filters** (`lib/historyFilter.ts`,
+  `components/history/filterSheet.tsx`): under the title, a **search**
+  (opponent, deck or legend, yours or theirs) and a **Filter** button with
+  a badge for how many filters are on. It opens a sheet from the bottom:
+  Result (All / Wins / Losses / Draws), Format, Played (any time / 7 / 30 /
+  90 days), then **Your deck**, **Your legend** and **Their legend** — only
+  ones that appear in your matches, legends as pills with their face.
+  Changes apply at once; the button says "Show N matches" and just closes.
+  Active filters show under the search as removable chips (plus "Clear
+  all"), and the count reads "12 of 51". Legends match by normalized card
+  name, so printings of one legend count once. Filter state is per visit.
+  (Day headings were tried and dropped.) The floating header measures its
+  height (chips come and go) and the list starts below it.
 - **Tapping a match row — History or Home — opens the match detail**
   (`/matches/[id]`). There is no inline expansion: it was tried in several
   forms and read as clutter that duplicated the detail screen, and animating

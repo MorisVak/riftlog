@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 import Animated, {
-  FadeInDown,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -37,7 +36,6 @@ const SWIPE_MS = 180;
 
 type Props = {
   vm: HistoryRowVM;
-  index: number;
   /** Opens the match detail. */
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
@@ -51,7 +49,6 @@ type Props = {
 
 const HistoryRow = ({
   vm,
-  index,
   onOpen,
   onDelete,
   selecting = false,
@@ -169,14 +166,14 @@ const HistoryRow = ({
         </View>
       </View>
 
-      {/* The score on a dark pill over the legend art, so it reads on any
-          art. No date: History groups the rows under a heading per day. */}
+      {/* On a dark pill over the legend art, so it reads on any art. */}
       <View
-        className={
+        className={`items-end ${
           vm.yourLegend ? 'my-3 rounded-md bg-background/70 px-1.5 py-0.5' : 'py-3'
-        }
+        }`}
       >
         <Text className={`font-mono text-[15px] ${r.text}`}>{vm.score}</Text>
+        <Text className="mt-0.5 text-[11px] text-ink-secondary">{vm.date}</Text>
       </View>
 
       {/* Opens the match detail; no chevron while selecting. */}
@@ -199,11 +196,10 @@ const HistoryRow = ({
         selected={selected}
         onToggle={() => onSelect?.(vm.id)}
       />
-      <Animated.View
-        // Subtle fade + slight rise on mount, matching the design's `rowIn`.
-        entering={FadeInDown.duration(380)
-          .delay(Math.min(index, 8) * 35)
-          .withInitialValues({ transform: [{ translateY: 6 }] })}
+      {/* No entrance animation per row: rows mounted during a scroll each
+          played one, which made scrolling stutter. The list fades in as a
+          whole (History's screen intro). */}
+      <View
         className={`flex-1 overflow-hidden rounded-xl border bg-surface ${
           selected ? 'border-accent' : 'border-border'
         }`}
@@ -262,7 +258,7 @@ const HistoryRow = ({
             </View>
           </Animated.View>
         </GestureDetector>
-      </Animated.View>
+      </View>
     </View>
   );
 };

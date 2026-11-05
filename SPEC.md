@@ -199,8 +199,9 @@ still unbuilt — the two are separate toggles, not alternatives.
 ## Feature 2 — Match history
 
 **Status:** a minimal list is built (reads from cloud persistence, Feature 3):
-filter chips (All / Wins / Losses / BO3), rows that expand into per-game
-scores, and deleting — swipe a row left, or tap **Select** (or long-press a
+a search plus a Filter sheet (result, format, period, your deck, your
+legend, their legend) with the active filters as removable chips, rows
+that open the match detail, and deleting — swipe a row left, or tap **Select** (or long-press a
 row) to pick several and delete them together. Deleting a match is permanent
 and removes its games. A match played with a deck shows the deck's name on
 its row, and the expanded row links to the deck (a deck deleted since is

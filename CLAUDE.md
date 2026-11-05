@@ -171,8 +171,10 @@ up:
   the expand animates `height` (a layout prop), so every frame re-lays out
   the whole list — animate a transform / clip instead, or expand without
   moving the rows below until it ends; each row decodes the full 744 px card
-  image (a smaller copy sized for the row would do); the `FadeInDown`
-  entering animation on every row; gestures recreated per render. Details
+  image (a smaller copy sized for the row would do); gestures recreated per
+  render. (The inline expansion is gone, the per-row `FadeInDown` entrance
+  is gone, and History now builds every row up front, so scrolling never
+  mounts rows.) Details
   in `apps/mobile/CLAUDE.md` ("Match rows show your legend").
 - **In-app account deletion** — not built; Apple Guideline 5.1.1(v)
   requires it. Until then `/privacy` promises deletion by email within 30 days.

@@ -2,8 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  SectionList,
-  Pressable,
+  FlatList,
+  ScrollView,
+  TextInput,
   Text,
   TouchableOpacity,
   View,
@@ -15,6 +16,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { router, useFocusEffect } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,7 +26,18 @@ import {
   fetchMatchHistory,
   type MatchWithGames,
 } from '@/lib/matchPersistence';
-import { groupByDay, toHistoryRowVM, type HistoryRowVM } from '@/lib/historyView';
+import { toHistoryRowVM } from '@/lib/historyView';
+import {
+  activeCount,
+  applyFilter,
+  filterOptions,
+  NO_FILTER,
+  PERIOD_DAYS,
+  type HistoryFilter,
+} from '@/lib/historyFilter';
+import FilterSheet from '@/components/history/filterSheet';
+import Icon from '@/components/icon';
+import { splitCardName } from '@riftlog/core';
 import HistoryRow from '@/components/historyRow';
 import AuthGate from '@/components/authGate';
 import { useAuth } from '@/contexts/authContext';
@@ -43,70 +56,87 @@ import SelectionBar from '@/components/selectionBar';
  * paint an RLS error behind the blur.
  */
 
-const FILTERS = ['All', 'Wins', 'Losses', 'BO3'] as const;
-type Filter = (typeof FILTERS)[number];
-
-// Height of the floating header content (below the safe-area inset): the
-// title/count row plus the filter-chip row.
-const HEADER_H = 104;
 const BACKGROUND = '#0D1B2A';
 
-const matches = (vm: HistoryRowVM, filter: Filter) => {
-  switch (filter) {
-    case 'Wins':
-      return vm.result === 'win';
-    case 'Losses':
-      return vm.result === 'loss';
-    case 'BO3':
-      return vm.format === 'BO3';
-    default:
-      return true;
-  }
-};
-
-const FilterChip = ({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) => (
-  <Pressable
-    onPress={onPress}
+/** A removable chip for one active filter. */
+const ActiveChip = ({ label, onRemove }: { label: string; onRemove: () => void }) => (
+  <TouchableOpacity
     accessibilityRole="button"
-    accessibilityState={{ selected: active }}
-    hitSlop={{ top: 6, bottom: 6 }}
-    className={`h-9 justify-center rounded-full border px-4 ${
-      active ? 'border-accent bg-accent' : 'border-border bg-surface'
-    }`}
+    accessibilityLabel={`Remove filter ${label}`}
+    onPress={onRemove}
+    className="h-8 flex-row items-center gap-1.5 rounded-full border border-accent/50 bg-accent/15 pl-3 pr-2"
   >
-    <Text
-      className={`font-display text-[14px] font-semibold ${
-        active ? 'text-background' : 'text-ink-secondary'
-      }`}
-    >
+    <Text className="font-display text-[13px] text-ink-primary" numberOfLines={1}>
       {label}
     </Text>
-  </Pressable>
+    <Icon name="x" size={13} className="text-ink-secondary" />
+  </TouchableOpacity>
 );
 
+const RESULT_LABEL = { win: 'Wins', loss: 'Losses', draw: 'Draws' } as const;
+
+/** The active filters as chips, each with what removing it resets. */
+const activeChips = (
+  f: HistoryFilter,
+  names: { deck: (id: string) => string; legend: (key: string) => string },
+): { key: string; label: string; clear: Partial<HistoryFilter> }[] => {
+  const chips: { key: string; label: string; clear: Partial<HistoryFilter> }[] = [];
+  if (f.result)
+    chips.push({ key: 'result', label: RESULT_LABEL[f.result], clear: { result: null } });
+  if (f.format)
+    chips.push({
+      key: 'format',
+      label: f.format === 'BO1' ? 'Best of 1' : 'Best of 3',
+      clear: { format: null },
+    });
+  if (f.period)
+    chips.push({
+      key: 'period',
+      label: `Last ${PERIOD_DAYS[f.period]} days`,
+      clear: { period: null },
+    });
+  if (f.deckId) chips.push({ key: 'deck', label: names.deck(f.deckId), clear: { deckId: null } });
+  if (f.yourLegend)
+    chips.push({
+      key: 'you',
+      label: `You: ${names.legend(f.yourLegend)}`,
+      clear: { yourLegend: null },
+    });
+  if (f.opponentLegend)
+    chips.push({
+      key: 'them',
+      label: `vs ${names.legend(f.opponentLegend)}`,
+      clear: { opponentLegend: null },
+    });
+  return chips;
+};
+
 const Header = ({
-  count,
+  total,
+  shown,
   filter,
   onFilter,
+  onOpenFilters,
+  chips,
   selection,
   onDeleteSelected,
+  onHeight,
   titleIntro,
   filterIntro,
   dividerIntro,
 }: {
-  count: number | null;
-  filter: Filter;
-  onFilter: (f: Filter) => void;
+  /** All your matches; null while loading. */
+  total: number | null;
+  /** Matches left after filtering. */
+  shown: number;
+  filter: HistoryFilter;
+  onFilter: (f: HistoryFilter) => void;
+  onOpenFilters: () => void;
+  chips: { key: string; label: string; clear: Partial<HistoryFilter> }[];
   selection: Selection;
   onDeleteSelected: () => void;
+  /** The header's height, so the list starts below it (chips come and go). */
+  onHeight: (h: number) => void;
   titleIntro: SharedValue<number>;
   filterIntro: SharedValue<number>;
   dividerIntro: SharedValue<number>;
@@ -117,13 +147,18 @@ const Header = ({
   // The hairline divider fades in on its own step, after the title and filters
   // have settled. Opacity only (no rise) so the line doesn't slide.
   const lineStyle = useFade(dividerIntro);
+  const badge = activeCount(filter);
+  const filtered = badge > 0 || filter.query.trim() !== '';
   return (
-    <View className="absolute inset-x-0 top-0 z-10">
+    <View
+      className="absolute inset-x-0 top-0 z-10"
+      onLayout={(e) => onHeight(e.nativeEvent.layout.height)}
+    >
       {/* The safe-area inset is padding *inside* the blur, not above it — with
           it on the wrapper the pane started below the notch and rows scrolled
           past the dynamic island unblurred. */}
-      <BlurView tint="dark" intensity={48} style={{ paddingTop: insets.top }}>
-        <View style={{ height: HEADER_H }} className="justify-end px-4 pb-3">
+      <BlurView tint="dark" intensity={48} style={{ paddingTop: insets.top + 14 }}>
+        <View className="px-4 pb-3">
           {/* Both header states share one fixed slot and cross-fade, so the
               swap doesn't pop in a single frame while the rows slide. */}
           <Animated.View style={titleStyle} className="h-11 px-0.5">
@@ -155,13 +190,13 @@ const Header = ({
                 exiting={FadeOut.duration(150)}
                 className="absolute inset-x-0.5 top-0 h-11 flex-row items-center justify-between"
               >
-                <Text className="font-display-bold text-2xl text-ink-primary">
-                  History
-                </Text>
-                {count !== null && count > 0 ? (
+                <Text className="font-display-bold text-2xl text-ink-primary">History</Text>
+                {total !== null && total > 0 ? (
                   <View className="flex-row items-center gap-1">
                     <Text className="text-[13px] text-ink-secondary">
-                      {count} {count === 1 ? 'match' : 'matches'}
+                      {filtered
+                        ? `${shown} of ${total}`
+                        : `${total} ${total === 1 ? 'match' : 'matches'}`}
                     </Text>
                     <TouchableOpacity
                       accessibilityRole="button"
@@ -169,25 +204,82 @@ const Header = ({
                       onPress={() => selection.start()}
                       className="h-11 justify-center pl-3"
                     >
-                      <Text className="font-display text-[15px] text-accent">
-                        Select
-                      </Text>
+                      <Text className="font-display text-[15px] text-accent">Select</Text>
                     </TouchableOpacity>
                   </View>
                 ) : null}
               </Animated.View>
             )}
           </Animated.View>
-          <Animated.View style={filterStyle} className="mt-3 flex-row gap-2">
-            {FILTERS.map((f) => (
-              <FilterChip
-                key={f}
-                label={f}
-                active={filter === f}
-                onPress={() => onFilter(f)}
+
+          {/* Search, and the Filter button with how many filters are on. */}
+          <Animated.View style={filterStyle} className="mt-3 flex-row items-center gap-2">
+            <View className="flex-1 flex-row items-center gap-2 rounded-xl border border-border bg-surface px-3">
+              <Icon name="search" size={16} className="text-ink-tertiary" />
+              <TextInput
+                value={filter.query}
+                onChangeText={(query) => onFilter({ ...filter, query })}
+                placeholder="Opponent, deck or legend"
+                autoCorrect={false}
+                autoCapitalize="none"
+                returnKeyType="search"
+                clearButtonMode="while-editing"
+                accessibilityLabel="Search matches"
+                className="h-11 flex-1 text-[16px] text-ink-primary placeholder:text-ink-tertiary"
               />
-            ))}
+            </View>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={badge > 0 ? `Filters, ${badge} on` : 'Filters'}
+              onPress={onOpenFilters}
+              className={`h-11 flex-row items-center gap-1.5 rounded-xl border px-3 ${
+                badge > 0 ? 'border-accent bg-accent/15' : 'border-border bg-surface'
+              }`}
+            >
+              <Icon
+                name="sliders"
+                size={15}
+                className={badge > 0 ? 'text-accent' : 'text-ink-secondary'}
+              />
+              <Text
+                className={`font-display text-[14px] ${badge > 0 ? 'text-accent' : 'text-ink-secondary'}`}
+              >
+                Filter
+              </Text>
+              {badge > 0 && (
+                <View className="min-w-[18px] items-center rounded-full bg-accent px-1">
+                  <Text className="font-display-bold text-[11px] text-background">{badge}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </Animated.View>
+
+          {/* What's filtered, at a glance — tap a chip to drop it. */}
+          {chips.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="-mx-4 mt-2.5"
+              contentContainerClassName="gap-2 px-4"
+            >
+              {chips.map((c) => (
+                <ActiveChip
+                  key={c.key}
+                  label={c.label}
+                  onRemove={() => onFilter({ ...filter, ...c.clear })}
+                />
+              ))}
+              {chips.length > 1 && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  onPress={() => onFilter({ ...NO_FILTER, query: filter.query })}
+                  className="h-8 justify-center px-2"
+                >
+                  <Text className="font-display text-[13px] text-accent">Clear all</Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+          )}
         </View>
         <Animated.View style={lineStyle} className="h-px w-full bg-border" />
       </BlurView>
@@ -207,16 +299,9 @@ const Header = ({
  * a blurred empty screen, which communicates nothing at all.
  */
 const HistorySkeleton = ({ topPad }: { topPad: number }) => (
-  <View
-    className="flex-1 gap-2 px-4"
-    style={{ paddingTop: topPad }}
-    pointerEvents="none"
-  >
+  <View className="flex-1 gap-2 px-4" style={{ paddingTop: topPad }} pointerEvents="none">
     {[0, 1, 2, 3, 4].map((i) => (
-      <View
-        key={i}
-        className="flex-row overflow-hidden rounded-xl border border-border bg-surface"
-      >
+      <View key={i} className="flex-row overflow-hidden rounded-xl border border-border bg-surface">
         <View className="w-1 self-stretch bg-border" />
         <View className="min-h-[64px] flex-1 flex-row items-center gap-3 px-3 py-2">
           <View className="h-8 w-8 rounded-lg bg-elevated" />
@@ -237,7 +322,11 @@ const History = () => {
   const authed = status === 'authed';
   const [rows, setRows] = useState<MatchWithGames[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<Filter>('All');
+  const [filter, setFilter] = useState<HistoryFilter>(NO_FILTER);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  // The floating header's height (it grows with the filter chips); a first
+  // guess until it has been measured.
+  const [headerH, setHeaderH] = useState(insets.top + 128);
   const selection = useSelection();
   const { exit: exitSelection, clearSelected } = selection;
 
@@ -245,7 +334,6 @@ const History = () => {
   useEffect(() => {
     clearSelected();
   }, [filter, clearSelected]);
-
 
   const titleIntro = useSharedValue(0);
   const filterIntro = useSharedValue(0);
@@ -280,11 +368,21 @@ const History = () => {
   );
 
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
-  const visible = useMemo(
-    () => vms.filter((vm) => matches(vm, filter)),
-    [vms, filter],
+  const visible = useMemo(() => applyFilter(vms, filter), [vms, filter]);
+  const options = useMemo(() => filterOptions(vms), [vms]);
+  const chips = useMemo(
+    () =>
+      activeChips(filter, {
+        deck: (id) => options.decks.find((d) => d.id === id)?.name ?? 'Deck',
+        legend: (key) => {
+          const l =
+            options.yourLegends.find((o) => o.key === key) ??
+            options.opponentLegends.find((o) => o.key === key);
+          return l ? splitCardName(l.card.name).head : 'Legend';
+        },
+      }),
+    [filter, options],
   );
-  const sections = useMemo(() => groupByDay(visible), [visible]);
 
   const openMatch = useCallback((id: string) => router.push(`/matches/${id}`), []);
 
@@ -333,9 +431,7 @@ const History = () => {
             deleteMatches(ids).catch((e) => {
               setRows((cur) =>
                 cur
-                  ? [...cur, ...removed].sort((a, b) =>
-                      b.ended_at.localeCompare(a.ended_at),
-                    )
+                  ? [...cur, ...removed].sort((a, b) => b.ended_at.localeCompare(a.ended_at))
                   : cur,
               );
               Alert.alert('Could not delete', e?.message ?? 'Please try again.');
@@ -346,10 +442,10 @@ const History = () => {
     );
   };
 
-  const topPad = insets.top + HEADER_H + 12;
+  const topPad = headerH + 4;
 
   const loading = rows === null && error === null;
-  const count = error === null && rows !== null ? vms.length : null;
+  const total = error === null && rows !== null ? vms.length : null;
 
   let body;
   if (!authed) {
@@ -362,46 +458,36 @@ const History = () => {
     );
   } else if (error !== null) {
     body = (
-      <View
-        className="flex-1 items-center justify-center px-6"
-        style={{ paddingTop: topPad }}
-      >
+      <View className="flex-1 items-center justify-center px-6" style={{ paddingTop: topPad }}>
         <Text className="text-center text-sm text-loss-text">{error}</Text>
       </View>
     );
   } else {
     body = (
-      <SectionList
-        sections={sections}
-        // Rows read selection state that isn't in `sections`.
+      <FlatList
+        data={visible}
+        // Rows read selection state that isn't in `data`.
         extraData={selection}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
-          // The first day's heading brings its own top space.
-          paddingTop: topPad - 12,
+          paddingTop: topPad,
           paddingHorizontal: 16,
           paddingBottom: 24,
         }}
-        stickySectionHeadersEnabled={false}
         ItemSeparatorComponent={() => <View className="h-2" />}
-        // One heading per day: the matches chunk into sessions (a tournament
-        // reads as one block), and the rows needn't repeat the date.
-        renderSectionHeader={({ section }) => (
-          <View className="flex-row items-baseline justify-between px-0.5 pb-2 pt-5">
-            <Text className="font-display-bold text-[15px] text-ink-primary">{section.title}</Text>
-            <Text className="text-[12px] text-ink-tertiary">{section.record}</Text>
-          </View>
-        )}
         showsVerticalScrollIndicator={false}
-        // Each row carries legend art: keep only a few screens of rows
-        // mounted (the default is ~21 screens — every row).
-        initialNumToRender={10}
-        maxToRenderPerBatch={8}
-        windowSize={5}
-        renderItem={({ item, index }) => (
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        // Every row is built up front (all matches are already fetched in
+        // one read), so scrolling never waits on new rows being made. The
+        // window stays large but finite, so a very long history still lets
+        // far-off rows go.
+        initialNumToRender={Math.max(visible.length, 10)}
+        maxToRenderPerBatch={50}
+        windowSize={41}
+        renderItem={({ item }) => (
           <HistoryRow
             vm={item}
-            index={index}
             onOpen={openMatch}
             onDelete={handleDelete}
             selecting={selection.active}
@@ -415,8 +501,17 @@ const History = () => {
             <Text className="text-center text-sm text-ink-secondary">
               {vms.length === 0
                 ? 'Your completed matches will appear here.'
-                : `No ${filter.toLowerCase()} to show.`}
+                : 'No matches fit these filters.'}
             </Text>
+            {vms.length > 0 && (
+              <TouchableOpacity
+                accessibilityRole="button"
+                onPress={() => setFilter(NO_FILTER)}
+                className="mt-2 px-3 py-2"
+              >
+                <Text className="font-display text-[14px] text-accent">Clear filters</Text>
+              </TouchableOpacity>
+            )}
           </View>
         }
       />
@@ -429,14 +524,29 @@ const History = () => {
         {body}
       </Animated.View>
       <Header
-        count={count}
+        total={total}
+        shown={visible.length}
         filter={filter}
         onFilter={setFilter}
+        onOpenFilters={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setFiltersOpen(true);
+        }}
+        chips={chips}
         selection={selection}
         onDeleteSelected={deleteSelected}
+        onHeight={setHeaderH}
         titleIntro={titleIntro}
         filterIntro={filterIntro}
         dividerIntro={dividerIntro}
+      />
+      <FilterSheet
+        visible={filtersOpen}
+        filter={filter}
+        onChange={setFilter}
+        options={options}
+        resultCount={visible.length}
+        onClose={() => setFiltersOpen(false)}
       />
     </View>
   );
