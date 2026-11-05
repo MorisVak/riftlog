@@ -20,6 +20,7 @@ import ChangesToggle, {
 import DeckView, { type DeckLayout } from '@/components/deck/deckView';
 import DeckNameEditor from '@/components/deck/deckNameEditor';
 import CopyDeckCode from '@/components/deck/copyDeckCode';
+import DefaultDeckToggle from '@/components/deck/defaultDeckToggle';
 import Icon from '@/components/icon';
 import { useCatalog } from '@/contexts/catalogContext';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
@@ -173,6 +174,13 @@ const DeckDetail = () => {
         >
           <Icon name="chevron-left" size={18} className="text-ink-secondary" />
         </TouchableOpacity>
+        {/* Make it the default right where you look at it — not on an
+            earlier version: the default is the deck as it is now. */}
+        {state.kind === 'ready' && !state.played && (
+          <View className="ml-auto mr-2">
+            <DefaultDeckToggle deckId={state.deck.id} />
+          </View>
+        )}
         {state.kind === 'ready' && !state.played && (
           <TouchableOpacity
             accessibilityRole="button"
@@ -184,7 +192,7 @@ const DeckDetail = () => {
               })
             }
             hitSlop={8}
-            className="ml-auto h-9 flex-row items-center gap-1.5 rounded-full border border-border bg-elevated px-3.5 active:bg-surface"
+            className="h-9 flex-row items-center gap-1.5 rounded-full border border-border bg-elevated px-3.5 active:bg-surface"
           >
             <Icon name="list" size={14} className="text-accent" />
             <Text className="font-display text-[15px] text-accent">

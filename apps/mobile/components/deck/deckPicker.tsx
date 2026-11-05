@@ -30,10 +30,7 @@ const MENU_SHADOW = {
 /** "Kennen, Heart of the Tempest" → "Kennen": fits the small filter button. */
 const shortLegend = (name: string): string => splitCardName(name).head || name;
 
-type LoadState =
-  | { kind: 'loading' }
-  | { kind: 'ready'; decks: Deck[] }
-  | { kind: 'error' };
+type LoadState = { kind: 'loading' } | { kind: 'ready'; decks: Deck[] } | { kind: 'error' };
 
 /**
  * Pick one of your saved decks (or none): a field showing the current choice
@@ -56,6 +53,7 @@ const DeckPicker = ({
   title = 'Choose your deck',
   defaultDeckId = null,
   preselect = false,
+  renderTrigger,
 }: {
   value: Deck | null;
   onChange: (deck: Deck | null) => void;
@@ -65,6 +63,11 @@ const DeckPicker = ({
   title?: string;
   defaultDeckId?: string | null;
   preselect?: boolean;
+  /**
+   * Your own trigger in place of the deck field (e.g. Home's hero card and
+   * its "Change" button): call `open` to show the sheet.
+   */
+  renderTrigger?: (open: () => void) => React.ReactNode;
 }) => {
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
@@ -76,10 +79,7 @@ const DeckPicker = ({
   const [legend, setLegend] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const decks = useMemo(
-    () => (state.kind === 'ready' ? state.decks : []),
-    [state],
-  );
+  const decks = useMemo(() => (state.kind === 'ready' ? state.decks : []), [state]);
   // The legends among your decks, in first-seen (most recently updated) order.
   const legends = useMemo(() => {
     const seen = new Set<string>();
@@ -108,9 +108,7 @@ const DeckPicker = ({
     let active = true;
     fetchMyDecks()
       .then((decks) => active && setState({ kind: 'ready', decks }))
-      .catch(
-        () => active && setState((cur) => (cur.kind === 'ready' ? cur : { kind: 'error' })),
-      );
+      .catch(() => active && setState((cur) => (cur.kind === 'ready' ? cur : { kind: 'error' })));
     return () => {
       active = false;
     };
@@ -148,29 +146,33 @@ const DeckPicker = ({
 
   return (
     <View>
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel={`${title}: ${value ? value.name : noneLabel}`}
-        onPress={openSheet}
-        // TouchableOpacity dims everything, the legend art included.
-        className="relative min-h-[52px] flex-row items-center gap-3 overflow-hidden rounded-xl border border-border bg-elevated px-4 py-3"
-      >
-        {value?.list.legend && <CardBackdrop card={value.list.legend} fill="elevated" />}
-        <View className="flex-1">
-          <Text
-            className={`text-base ${value ? 'font-display text-ink-primary' : 'text-ink-secondary'}`}
-            numberOfLines={1}
-          >
-            {value ? value.name : noneLabel}
-          </Text>
-          {value?.list.legend && (
-            <Text className="mt-0.5 text-[13px] text-ink-secondary" numberOfLines={1}>
-              {value.list.legend.name}
+      {renderTrigger ? (
+        renderTrigger(openSheet)
+      ) : (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={`${title}: ${value ? value.name : noneLabel}`}
+          onPress={openSheet}
+          // TouchableOpacity dims everything, the legend art included.
+          className="relative min-h-[52px] flex-row items-center gap-3 overflow-hidden rounded-xl border border-border bg-elevated px-4 py-3"
+        >
+          {value?.list.legend && <CardBackdrop card={value.list.legend} fill="elevated" />}
+          <View className="flex-1">
+            <Text
+              className={`text-base ${value ? 'font-display text-ink-primary' : 'text-ink-secondary'}`}
+              numberOfLines={1}
+            >
+              {value ? value.name : noneLabel}
             </Text>
-          )}
-        </View>
-        <Icon name="chevron-right" size={18} className="text-ink-secondary" />
-      </TouchableOpacity>
+            {value?.list.legend && (
+              <Text className="mt-0.5 text-[13px] text-ink-secondary" numberOfLines={1}>
+                {value.list.legend.name}
+              </Text>
+            )}
+          </View>
+          <Icon name="chevron-right" size={18} className="text-ink-secondary" />
+        </TouchableOpacity>
+      )}
 
       <Modal
         visible={open}
@@ -185,13 +187,9 @@ const DeckPicker = ({
               onPress={() => setOpen(false)}
               className="h-11 min-w-[72px] justify-center"
             >
-              <Text className="font-display text-[16px] text-ink-secondary">
-                Cancel
-              </Text>
+              <Text className="font-display text-[16px] text-ink-secondary">Cancel</Text>
             </TouchableOpacity>
-            <Text className="font-display-bold text-[16px] text-ink-primary">
-              {title}
-            </Text>
+            <Text className="font-display-bold text-[16px] text-ink-primary">{title}</Text>
             <View className="min-w-[72px]" />
           </View>
 
@@ -294,15 +292,9 @@ const DeckPicker = ({
               gap: 10,
             }}
           >
-            <NoneRow
-              label={noneLabel}
-              selected={value === null}
-              onPress={() => choose(null)}
-            />
+            <NoneRow label={noneLabel} selected={value === null} onPress={() => choose(null)} />
             {state.kind === 'loading' ? (
-              <Text className="px-1 py-4 text-sm text-ink-tertiary">
-                Loading your decks…
-              </Text>
+              <Text className="px-1 py-4 text-sm text-ink-tertiary">Loading your decks…</Text>
             ) : state.kind === 'error' ? (
               <Text className="px-1 py-4 text-sm text-ink-secondary">
                 {"Couldn't load your decks. Check your connection and try again."}
@@ -324,9 +316,7 @@ const DeckPicker = ({
                   }}
                   className="mt-2 px-3 py-2"
                 >
-                  <Text className="font-display text-[14px] text-accent">
-                    Clear filters
-                  </Text>
+                  <Text className="font-display text-[14px] text-accent">Clear filters</Text>
                 </TouchableOpacity>
               </View>
             ) : (

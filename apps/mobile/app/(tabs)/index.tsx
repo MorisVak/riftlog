@@ -4,7 +4,6 @@ import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/authContext';
 import { useMatch } from '@/contexts/matchContext';
 import GuestBanner from '@/components/guestBanner';
@@ -16,46 +15,18 @@ import { SCREEN_ENTER } from '@/components/transitions';
 import MatchSetup from '@/components/matchSetup';
 import RecentMatchRow from '@/components/recentMatchRow';
 import DeckPicker from '@/components/deck/deckPicker';
-import Icon from '@/components/icon';
+import HeroCard, { type HeroDeckState } from '@/components/home/heroCard';
+import FormStrip from '@/components/home/formStrip';
 import { useProfile } from '@/contexts/profileContext';
 import { setDefaultDeck } from '@/lib/profile';
 import { fetchMyDecks, type Deck } from '@/lib/decks';
 import { fetchMatchHistory, type MatchWithGames } from '@/lib/matchPersistence';
-import { toHistoryRowVM, type HistoryRowVM } from '@/lib/historyView';
+import { toHistoryRowVM } from '@/lib/historyView';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 import { useInGameScreen } from '@/hooks/useInGameScreen';
 
 const BACKGROUND = '#0D1B2A'; // for Feather icons inside accent fills
 const ACCENT = '#8B93D9';
-
-// Stats derived from the device owner's own matches (Riot-policy safe — own
-// stats only). Win rate ignores draws; with no decisive games it reads "–".
-type HomeStats = { wins: number; losses: number; winRate: string };
-
-const deriveStats = (vms: HistoryRowVM[]): HomeStats => {
-  const wins = vms.filter((v) => v.result === 'win').length;
-  const losses = vms.filter((v) => v.result === 'loss').length;
-  const decided = wins + losses;
-  const winRate = decided === 0 ? '–' : `${Math.round((wins / decided) * 100)}%`;
-  return { wins, losses, winRate };
-};
-
-const StatCell = ({
-  value,
-  label,
-  color,
-  last,
-}: {
-  value: string | number;
-  label: string;
-  color: string;
-  last?: boolean;
-}) => (
-  <View className={`flex-1 px-2 py-3.5 ${last ? '' : 'border-r border-border'}`}>
-    <Text className={`text-center font-mono text-xl ${color}`}>{value}</Text>
-    <Text className="mt-0.5 text-center text-[12px] text-ink-secondary">{label}</Text>
-  </View>
-);
 
 const HistoryEmptyState = () => (
   <View className="rounded-2xl border border-border bg-surface px-6 py-8">
@@ -81,18 +52,6 @@ const GuestRecentState = () => (
   </View>
 );
 
-/** Guest stand-in for "Default deck": decks need an account. */
-const GuestDeckState = () => (
-  <View className="rounded-2xl border border-border bg-surface px-6 py-8">
-    <Text className="text-center font-display text-base text-ink-primary">
-      No decks in guest mode
-    </Text>
-    <Text className="mt-2 text-center text-sm text-ink-secondary">
-      Sign in to import your decks and pick one when you start a match.
-    </Text>
-  </View>
-);
-
 const Home = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -104,10 +63,8 @@ const Home = () => {
 
   const headerIntro = useSharedValue(0);
   const ctaIntro = useSharedValue(0);
-  const deckIntro = useSharedValue(0);
   const recentIntro = useSharedValue(0);
   const headerStyle = useRise(headerIntro);
-  const deckStyle = useRise(deckIntro);
   const ctaStyle = useRise(ctaIntro);
   const recentStyle = useRise(recentIntro);
 
@@ -116,9 +73,9 @@ const Home = () => {
       let active = true;
       setError(null);
       // Replay the intro on each focus, staggering the elements top-to-bottom
-      // (header → CTA → deck → matches) so the screen assembles dynamically
+      // (header → hero → matches) so the screen assembles dynamically
       // rather than fading in all at once, matching the other tabs.
-      playIntro([headerIntro, ctaIntro, deckIntro, recentIntro]);
+      playIntro([headerIntro, ctaIntro, recentIntro]);
       // Home is the one guest-usable screen, so it must not touch the network
       // while signed out — stats read as zeroes and the recent list explains
       // itself instead.
@@ -136,12 +93,11 @@ const Home = () => {
       return () => {
         active = false;
       };
-    }, [authed, headerIntro, ctaIntro, deckIntro, recentIntro]),
+    }, [authed, headerIntro, ctaIntro, recentIntro]),
   );
 
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
   const recent = useMemo(() => vms.slice(0, 3), [vms]);
-  const stats = useMemo(() => deriveStats(vms), [vms]);
 
   // "Default deck": the deck a new match starts with — your default deck (the
   // setup sheet preselects it). Choosing one here sets the default, as on
@@ -152,6 +108,16 @@ const Home = () => {
   const defaultDeckId =
     pendingDefault !== undefined ? pendingDefault : (profile?.defaultDeckId ?? null);
   const defaultDeck = decks?.find((d) => d.id === defaultDeckId) ?? null;
+  const heroState: HeroDeckState =
+    status === 'guest'
+      ? { kind: 'guest' }
+      : decks === null
+        ? { kind: 'loading' }
+        : defaultDeck
+          ? { kind: 'deck', deck: defaultDeck }
+          : decks.length > 0
+            ? { kind: 'none' }
+            : { kind: 'empty' };
   const chooseDefault = (deck: Deck | null) => {
     const id = deck?.id ?? null;
     setPendingDefault(id);
@@ -200,83 +166,25 @@ const Home = () => {
           <GuestBanner />
         </Animated.View>
 
-        {/* Start CTA */}
+        {/* The hero: Start a match on your default deck's legend, with the
+            deck named in its corner and Change beside it. */}
         <Animated.View style={ctaStyle}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Start a match"
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setSetupOpen(true);
-            }}
-            className="rounded-[20px] bg-accent shadow-accent-card active:bg-accent-strong"
-          >
-            {/* overflow-hidden lives on this inner wrapper, not the Pressable, so
-              it clips the decorative rings without clipping the card's own
-              accent drop shadow (iOS clips a view's shadow when overflow is
-              hidden on the same view). */}
-            <View className="overflow-hidden rounded-[20px] p-6">
-              {/* Decorative rings */}
-              <View className="absolute -right-8 -top-8 h-[140px] w-[140px] rounded-full border border-background/15" />
-              <View className="absolute -bottom-11 right-1.5 h-[110px] w-[110px] rounded-full border border-background/10" />
-              <View className="flex-row items-center gap-3.5">
-                <View className="h-[52px] w-[52px] items-center justify-center rounded-[15px] bg-background/15">
-                  <Feather name="play" size={20} color={BACKGROUND} />
-                </View>
-                <View>
-                  <Text className="font-display-bold text-[19px] tracking-tight text-background">
-                    Start a match
-                  </Text>
-                  <Text className="mt-0.5 text-[13px] font-medium text-background/60">
-                    Track score live, log it forever
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </Pressable>
-        </Animated.View>
-
-        {/* Default deck — the one a new match starts with. A guest gets a
-            stand-in (decks need an account). */}
-        {status !== 'loading' && (
-          <Animated.View style={deckStyle}>
-            <Text className="mb-2 mt-6 px-0.5 font-display-bold text-[15px] text-ink-primary">
-              Default deck
-            </Text>
-            {status === 'guest' ? (
-              <GuestDeckState />
-            ) : decks === null ? (
-              <View className="h-[64px] rounded-2xl border border-border bg-surface" />
-            ) : decks.length === 0 ? (
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => router.push('/decks/import')}
-                className="flex-row items-center gap-3 rounded-2xl border border-dashed border-border px-4 py-4 active:bg-surface"
-              >
-                <Icon name="plus" size={18} className="text-accent" />
-                <View className="flex-1">
-                  <Text className="font-display text-[15px] text-ink-primary">Import a deck</Text>
-                  <Text className="mt-0.5 text-[13px] text-ink-secondary">
-                    Paste a decklist or a deck code.
-                  </Text>
-                </View>
-              </Pressable>
-            ) : (
-              <>
-                <DeckPicker
-                  value={defaultDeck}
-                  onChange={chooseDefault}
-                  noneLabel="No default deck"
-                  title="Default deck"
-                  defaultDeckId={defaultDeckId}
-                />
-                <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
-                  Picked for you when you start a match.
-                </Text>
-              </>
+          <DeckPicker
+            value={defaultDeck}
+            onChange={chooseDefault}
+            noneLabel="No default deck"
+            title="Default deck"
+            defaultDeckId={defaultDeckId}
+            renderTrigger={(openDecks) => (
+              <HeroCard
+                state={heroState}
+                onStart={() => setSetupOpen(true)}
+                onChange={openDecks}
+                onImport={() => router.push('/decks/import')}
+              />
             )}
-          </Animated.View>
-        )}
+          />
+        </Animated.View>
 
         {/* Recent matches */}
         <Animated.View style={recentStyle}>
@@ -287,18 +195,13 @@ const Home = () => {
             </Pressable>
           </View>
 
-          {/* Your record — your own saved matches, so none for a guest (they
-            have nothing saved; a row of zeroes would just look broken).
-            Shown while the session restores so a signed-in cold start
-            doesn't jump. */}
+          {/* Your form — the last ten results and your record. Your own
+              saved matches, so none for a guest. */}
           {authed && !loading && error === null && vms.length > 0 && (
-            <Animated.View className="mb-2 flex-row overflow-hidden rounded-2xl border border-border bg-surface">
-              <StatCell value={stats.wins} label="Wins" color="text-win-text" />
-              <StatCell value={stats.losses} label="Losses" color="text-loss-text" />
-              <StatCell value={stats.winRate} label="Win rate" color="text-accent" last />
-            </Animated.View>
+            <View className="mb-2">
+              <FormStrip vms={vms} />
+            </View>
           )}
-
           {loading ? (
             <View className="items-center py-10">
               <ActivityIndicator color={ACCENT} />

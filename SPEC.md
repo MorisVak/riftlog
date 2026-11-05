@@ -360,10 +360,9 @@ the app yet.
 
 **Entry points:** the Decks tab, and **Your deck** on the pre-match
 setup sheet (Feature 1), where the player picks the deck they're running
-before a match. Home also shows **Default deck**: your default deck — the one
-the setup sheet starts with — as a deck field you tap to choose another
-(which sets the default, as on Profile); with no decks yet it offers
-"Import a deck", and a guest gets a stand-in.
+before a match. Home's hero card shows your **default deck** (its legend's
+art behind "Start a match", with Change); a deck's own screen has a "Make
+default" button; Profile has the setting too.
 
 **Requirements:**
 

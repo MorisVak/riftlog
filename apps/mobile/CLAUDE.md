@@ -941,14 +941,24 @@ Rules that are easy to get wrong:
 - **Legacy placeholder names are normalized.** Matches started with blank name
   fields stored the literal `"Player 1"` / `"Player 2"`; those render as
   `You` / `Opponent` rather than being shown as if they were real names.
-- **Home** (`app/(tabs)/index.tsx`), top to bottom: the brand, **Start a
-  match**, **Default deck** — the deck a match starts with: your default deck,
-  as a `DeckPicker` field (choosing sets the default, as on Profile; no
-  decks yet → an "Import a deck" card; a guest gets a stand-in) — and **Your
-  matches**: the record (wins · losses · win rate, sentence case) right
-  above the three newest rows, with "See all". No profile button: Profile
-  is a tab. (A "Recently played deck" card was replaced by Your deck: two
-  ideas of "your deck" — last played vs. default — read as one question.)
+- **Home** (`app/(tabs)/index.tsx`), top to bottom: the brand; the
+  **hero** (`components/home/heroCard.tsx`) — "Start a match" on your
+  **default deck's** legend art (`CardBackdrop`), the deck named in the
+  corner with **Change** beside it (a `DeckPicker` with `renderTrigger`, so
+  the hero opens the same deck sheet; choosing sets the default). Without a
+  default it says "None chosen" + Choose, with no decks "No decks yet" +
+  Import, a guest "Ready to play" — the same card without art. Then **Your
+  matches**: the **form strip** (`components/home/formStrip.tsx`: the last
+  ten results as W/L/D tiles, oldest left, plus record and win rate) above
+  the three newest rows, with "See all". No profile button: Profile is a
+  tab. (A flat purple CTA, a separate deck field and a three-number stats
+  box were merged into the hero and the strip.)
+- **The default deck can be set in three places**: Home's hero (Change),
+  the deck screen's top bar (**Make default** / **Default** pill beside
+  Edit list, `components/deck/defaultDeckToggle.tsx`; tap again to remove;
+  not on an earlier version), and Profile. All write
+  `profiles.default_deck_id`. It was hard to find with Profile and a plain
+  field on Home only.
 - **Home's preview row mirrors the History row.** Both render the same
   `HistoryRowVM` and share `components/matchMeta.tsx` for the format + clock
   line, so they can't drift. Home's copy just drops the swipe-delete.
