@@ -1,6 +1,13 @@
 import React from 'react';
 import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
-import type { CardRef, CatalogCard, CatalogPrinting, Domain } from '@riftlog/core';
+import {
+  legendArtPrinting,
+  NO_LEGEND_ART,
+  type CardRef,
+  type CatalogCard,
+  type CatalogPrinting,
+  type Domain,
+} from '@riftlog/core';
 import Icon from '@/components/icon';
 import CardArt from '@/components/deck/cardArt';
 import CardText, { MightIcon } from '@/components/deck/cardText';
@@ -8,6 +15,7 @@ import { DomainChip, RuneIcon, asDomain, domainLabel } from '@/components/deck/d
 import RarityIcon from '@/components/deck/rarity';
 import { useCatalog } from '@/contexts/catalogContext';
 import { useCardMatch } from '@/hooks/useCardMatch';
+import { useProfile } from '@/contexts/profileContext';
 
 /**
  * A card's details as a popup over the current screen: art, name, chips
@@ -86,6 +94,9 @@ const StatNumber = ({ children, muted }: { children: React.ReactNode; muted?: bo
 
 const CardDetails = ({ card, artWidth }: { card: CardRef; artWidth: number }) => {
   const { match } = useCardMatch(card);
+  const { index } = useCatalog();
+  const { profile } = useProfile();
+  const pref = profile?.legendArt ?? NO_LEGEND_ART;
 
   if (!match || match.kind === 'unknown') {
     return (
@@ -102,13 +113,21 @@ const CardDetails = ({ card, artWidth }: { card: CardRef; artWidth: number }) =>
     );
   }
 
-  const { card: info, printing } = match;
+  const { card: info } = match;
+  // The art you see in the decklist, so tapping a legend doesn't jump back to
+  // the standard art: with "Use in decklists" on, the legend-art preference
+  // picks the printing here too — its art and its number, set and artist.
+  const printing =
+    pref.decklists && index
+      ? legendArtPrinting(info, match.printing, pref, index)
+      : match.printing;
+  const shown: CardRef = printing ? { ...card, code: printing.code } : card;
   const domains = info.domains.map(asDomain).filter((d): d is Domain => d !== null);
 
   return (
     <ScrollView contentContainerClassName="px-6 pb-8 pt-6">
       <View className="items-center">
-        <CardArt card={card} variant="sheet" width={artWidth} />
+        <CardArt card={shown} variant="sheet" width={artWidth} asPrinted />
       </View>
       <Text className="mt-5 text-center font-display-bold text-[22px] leading-7 text-ink-primary">
         {info.name}

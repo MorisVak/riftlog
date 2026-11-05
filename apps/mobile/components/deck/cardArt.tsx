@@ -64,11 +64,11 @@ const CardArt = ({
 }: CardArtProps) => {
   const frame = chosen ? 'border-2 border-chosen' : 'border border-border';
   const { profile } = useProfile();
-  // Decklists follow your legend art too (unless turned off there). Not the
-  // card sheet — it shows the printing's own number and set — and not where
-  // a printing is shown on purpose (`asPrinted`, the legend-art picker).
-  const applyPref =
-    !asPrinted && variant !== 'sheet' && (profile?.legendArt ?? NO_LEGEND_ART).decklists;
+  // Decklists follow your legend art too (unless turned off there), and so
+  // does the card sheet (it resolves the printing itself, for its details,
+  // and passes it `asPrinted`). Not where a printing is shown on purpose
+  // (`asPrinted`: the legend-art picker, the sheet).
+  const applyPref = !asPrinted && (profile?.legendArt ?? NO_LEGEND_ART).decklists;
   const printing = usePrinting(card, applyPref);
   const landscape = printing?.orientation === 'landscape';
 

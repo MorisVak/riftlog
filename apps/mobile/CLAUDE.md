@@ -42,10 +42,11 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
     (overnumbered / signed / alt art / promo, from a deck code) keeps it; a
     text import always gets the standard art, which is why this exists.
     Used by `cardArt.tsx` everywhere: backdrops and portraits always,
-    decklists (`CardArt` thumb / feature / tile) unless "Use in decklists"
-    is off. **Not** the card sheet (it shows the printing's own number and
-    set) and not `asPrinted` tiles (the picker itself). Deck codes never
-    change. Sign
+    decklists (`CardArt`) and the **card sheet** unless "Use in decklists"
+    is off — the sheet resolves the printing itself so its art *and* its
+    number / set / artist match what the decklist showed (tapping a legend
+    must not jump back to the standard art). `asPrinted` shows a printing
+    exactly (the picker, the sheet). Deck codes never change. Sign
     out is a row in Account, not an icon by your name, so a stray tap
     can't reach it.
   - `login.tsx` / `verify-otp.tsx` — modal auth routes
