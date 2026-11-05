@@ -13,7 +13,8 @@ import Icon from '@/components/icon';
 import RiotDisclaimer from '@/components/riotDisclaimer';
 import { CARD_ART, CARD_ART_PREVIEW } from '@/lib/featureFlags';
 import DeckPicker from '@/components/deck/deckPicker';
-import { deleteMyAccount, setDefaultDeck } from '@/lib/profile';
+import { deleteMyAccount, revokeAppleSignIn, setDefaultDeck } from '@/lib/profile';
+import { appleAuthorizationCode, usesAppleSignIn } from '@/lib/auth';
 import type { Deck } from '@/lib/decks';
 import { myDecksCache, useMyDecks } from '@/lib/sessionCache';
 import FeedbackSheet from '@/components/feedbackSheet';
@@ -37,7 +38,7 @@ type DecksState = { kind: 'loading' } | { kind: 'ready'; decks: Deck[] } | { kin
 const Profile = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { signOut, status } = useAuth();
+  const { signOut, status, user } = useAuth();
   // Your decks from the session cache (shared with Home and Decks).
   const { data: cachedDecks, error: decksError } = useMyDecks();
   const decksState: DecksState = cachedDecks
@@ -132,23 +133,67 @@ const Profile = () => {
         {
           text: 'Delete account',
           style: 'destructive',
-          onPress: () => {
-            setDeleting(true);
-            deleteMyAccount()
-              .then(() => signOut())
-              .then(() => Alert.alert('Account deleted', 'Your account and its data are gone.'))
-              .catch((e) => {
-                if (__DEV__) console.warn('[profile] account deletion failed:', e);
-                setDeleting(false);
-                Alert.alert(
-                  'Could not delete',
-                  'Please check your connection and try again, or email support@riftlog.net.',
-                );
-              });
-          },
+          onPress: () => void runDeletion(),
         },
       ],
     );
+  };
+
+  const deletionFailed = (e: unknown) => {
+    if (__DEV__) console.warn('[profile] account deletion failed:', e);
+    setDeleting(false);
+    Alert.alert(
+      'Could not delete',
+      'Please check your connection and try again, or email support@riftlog.net.',
+    );
+  };
+
+  const finishDeletion = async () => {
+    await deleteMyAccount();
+    await signOut();
+    Alert.alert('Account deleted', 'Your account and its data are gone.');
+  };
+
+  // An account that signs in with Apple first has its Apple tokens revoked
+  // (Apple asks for it): one more Apple confirmation gives a one-time code,
+  // the `revoke-apple` function revokes with it. If Apple can't be reached,
+  // deleting still matters more — the user may go ahead.
+  const runDeletion = async () => {
+    setDeleting(true);
+    try {
+      if (usesAppleSignIn(user)) {
+        const code = await appleAuthorizationCode();
+        if (code === 'cancelled') {
+          setDeleting(false);
+          return;
+        }
+        try {
+          await revokeAppleSignIn(code);
+        } catch (e) {
+          if (__DEV__) console.warn('[profile] Apple revoke failed:', e);
+          setDeleting(false);
+          Alert.alert(
+            'Couldn\u2019t disconnect Apple',
+            'Your Apple sign-in couldn\u2019t be revoked right now. Delete the account anyway? You can also remove Riftlog later in Settings → Apple Account → Sign in with Apple.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Delete anyway',
+                style: 'destructive',
+                onPress: () => {
+                  setDeleting(true);
+                  finishDeletion().catch(deletionFailed);
+                },
+              },
+            ],
+          );
+          return;
+        }
+      }
+      await finishDeletion();
+    } catch (e) {
+      deletionFailed(e);
+    }
   };
 
   // Profile → Legend art, summed up on its row.

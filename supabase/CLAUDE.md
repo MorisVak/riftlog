@@ -208,9 +208,9 @@ EXECUTE for `authenticated` only) deletes the caller's own `auth.users` row;
 everything else of theirs goes through the `on delete cascade` FKs
 (profiles, matches → games, decks → versions, feedback_submissions, admin
 rows). Anonymous feedback has no user column and stays. The client signs
-out locally afterwards. **Not yet:** revoking Sign in with Apple tokens on
-deletion (Apple asks for it with SIWA; needs the Apple REST API + client
-secret, server-side).
+out locally afterwards. For an account that signs in with Apple, the app
+first revokes its Apple tokens through the `revoke-apple` Edge Function
+(see Edge Functions).
 
 ### Profile RPCs
 
@@ -521,9 +521,24 @@ over the access token (no DB password needed); applying migrations does.
 
 ## Edge Functions
 
-No function is scaffolded yet (v1 may not need one). The directory and
-`functions/.env.example` exist so the contract is documented. When a function
-lands:
+**`revoke-apple`** (`functions/revoke-apple/index.ts`) is the first one:
+Sign in with Apple token revocation at account deletion. The app asks the
+user to confirm with Apple once more (a one-time `authorizationCode`), the
+function checks the caller against Auth (`/auth/v1/user` with their JWT —
+`verify_jwt = false` in `config.toml`, so it doesn't rely on the gateway's
+check with asymmetric signing keys), trades the code for the user's Apple
+refresh token (`/auth/token`, client secret = an ES256 JWT signed with the
+.p8), checks the id_token's `sub` is the caller's Apple identity, and
+revokes it (`/auth/revoke`). The app then calls `delete_my_account`.
+Secrets (set with `supabase secrets set`, never in a file):
+`APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_CLIENT_ID` (`com.m-mecke.riftlog`),
+`APPLE_PRIVATE_KEY` (the Sign in with Apple key, also kept in the owner's
+password manager). Deploy: `pnpm dlx supabase functions deploy revoke-apple
+--use-api` (`--use-api` bundles server-side — no Docker here). Errors:
+`apple_token` (`invalid_grant` = used / expired code, `invalid_client` =
+the secrets), `apple_revoke`, `not_your_apple_account`.
+
+General rules for functions:
 
 - Deno runtime, not Node. Different module resolution, different stdlib.
 - Import shared code from `@riftlog/core` via the workspace (configuration
@@ -580,8 +595,8 @@ offline outbox. Still ahead (later slices / features):
   users until a provider (Resend / Postmark / Brevo) is set under
   Authentication → SMTP, with a verified riftlog.net domain. Add the provider
   to `/privacy` when it is.
-- **Account deletion** — built (`delete_my_account`). Open: revoking Sign
-  in with Apple tokens on deletion (Apple REST API, server-side).
+- **Account deletion** — built (`delete_my_account`, plus `revoke-apple`
+  for Apple accounts).
 - The card catalog importer (Riftcodex → catalog, secret key), then the
   app's catalog cache and card display — the schema is in place.
 - First Edge Function (none needed so far — text import parses on-device)

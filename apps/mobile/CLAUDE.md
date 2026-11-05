@@ -30,8 +30,11 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
   - `(tabs)/profile.tsx` — you and your settings: an identity card, then
     sections (Default deck, **Appearance → Legend art** (card-art flag
     only), Feedback, **Support → Buy me a coffee** (opens the browser),
-    **Account → Sign out / Delete account** (one destructive confirm, the
-    `delete_my_account` RPC, then a local sign-out)), Riot's statements at
+    **Account → Sign out / Delete account** (one destructive confirm; an
+    Apple account then confirms with Apple once more — `appleAuthorizationCode`
+    → `revokeAppleSignIn` → the `revoke-apple` function — with "Delete
+    anyway" if Apple can't be reached; then the `delete_my_account` RPC and
+    a local sign-out)), Riot's statements at
     the bottom (account-gated).
   - `legend-art.tsx` — which art **replaces a legend's standard art**:
     "Prefer overnumbered art", a per-legend pick (a grid of every legend;

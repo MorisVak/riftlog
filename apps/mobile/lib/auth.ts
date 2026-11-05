@@ -97,10 +97,7 @@ export async function signInWithRedirectProvider(
   if (error) throw error;
   if (!data.url) throw new Error(`${label} sign-in did not return an auth URL.`);
 
-  const result = await WebBrowser.openAuthSessionAsync(
-    data.url,
-    AUTH_REDIRECT_URI,
-  );
+  const result = await WebBrowser.openAuthSessionAsync(data.url, AUTH_REDIRECT_URI);
 
   if (result.type !== 'success') {
     // A misconfigured redirect is INDISTINGUISHABLE from a real cancel here:
@@ -147,8 +144,7 @@ export async function signInWithRedirectProvider(
 export const signInWithDiscord = (): Promise<SignInOutcome> =>
   signInWithRedirectProvider('discord');
 
-export const signInWithGoogle = (): Promise<SignInOutcome> =>
-  signInWithRedirectProvider('google');
+export const signInWithGoogle = (): Promise<SignInOutcome> => signInWithRedirectProvider('google');
 
 // ---- Apple: native Sign in with Apple -------------------------------------
 
@@ -187,10 +183,9 @@ export async function signInWithApple(): Promise<SignInOutcome> {
     });
     if (error) throw error;
 
-    const nameParts = [
-      credential.fullName?.givenName,
-      credential.fullName?.familyName,
-    ].filter((part): part is string => typeof part === 'string' && part !== '');
+    const nameParts = [credential.fullName?.givenName, credential.fullName?.familyName].filter(
+      (part): part is string => typeof part === 'string' && part !== '',
+    );
 
     if (nameParts.length > 0) {
       const { error: updateError } = await supabase.auth.updateUser({
@@ -210,17 +205,38 @@ export async function signInWithApple(): Promise<SignInOutcome> {
     return 'signed-in';
   } catch (e) {
     // Apple signals a dismissed sheet with a thrown ERR_REQUEST_CANCELED.
-    if (
-      e !== null &&
-      typeof e === 'object' &&
-      'code' in e &&
-      e.code === 'ERR_REQUEST_CANCELED'
-    ) {
+    if (e !== null && typeof e === 'object' && 'code' in e && e.code === 'ERR_REQUEST_CANCELED') {
       return 'cancelled';
     }
     throw e;
   }
 }
+
+/**
+ * For deleting an account that signs in with Apple: ask Apple to confirm
+ * once more and return the one-time authorization code (valid ~5 minutes),
+ * which the `revoke-apple` function trades for the user's Apple token and
+ * revokes — Apple asks for that when such an account is deleted. Nothing is
+ * signed in here. 'cancelled' when the user dismisses the sheet.
+ */
+export async function appleAuthorizationCode(): Promise<string | 'cancelled'> {
+  try {
+    const credential = await AppleAuthentication.signInAsync({ requestedScopes: [] });
+    if (!credential.authorizationCode) {
+      throw new Error('Apple returned no authorization code.');
+    }
+    return credential.authorizationCode;
+  } catch (e) {
+    if (e !== null && typeof e === 'object' && 'code' in e && e.code === 'ERR_REQUEST_CANCELED') {
+      return 'cancelled';
+    }
+    throw e;
+  }
+}
+
+/** Whether this account signs in with Apple (so deleting it revokes Apple's tokens). */
+export const usesAppleSignIn = (user: { identities?: { provider: string }[] | null } | null) =>
+  (user?.identities ?? []).some((i) => i.provider === 'apple');
 
 // ---- Email: passwordless OTP ----------------------------------------------
 
@@ -240,10 +256,7 @@ export async function sendEmailOtp(email: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function verifyEmailOtp(
-  email: string,
-  token: string,
-): Promise<void> {
+export async function verifyEmailOtp(email: string, token: string): Promise<void> {
   const { error } = await supabase.auth.verifyOtp({
     email: email.trim(),
     token: token.trim(),

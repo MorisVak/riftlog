@@ -23,8 +23,8 @@ describe _how_ the project works; `SPEC.md` describes _what_ is being built.
   via React Native Reanimated 4 (see `apps/mobile/CLAUDE.md`).
 - **Shared:** `@riftlog/core` package — pure TypeScript, no platform code.
   Tested with Vitest: `pnpm test` from the root (see `packages/core/CLAUDE.md`).
-- **Backend:** Supabase (account auth + Postgres; Edge Functions not yet
-  used). Postgres is the **single source of truth** for match data. See
+- **Backend:** Supabase (account auth + Postgres; one Edge Function,
+  `revoke-apple`). Postgres is the **single source of truth** for match data. See
   "Persistence architecture" below.
 
 ## Persistence architecture
@@ -39,7 +39,8 @@ stays bounded and self-clearing. (Separately, the public **card catalog** is
 cached as one replaceable file — reference data, not match data; see
 `apps/mobile/CLAUDE.md`.)
 
-Build status: schema + RLS + generated types (`supabase/`), the write/read path,
+Build status: schema + RLS + generated types (`supabase/`), one Edge Function
+(`revoke-apple`, Sign in with Apple revocation at account deletion), the write/read path,
 the offline outbox, account auth + `profiles`, and first-login onboarding
 (handle claim) are all built.
 
@@ -178,9 +179,10 @@ up:
   so art doesn't wait a layout pass, and cap History's up-front rows for
   very long histories.
 - **In-app account deletion** — built (Profile → Account → Delete account,
-  the `delete_my_account` RPC). Open: `/privacy` still describes deletion by
-  email only (legal pages need the owner's sign-off to change), and Sign in
-  with Apple tokens aren't revoked on deletion yet (Apple asks for it).
+  the `delete_my_account` RPC; Apple accounts first revoke their Apple
+  tokens via the `revoke-apple` Edge Function). Open: `/privacy` still
+  describes deletion by email only (legal pages need the owner's sign-off),
+  and the full flow needs one real test with a throwaway account.
 - **Website rework (hard todo).** riftlog.net still shows the app as it
   was: new screenshots of the reworked app, short animated recordings
   (GIF / video) of the key moments (game-start intro, scoring and a

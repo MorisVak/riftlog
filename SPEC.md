@@ -760,13 +760,11 @@ and card art and text (Features 4 and 6) are built.
 
 ## Roadmap (suggested build order)
 
-> **URGENT TODO — Sign in with Apple on account deletion.** In-app account
-> deletion is built (Profile → Delete account, the `delete_my_account` RPC,
-> FK cascades). Still open: when an account that signs in with Apple is
-> deleted, Apple expects the app to revoke the user's Apple tokens (REST
-> API `/auth/revoke`, with a client secret signed by a Sign in with Apple
-> key) — a small server function. Also: `/privacy` still describes deletion
-> by email only; update it with the owner's sign-off.
+> **Account deletion — built.** Profile → Delete account (the
+> `delete_my_account` RPC, FK cascades); an account that signs in with Apple
+> first revokes its Apple tokens (the `revoke-apple` Edge Function). Open:
+> `/privacy` still describes deletion by email only (needs the owner's
+> sign-off), and one real test with a throwaway account.
 
 > **HARD TODO — website rework.** riftlog.net still shows the app as it
 > was: retake the screenshots of the reworked app (Home's hero, the versus

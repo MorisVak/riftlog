@@ -64,6 +64,16 @@ export async function setLegendArt(value: LegendArt): Promise<void> {
 }
 
 /**
+ * Revoke the user's Sign in with Apple tokens before their account is
+ * deleted: the `revoke-apple` Edge Function trades the one-time code (from
+ * `appleAuthorizationCode`) for the token and revokes it with Apple.
+ */
+export async function revokeAppleSignIn(code: string): Promise<void> {
+  const { error } = await supabase.functions.invoke('revoke-apple', { body: { code } });
+  if (error) throw error;
+}
+
+/**
  * Delete the signed-in account for good: the `delete_my_account` RPC removes
  * the auth user, and every row of theirs goes with it (FK cascades). The
  * caller signs out locally afterwards.
@@ -76,11 +86,7 @@ export async function deleteMyAccount(): Promise<void> {
 // ---- Handles & onboarding --------------------------------------------------
 
 /** What `is_username_available` answers. Mirrors the SQL function. */
-export type HandleAvailability =
-  | 'available'
-  | 'invalid_format'
-  | 'reserved'
-  | 'taken';
+export type HandleAvailability = 'available' | 'invalid_format' | 'reserved' | 'taken';
 
 /** What `complete_onboarding` answers. Mirrors the SQL function. */
 export type OnboardingResult =
