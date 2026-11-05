@@ -129,7 +129,7 @@ const DeckDetail = () => {
 
   const back = () => {
     if (router.canGoBack()) router.back();
-    else router.replace('/profile');
+    else router.replace('/decks');
   };
 
   // The version on screen (an earlier one, or the current), and the one

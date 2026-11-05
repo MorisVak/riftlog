@@ -10,11 +10,17 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
 - `app/` — Expo Router routes. Each file is a screen.
   - `_layout.tsx` — root layout: `AuthProvider` > `ProfileProvider` >
     `MatchProvider` > `Stack` (with the onboarding guard, see below)
-  - `(tabs)/_layout.tsx` — tab navigator (History, Home, Profile)
+  - `(tabs)/_layout.tsx` — tab navigator: **Home · History · Decks ·
+    Profile**. Home first (the app opens on it), then by how often they're
+    used. One kind of thing per tab: decks are content, so they have their
+    own tab; Profile is you and your settings, kept a tab (not a header
+    avatar) so settings are in plain sight.
   - `(tabs)/index.tsx` — Home; also hosts the whole match flow by `phase`
   - `(tabs)/history.tsx` — match history (account-gated)
-  - `(tabs)/profile.tsx` — profile header, sign out, default deck, "My decks",
-    Feedback (account-gated)
+  - `(tabs)/decks.tsx` — your decks ("Decks": count, Select, Import deck,
+    search + sort, swipe / multi-select delete) (account-gated)
+  - `(tabs)/profile.tsx` — profile header, sign out, default deck, Feedback,
+    Riot's statements (account-gated)
   - `login.tsx` / `verify-otp.tsx` — modal auth routes
   - `onboarding.tsx` — first-login handle + display-name step (guarded)
   - `decks/import.tsx` — paste-a-decklist import (modal)
@@ -156,7 +162,7 @@ image prop on purpose. Don't add one.
 `components/deck/cardRow.tsx` (list), `components/deck/cardGrid.tsx`
 (gallery), the deck header or the card sheet → `components/deck/cardArt.tsx`,
 the single spot art is decided. Don't render card images anywhere else.
-Deck cards (Home's "Recently played deck", "My decks" rows, and the deck
+Deck cards (Home's "Recently played deck", the Decks tab's rows, and the deck
 field of `DeckPicker` — Profile's "Default deck", match setup's "Your deck") show their
 legend's art as a backdrop — `CardBackdrop`, also in `cardArt.tsx`: the art
 on the right ~70%, fading into the card's fill (`fill` = surface / elevated,
@@ -802,7 +808,7 @@ write; the deck screen's pencil button), `updateDeckList()` → the
 `update_deck_list` RPC (a new immutable version; matches keep the one they
 pinned), and `deleteDeck()` → the
 `delete_deck` RPC, a **soft** delete (see `../../supabase/CLAUDE.md`).
-"My decks" deletes like match history: swipe a row left
+The Decks tab deletes like match history: swipe a row left
 (`components/swipeToDelete.tsx`), confirm, the row drops optimistically and
 comes back with an alert if the server call fails. A swipe row's card must be
 opaque (`Pressable` + `bg-surface`, not `TouchableOpacity`) or the red action
@@ -867,13 +873,13 @@ cut since then are appended struck through with "Removed"; runes switch from
 the bar to rows so their changes show; a replaced legend gets "New". Matching
 is by `deckCardKey` (core). Color is never the only signal.
 
-**Default deck** (Profile, above "My decks"): the same `DeckPicker`, saved
+**Default deck** (Profile): the same `DeckPicker`, saved
 with `setDefaultDeck()` (`lib/profile.ts`, a plain update of
 `profiles.default_deck_id`) and tagged "Default" on its row. The setup sheet
 pre-selects it (`preselect`) unless you've already picked. Deleting that deck
 clears it server-side, so Profile refreshes after a delete.
 
-**Search and sort ("My decks")**, once there's more than one deck: a search
+**Search and sort (the Decks tab)**, once there's more than one deck: a search
 field (deck name or legend, like the picker) with a sort dropdown beside it —
 "Recently updated" (default) or "Recently created", built like the picker's
 Legend menu. Rows show the date the list is sorted by (`DeckRow`'s `date`
@@ -889,7 +895,7 @@ Feedback admins also get "View feedback" with an unread badge
 multi-select with mark read / unread / delete. Changes are optimistic and
 re-read on failure.
 
-**Multi-select (History and "My decks").** WhatsApp-style: a "Select" button
+**Multi-select (History and Decks).** WhatsApp-style: a "Select" button
 in the list header, or long-press a row (which selects it). While selecting,
 a tap toggles a row (a check circle *outside* the card, to its left, plus an
 accent outline), swipe-to-delete and
@@ -1086,7 +1092,7 @@ is explicitly started:
   decks. Text and deck-code import (a code is sorted by catalog types; unknown
   printings go to an "Unsorted" section that re-sorts on screen once the
   catalog knows them), "Copy deck code", the deck view, renaming, editing the
-  list (new version), (soft) delete, "My decks", and choosing a deck for a
+  list (new version), (soft) delete, the Decks tab, and choosing a deck for a
   match are built.
 - The designed history UI / detail view (only a minimal read-only list exists)
 - Profile **editing** — the handle rename UI and stats. `claim_username`

@@ -362,8 +362,8 @@ card art on.
 - Deck imports beyond text and deck codes — Riftmana. Plain-text and
   deck-code import (Piltover Archive codes; unknown printings kept in an
   "Unsorted" section), "Copy deck code", editing a deck's list (each save is a new
-  immutable version), the sectioned deck view, a "My decks" list on
-  Profile (with search and a recently updated / created sort), and choosing
+  immutable version), the sectioned deck view, a Decks tab (with search
+  and a recently updated / created sort), and choosing
   your deck for a match are built.
 - Match mode extras on the match detail — the opponent's deck, linked profile,
   head-to-head, their win rate (v1 shows your side only)

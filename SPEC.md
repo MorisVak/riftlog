@@ -293,7 +293,7 @@ connection returns.
 ## Feature 4 — Deck import
 
 **Status:** plain-text import built (paste → live preview → save), the deck
-view (List / Gallery), editing a list, "My decks" on Profile (search, sort,
+view (List / Gallery), editing a list, the Decks tab (search, sort,
 multi-select delete), a default deck, and choosing a deck for a match (the
 match pins the exact version), and Piltover Archive **deck codes** — import
 and "Copy deck code". Riftmana and manual entry are not built.
@@ -357,7 +357,7 @@ them together — but it's a *soft* delete: the deck disappears for the player w
 its versions stay, because match history will pin them. There's no restore in
 the app yet.
 
-**Entry points:** "My decks" on Profile, and **Your deck** on the pre-match
+**Entry points:** the Decks tab, and **Your deck** on the pre-match
 setup sheet (Feature 1), where the player picks the deck they're running
 before a match. Home also shows a **Recently played deck** card
 (above Recent matches): the deck from your most recent match that had one —

@@ -33,6 +33,9 @@ const BAR_VISIBLE = {
   elevation: 0,
 } as const;
 
+// Four tabs, Home first (the app opens on it), then by how often they're
+// used: History after each match, Decks before an event, Profile rarely.
+// Each holds one kind of thing; settings live on Profile, in plain sight.
 export default function TabsLayout() {
   const { phase } = useMatch();
   // Hidden during a live match (board owns the full screen).
@@ -53,30 +56,31 @@ export default function TabsLayout() {
   return (
     <Tabs screenOptions={screenOptions}>
       <Tabs.Screen
-        name="history"
-        options={{
-          title: 'History',
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="list" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="home" color={color} size={size} />
-          ),
+          tabBarIcon: ({ color, size }) => <Feather name="home" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'History',
+          tabBarIcon: ({ color, size }) => <Feather name="list" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="decks"
+        options={{
+          title: 'Decks',
+          tabBarIcon: ({ color, size }) => <Feather name="layers" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="user" color={color} size={size} />
-          ),
+          tabBarIcon: ({ color, size }) => <Feather name="user" color={color} size={size} />,
         }}
       />
     </Tabs>
