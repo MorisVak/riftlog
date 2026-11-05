@@ -417,6 +417,17 @@ rendered inside a `Pressable`) in `React.memo`:** NativeWind's css-interop
 then throws "Component is not a function (it is Object)" and the app
 renders a blank white screen.
 
+**The expanded History row** (`components/match/matchRowDetail.tsx`): the
+matchup (your legend vs theirs as small face portraits with names, you
+left — the opponent's legend shows here, not in the title), one tile per
+game (result bar, score you–them, letter), the clock for a timed match, the
+deck as a card with your legend's art ("an earlier version" if edited
+since; opens the list as played), and a full-width "View details". It's
+built only once a row is first opened (`opened` in `HistoryRow`) — closed
+rows stay light — and measured absolutely, so it keeps its natural height
+while the animated container is still 0 tall (`detailH` is a dependency of
+the animated style).
+
 **Legends whose face fills their card** (Vex - Gloomist, Kennen): a crop in
 `lib/legendArtFocus.manual.json` may be wider than the art (`w` > 1) to bring
 the face down to the usual size. The art then comes out narrower than the

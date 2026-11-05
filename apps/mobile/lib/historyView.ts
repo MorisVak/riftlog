@@ -36,6 +36,8 @@ export type HistoryRowVM = {
   you: string;
   /** Who you played against (p2) — always rendered with a "vs" prefix. */
   opponent: string;
+  /** Their legend (picked in setup) — shown in the expanded row's matchup. */
+  opponentLegend: CardRef | null;
   /** Your legend (your deck's, or picked in setup); null if unknown. */
   yourLegend: CardRef | null;
   format: 'BO1' | 'BO3';
@@ -181,6 +183,7 @@ export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
     letter: LETTER[result],
     you: nameOr(p1?.name, 'You'),
     opponent: nameOr(p2?.name, 'Opponent'),
+    opponentLegend: p2?.legend ?? null,
     yourLegend: yourLegendFor(p1?.legend ?? null, m.deck),
     format: isBo1 ? 'BO1' : 'BO3',
     score,

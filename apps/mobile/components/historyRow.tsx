@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { deckHref, type HistoryRowVM, type Result } from '@/lib/historyView';
 import MatchMeta from './matchMeta';
+import MatchRowDetail from './match/matchRowDetail';
 import { CardBackdrop } from './deck/cardArt';
 import PressOverlay from './pressOverlay';
 import { SelectionGutter } from './selectCheck';
@@ -28,10 +29,7 @@ const RESULT: Record<Result, { bar: string; badge: string; text: string }> = {
 
 const INK_SECONDARY = '#868FB0';
 const INK_PRIMARY = '#E4E5F2';
-const ACCENT = '#8B93D9';
 
-// Separates the two names in the expanded detail, matching the score chips.
-const EN_DASH = '–';
 
 // Expand/collapse share one timing window so the result bar, the detail height,
 // and the chevron all move together — no half-collapsed "cut off" bar.
@@ -43,18 +41,6 @@ const EXPAND_EASING = Easing.inOut(Easing.cubic);
 const ACTION_W = 80;
 const SWIPE_MS = 180;
 
-const GameChip = ({ n, label, letter, result }: HistoryRowVM['games'][number]) => {
-  const r = RESULT[result];
-  return (
-    <View className="flex-row items-center gap-2 rounded-lg border border-border bg-elevated px-2.5 py-1.5">
-      <Text className="font-display text-[10px] text-ink-secondary">G{n}</Text>
-      <Text className="font-mono text-xs text-ink-primary">{label}</Text>
-      <View className={`h-4 w-4 items-center justify-center rounded ${r.badge}`}>
-        <Text className={`font-display-bold text-[10px] ${r.text}`}>{letter}</Text>
-      </View>
-    </View>
-  );
-};
 
 type Props = {
   vm: HistoryRowVM;
@@ -87,6 +73,11 @@ const HistoryRow = ({
   // Natural height of the detail block, measured once from the always-mounted
   // (but clipped) content so we can animate the container height to/from it.
   const [detailH, setDetailH] = useState(0);
+  // Whether the detail has ever been opened: it's built then, and kept.
+  const [opened, setOpened] = useState(expanded);
+  useEffect(() => {
+    if (expanded) setOpened(true);
+  }, [expanded]);
 
   const progress = useSharedValue(expanded ? 1 : 0);
   useEffect(() => {
@@ -98,10 +89,15 @@ const HistoryRow = ({
 
   // Animating `height` (a layout prop) re-lays out the row each frame, so the
   // self-stretch result bar tracks the growing/shrinking card in lockstep.
-  const detailStyle = useAnimatedStyle(() => ({
-    height: detailH * progress.value,
-    opacity: progress.value,
-  }));
+  // `detailH` as a dependency: the detail is built on first open, so its
+  // height arrives after the animation has started.
+  const detailStyle = useAnimatedStyle(
+    () => ({
+      height: detailH * progress.value,
+      opacity: progress.value,
+    }),
+    [detailH],
+  );
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${progress.value * 180}deg` }],
   }));
@@ -312,89 +308,24 @@ const HistoryRow = ({
                 )}
               </Pressable>
 
-              {/* Always mounted; height + opacity animate from a single `progress`. */}
+              {/* Height + opacity animate from a single `progress`. The content
+                  is only built once the row has been opened: closed rows stay
+                  light (it holds legend art). */}
               <Animated.View style={detailStyle} className="overflow-hidden">
+                {/* Absolute, so it keeps its natural height to measure while
+                    the container is still 0 tall (content built on open). */}
                 <View
+                  style={{ position: 'absolute', left: 0, right: 0, top: 0 }}
                   onLayout={(e) => setDetailH(e.nativeEvent.layout.height)}
-                  className="pb-3 pl-[52px] pr-3"
                 >
-                  {/* Names in the same order as every score line (you–them), so
-                      the chips below read without guessing. */}
-                  <Text
-                    className="mb-2 font-display text-[11px] text-ink-secondary"
-                    numberOfLines={1}
-                  >
-                    {vm.you} {EN_DASH} {vm.opponent}
-                  </Text>
-
-                  {/* Timed matches: the clock they were played to and what it
-                      actually took. "overtime" is spelled out, not just colored. */}
-                  {vm.timer && (
-                    <Text
-                      className={`mb-2 font-display text-[11px] ${
-                        vm.timer.overtime ? 'text-loss-text' : 'text-ink-secondary'
-                      }`}
-                    >
-                      {vm.timer.limit} round · played {vm.timer.played}
-                      {vm.timer.overtime ? ' (overtime)' : ''}
-                    </Text>
+                  {opened && (
+                    <MatchRowDetail
+                      vm={vm}
+                      disabled={selecting}
+                      onOpenDeck={() => vm.deck && router.push(deckHref(vm.deck))}
+                      onOpenDetails={() => router.push(`/matches/${vm.id}`)}
+                    />
                   )}
-
-                  <View className="flex-row flex-wrap gap-2">
-                    {vm.games.map((g) => (
-                      <GameChip key={g.n} {...g} />
-                    ))}
-                  </View>
-
-                  {/* The deck you played. Tappable through to the list as it
-                      was played, unless the deck has since been deleted — then
-                      it's named, not linked. */}
-                  {vm.deck && (
-                    <View className="mt-3 flex-row items-center gap-1.5">
-                      <Text className="font-display text-[11px] text-ink-secondary">
-                        Deck
-                      </Text>
-                      {vm.deck.deleted ? (
-                        <Text
-                          className="flex-shrink text-[13px] text-ink-tertiary"
-                          numberOfLines={1}
-                        >
-                          {vm.deck.name} (deleted)
-                        </Text>
-                      ) : (
-                        <Pressable
-                          accessibilityRole="link"
-                          accessibilityLabel={`Open deck ${vm.deck.name}`}
-                          disabled={selecting}
-                          hitSlop={8}
-                          onPress={() => vm.deck && router.push(deckHref(vm.deck))}
-                          className="min-h-[32px] flex-shrink flex-row items-center gap-1"
-                        >
-                          <Text
-                            className="flex-shrink font-display text-[13px] text-accent"
-                            numberOfLines={1}
-                          >
-                            {vm.deck.name}
-                          </Text>
-                          <Feather name="chevron-right" size={14} color={ACCENT} />
-                        </Pressable>
-                      )}
-                    </View>
-                  )}
-
-                  {/* Placeholder until the match detail screen is built. */}
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`View details of the match vs ${vm.opponent}`}
-                    disabled={selecting}
-                    onPress={() => router.push(`/matches/${vm.id}`)}
-                    className="mt-3 h-10 flex-row items-center justify-center gap-1.5 self-start rounded-full border border-border px-4 active:bg-elevated"
-                  >
-                    <Text className="font-display text-[13px] text-ink-primary">
-                      View details
-                    </Text>
-                    <Feather name="arrow-right" size={14} color={INK_PRIMARY} />
-                  </Pressable>
                 </View>
               </Animated.View>
             </View>
