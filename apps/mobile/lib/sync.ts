@@ -1,5 +1,6 @@
 import type { Match } from '@riftlog/core';
 import { saveCompletedMatch } from './matchPersistence';
+import { matchHistoryCache } from './sessionCache';
 import { enqueueOutbox, getOutbox, removeFromOutbox } from './localStore';
 
 /**
@@ -15,6 +16,8 @@ import { enqueueOutbox, getOutbox, removeFromOutbox } from './localStore';
 export async function syncCompletedMatch(match: Match): Promise<void> {
   try {
     await saveCompletedMatch(match);
+    // History and Home show the new match next time they're seen.
+    void matchHistoryCache.refresh();
     void flushOutbox();
   } catch {
     await enqueueOutbox(match);
@@ -35,15 +38,18 @@ export async function flushOutbox(): Promise<void> {
   flushing = true;
   try {
     const queued = await getOutbox();
+    let saved = 0;
     for (const match of queued) {
       try {
         await saveCompletedMatch(match);
         await removeFromOutbox(match.id);
+        saved += 1;
       } catch {
         // Still offline / write failing — stop and let a later trigger retry.
         break;
       }
     }
+    if (saved > 0) void matchHistoryCache.refresh();
   } finally {
     flushing = false;
   }

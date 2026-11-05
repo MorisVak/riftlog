@@ -208,3 +208,18 @@ export function toHistoryRowVM(m: MatchListRow): HistoryRowVM {
   };
 }
 
+
+// One view-model per row object: with the session cache reusing unchanged rows
+// (lib/sessionCache.ts), their view-models are reused too, so memoized rows
+// keep their props and don't redraw.
+const vmCache = new WeakMap<MatchListRow, HistoryRowVM>();
+
+/** `toHistoryRowVM`, cached per row object. */
+export function historyRowVM(m: MatchListRow): HistoryRowVM {
+  let vm = vmCache.get(m);
+  if (!vm) {
+    vm = toHistoryRowVM(m);
+    vmCache.set(m, vm);
+  }
+  return vm;
+}

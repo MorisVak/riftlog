@@ -12,7 +12,8 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { deckDomains, splitCardName } from '@riftlog/core';
-import { fetchMyDecks, type Deck } from '@/lib/decks';
+import type { Deck } from '@/lib/decks';
+import { myDecksCache, useMyDecks } from '@/lib/sessionCache';
 import { DomainChips } from '@/components/deck/domain';
 import Icon from '@/components/icon';
 import { CardBackdrop } from '@/components/deck/cardArt';
@@ -74,7 +75,13 @@ const DeckPicker = ({
 }) => {
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
-  const [state, setState] = useState<LoadState>({ kind: 'loading' });
+  // Your decks from the session cache (shared with Home, Decks, Profile).
+  const { data: cachedDecks, error: decksError } = useMyDecks();
+  const state: LoadState = cachedDecks
+    ? { kind: 'ready', decks: cachedDecks }
+    : decksError
+      ? { kind: 'error' }
+      : { kind: 'loading' };
   // Once the user has picked, a late-arriving default must not override it.
   const touched = useRef(false);
   const [query, setQuery] = useState('');
@@ -82,7 +89,7 @@ const DeckPicker = ({
   const [legend, setLegend] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const decks = useMemo(() => (state.kind === 'ready' ? state.decks : []), [state]);
+  const decks = useMemo(() => cachedDecks ?? [], [cachedDecks]);
   // The legends among your decks, in first-seen (most recently updated) order.
   const legends = useMemo(() => {
     const seen = new Set<string>();
@@ -104,27 +111,27 @@ const DeckPicker = ({
   }, [decks, query, legend]);
   const filtering = query.trim() !== '' || legend !== null;
 
-  // Loaded on mount (to resolve the field and the preselect) and again each
-  // time the sheet opens, so a deck imported or deleted meanwhile shows up.
-  // A failed re-read keeps the list already loaded.
+  // Refreshed when the sheet opens, so a deck imported or deleted meanwhile
+  // shows up (the cache shows what it has at once; a failed re-read keeps it).
+  // On mount only if nothing is cached yet — to resolve the field and the
+  // preselect — so a screen with a picker doesn't re-read decks it has.
   useEffect(() => {
-    let active = true;
-    fetchMyDecks()
-      .then((decks) => active && setState({ kind: 'ready', decks }))
-      .catch(() => active && setState((cur) => (cur.kind === 'ready' ? cur : { kind: 'error' })));
-    return () => {
-      active = false;
-    };
+    if (open) void myDecksCache.refresh();
   }, [open]);
+  useEffect(() => {
+    if (!cachedDecks) void myDecksCache.refresh();
+    // Mount only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    if (!preselect || touched.current || state.kind !== 'ready') return;
+    if (!preselect || touched.current || !cachedDecks) return;
     if (value !== null || defaultDeckId === null) return;
-    const deck = state.decks.find((d) => d.id === defaultDeckId);
+    const deck = cachedDecks.find((d) => d.id === defaultDeckId);
     if (deck) onChange(deck);
     // Runs when the decks (or the default) arrive, not on every value change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, defaultDeckId, preselect]);
+  }, [cachedDecks, defaultDeckId, preselect]);
 
   const choose = (deck: Deck | null) => {
     Haptics.selectionAsync();

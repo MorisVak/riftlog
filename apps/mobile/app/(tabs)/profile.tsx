@@ -13,7 +13,8 @@ import RiotDisclaimer from '@/components/riotDisclaimer';
 import { CARD_ART_PREVIEW } from '@/lib/featureFlags';
 import DeckPicker from '@/components/deck/deckPicker';
 import { setDefaultDeck } from '@/lib/profile';
-import { fetchMyDecks, type Deck } from '@/lib/decks';
+import type { Deck } from '@/lib/decks';
+import { myDecksCache, useMyDecks } from '@/lib/sessionCache';
 import FeedbackSheet from '@/components/feedbackSheet';
 import { fetchFeedbackUnreadCount } from '@/lib/feedback';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
@@ -30,7 +31,13 @@ const Profile = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { signOut, status } = useAuth();
-  const [decksState, setDecksState] = useState<DecksState>({ kind: 'loading' });
+  // Your decks from the session cache (shared with Home and Decks).
+  const { data: cachedDecks, error: decksError } = useMyDecks();
+  const decksState: DecksState = cachedDecks
+    ? { kind: 'ready', decks: cachedDecks }
+    : decksError
+      ? { kind: 'error' }
+      : { kind: 'loading' };
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   // Unread feedback for the feedback admin; null for everyone else, which
   // also hides the inbox entry.
@@ -61,13 +68,7 @@ const Profile = () => {
         .catch((e) => {
           if (__DEV__) console.warn('[feedback] unread count failed:', e);
         });
-      fetchMyDecks()
-        .then((decks) => {
-          if (active) setDecksState({ kind: 'ready', decks });
-        })
-        .catch(() => {
-          if (active) setDecksState({ kind: 'error' });
-        });
+      void myDecksCache.refresh();
       return () => {
         active = false;
       };

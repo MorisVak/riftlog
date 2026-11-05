@@ -9,6 +9,7 @@ import { AppState } from 'react-native';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { clearInProgressMatch, clearOutbox } from '@/lib/localStore';
+import { clearSessionCaches } from '@/lib/sessionCache';
 
 /**
  * The single source of auth state for the app. There is exactly one data path:
@@ -67,7 +68,12 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     // Covers sign-in, sign-out, token refresh, and the OAuth redirect landing.
+    let userId: string | null | undefined;
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+      // Another account (or none): what was read for the last one goes.
+      const nextId = next?.user.id ?? null;
+      if (userId !== undefined && nextId !== userId) clearSessionCaches();
+      userId = nextId;
       setSession(next);
       setReady(true);
     });
@@ -98,6 +104,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // user. Clearing on sign-out is what prevents that.
         await clearInProgressMatch();
         await clearOutbox();
+        clearSessionCaches();
       },
     };
   }, [session, ready]);

@@ -23,10 +23,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   deleteMatch,
   deleteMatches,
-  fetchMatchHistory,
   type MatchListRow,
 } from '@/lib/matchPersistence';
-import { toHistoryRowVM } from '@/lib/historyView';
+import { historyRowVM } from '@/lib/historyView';
+import { matchHistoryCache, useMatchHistory } from '@/lib/sessionCache';
 import {
   activeCount,
   applyFilter,
@@ -320,8 +320,11 @@ const History = () => {
   const insets = useSafeAreaInsets();
   const { status } = useAuth();
   const authed = status === 'authed';
-  const [rows, setRows] = useState<MatchListRow[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Your matches, kept in memory for the session: shown at once, refreshed
+  // quietly on focus (lib/sessionCache.ts).
+  const { data: rows, error } = useMatchHistory();
+  // Module-level, so stable: deletes change the cached list in place.
+  const setRows = matchHistoryCache.update;
   const [filter, setFilter] = useState<HistoryFilter>(NO_FILTER);
   const [filtersOpen, setFiltersOpen] = useState(false);
   // The floating header's height (it grows with the filter chips); a first
@@ -343,31 +346,20 @@ const History = () => {
 
   useFocusEffect(
     useCallback(() => {
-      let active = true;
-      setError(null);
       // Replay the intro on each focus, staggering the elements top-to-bottom
       // (title → filters → matches) so the screen assembles dynamically rather
       // than fading in all at once (design `.scr` / scrIn).
       playIntro([titleIntro, filterIntro, dividerIntro, listIntro]);
       // Signed out there is nothing to read — RLS would return an empty set at
       // best, and an error at worst, behind a blur nobody can act on.
-      if (!authed) {
-        return () => {
-          active = false;
-        };
-      }
-      fetchMatchHistory()
-        .then((data) => active && setRows(data))
-        .catch((e) => active && setError(e?.message ?? 'Failed to load history'));
-      return () => {
-        active = false;
-        // Leaving the tab ends selection mode.
-        exitSelection();
-      };
+      if (!authed) return;
+      void matchHistoryCache.refresh();
+      // Leaving the tab ends selection mode.
+      return () => exitSelection();
     }, [authed, titleIntro, filterIntro, dividerIntro, listIntro, exitSelection]),
   );
 
-  const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
+  const vms = useMemo(() => (rows ?? []).map(historyRowVM), [rows]);
   const visible = useMemo(() => applyFilter(vms, filter), [vms, filter]);
   const options = useMemo(() => filterOptions(vms), [vms]);
   const chips = useMemo(
@@ -403,7 +395,7 @@ const History = () => {
       );
       Alert.alert('Could not delete', e?.message ?? 'Please try again.');
     });
-  }, []);
+  }, [setRows]);
 
   // Multi-select delete: confirm, drop the rows at once, delete them in one
   // statement; on failure put them all back.

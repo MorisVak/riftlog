@@ -817,6 +817,23 @@ locally** — keep the footprint to these two items.
 
 **Read path.** History reads come straight from Postgres on demand
 (`fetchMatchHistory()`), scoped to the caller by RLS — never mirrored locally.
+The list reads each game without its recorded points or notes
+(`LIST_GAME_COLUMNS`; the detail's `fetchMatch` reads `games(*)`) — that
+halved the payload.
+
+**Session cache (memory only, owner-approved).** `lib/sessionCache.ts` keeps
+your matches (`matchHistoryCache` / `useMatchHistory`) and decks
+(`myDecksCache` / `useMyDecks`) **in memory for the session** — nothing
+written to the device, so the rule above holds. Screens show what was read
+last at once and `refresh()` quietly on focus; an unchanged refresh keeps the
+same objects, and a changed one reuses every unchanged row (`shareRows`), so
+with `historyRowVM` (view-models cached per row object) and `React.memo` rows
+only what changed redraws. Optimistic deletes go through `update()`. A failed
+refresh keeps what's on screen; an error shows only with nothing cached.
+Cleared on sign-out and on any account change (`authContext`); a saved match
+or a flushed outbox refreshes the history. Use the named hooks — a method
+called `.use()` was treated by the React Compiler like React's `use()` and
+skipped on some renders (hook-order crash).
 
 **Decks** (`lib/decks.ts`) follow the same rule: `fetchMyDecks()` /
 `fetchDeck(id)` read on demand (the deck plus its current version's list,

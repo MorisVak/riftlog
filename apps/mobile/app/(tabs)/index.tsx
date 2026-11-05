@@ -21,9 +21,9 @@ import MatchLine, { MATCH_LINE_H } from '@/components/home/matchLine';
 import DeckStrip from '@/components/home/deckStrip';
 import { useProfile } from '@/contexts/profileContext';
 import { setDefaultDeck } from '@/lib/profile';
-import { fetchMyDecks, type Deck } from '@/lib/decks';
-import { fetchMatchHistory, type MatchListRow } from '@/lib/matchPersistence';
-import { toHistoryRowVM } from '@/lib/historyView';
+import type { Deck } from '@/lib/decks';
+import { historyRowVM } from '@/lib/historyView';
+import { matchHistoryCache, myDecksCache, useMatchHistory, useMyDecks } from '@/lib/sessionCache';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 import { useInGameScreen } from '@/hooks/useInGameScreen';
 
@@ -67,8 +67,12 @@ const Home = () => {
   const { status } = useAuth();
   const authed = status === 'authed';
   const [setupOpen, setSetupOpen] = useState(false);
-  const [rows, setRows] = useState<MatchListRow[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Your matches and decks, kept in memory for the session (shared with
+  // History and Decks): shown at once, refreshed quietly on focus.
+  const { data: rows, error } = useMatchHistory();
+  const { data: cachedDecks, error: decksError } = useMyDecks();
+  // A failed first read of decks shows as "none" rather than spinning.
+  const decks = cachedDecks ?? (decksError ? [] : null);
 
   const headerIntro = useSharedValue(0);
   const ctaIntro = useSharedValue(0);
@@ -81,8 +85,6 @@ const Home = () => {
 
   useFocusEffect(
     useCallback(() => {
-      let active = true;
-      setError(null);
       // Replay the intro on each focus, staggering the elements top-to-bottom
       // (header → hero → matches) so the screen assembles dynamically
       // rather than fading in all at once, matching the other tabs.
@@ -90,24 +92,13 @@ const Home = () => {
       // Home is the one guest-usable screen, so it must not touch the network
       // while signed out — stats read as zeroes and the recent list explains
       // itself instead.
-      if (!authed) {
-        return () => {
-          active = false;
-        };
-      }
-      fetchMatchHistory()
-        .then((data) => active && setRows(data))
-        .catch((e) => active && setError(e?.message ?? 'Failed to load matches'));
-      fetchMyDecks()
-        .then((d) => active && setDecks(d))
-        .catch(() => active && setDecks((cur) => cur ?? []));
-      return () => {
-        active = false;
-      };
+      if (!authed) return;
+      void matchHistoryCache.refresh();
+      void myDecksCache.refresh();
     }, [authed, headerIntro, ctaIntro, recentIntro, decksIntro]),
   );
 
-  const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
+  const vms = useMemo(() => (rows ?? []).map(historyRowVM), [rows]);
   const last = vms[0] ?? null;
   // How many match rows fit the space Home has left (measured).
   // How many match lines fit: the section's height, less its heading, the
@@ -125,7 +116,6 @@ const Home = () => {
   // setup sheet preselects it). Choosing one here sets the default, as on
   // Profile. Your decks are read for it on focus; none yet → an import card.
   const { profile, refresh: refreshProfile } = useProfile();
-  const [decks, setDecks] = useState<Deck[] | null>(null);
   const [pendingDefault, setPendingDefault] = useState<string | null | undefined>(undefined);
   const defaultDeckId =
     pendingDefault !== undefined ? pendingDefault : (profile?.defaultDeckId ?? null);

@@ -17,7 +17,8 @@ import { useProfile } from '@/contexts/profileContext';
 import AuthGate from '@/components/authGate';
 import Icon from '@/components/icon';
 import DeckRow from '@/components/deck/deckRow';
-import { deleteDeck, deleteDecks, fetchMyDecks, type Deck } from '@/lib/decks';
+import { deleteDeck, deleteDecks, type Deck } from '@/lib/decks';
+import { myDecksCache, useMyDecks } from '@/lib/sessionCache';
 import { useSelection } from '@/hooks/useSelection';
 import SelectionBar from '@/components/selectionBar';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
@@ -55,7 +56,20 @@ const Decks = () => {
   const { status } = useAuth();
   const { profile, refresh: refreshProfile } = useProfile();
   const defaultDeckId = profile?.defaultDeckId ?? null;
-  const [decksState, setDecksState] = useState<DecksState>({ kind: 'loading' });
+  // Your decks, kept in memory for the session (shared with Home, Profile
+  // and the deck picker): shown at once, refreshed quietly on focus.
+  const { data: cached, error: decksError } = useMyDecks();
+  const decksState: DecksState = cached
+    ? { kind: 'ready', decks: cached }
+    : decksError
+      ? { kind: 'error' }
+      : { kind: 'loading' };
+  // Optimistic deletes (and their undo) change the cached list in place.
+  const setDecksState = (fn: (cur: DecksState) => DecksState) =>
+    myDecksCache.update((cur) => {
+      const next = fn(cur ? { kind: 'ready', decks: cur } : { kind: 'loading' });
+      return next.kind === 'ready' ? next.decks : cur;
+    });
   const selection = useSelection();
   const { exit: exitSelection, clearSelected } = selection;
   const [query, setQuery] = useState('');
@@ -67,10 +81,7 @@ const Decks = () => {
     setSortMenuOpen(false);
   };
 
-  const allDecks = useMemo(
-    () => (decksState.kind === 'ready' ? decksState.decks : []),
-    [decksState],
-  );
+  const allDecks = useMemo(() => cached ?? [], [cached]);
   const shownDecks = useMemo(() => {
     const q = query.trim().toLowerCase();
     const key = sort === 'updated' ? 'updatedAt' : 'createdAt';
@@ -104,17 +115,7 @@ const Decks = () => {
       // Signed out, this screen renders behind the login gate; fetching
       // would only paint an RLS error under the blur.
       if (status !== 'authed') return;
-      let active = true;
-      fetchMyDecks()
-        .then((decks) => {
-          if (active) setDecksState({ kind: 'ready', decks });
-        })
-        .catch(() => {
-          if (active) setDecksState({ kind: 'error' });
-        });
-      return () => {
-        active = false;
-      };
+      void myDecksCache.refresh();
     }, [titleIntro, listIntro, status]),
   );
 
