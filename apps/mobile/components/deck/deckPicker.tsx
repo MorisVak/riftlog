@@ -15,6 +15,7 @@ import { deckDomains, splitCardName } from '@riftlog/core';
 import { fetchMyDecks, type Deck } from '@/lib/decks';
 import { DomainChips } from '@/components/deck/domain';
 import Icon from '@/components/icon';
+import { CardBackdrop } from '@/components/deck/cardArt';
 
 // The legend menu floats over the list; a style object, not a shadow class
 // (see the shadow note in apps/mobile/CLAUDE.md). Mirrors `background`.
@@ -150,8 +151,10 @@ const DeckPicker = ({
         accessibilityRole="button"
         accessibilityLabel={`${title}: ${value ? value.name : noneLabel}`}
         onPress={openSheet}
-        className="min-h-[52px] flex-row items-center gap-3 rounded-xl border border-border bg-elevated px-4 py-3 active:bg-surface"
+        // TouchableOpacity dims everything, the legend art included.
+        className="relative min-h-[52px] flex-row items-center gap-3 overflow-hidden rounded-xl border border-border bg-elevated px-4 py-3"
       >
+        {value?.list.legend && <CardBackdrop card={value.list.legend} fill="elevated" />}
         <View className="flex-1">
           <Text
             className={`text-base ${value ? 'font-display text-ink-primary' : 'text-ink-secondary'}`}

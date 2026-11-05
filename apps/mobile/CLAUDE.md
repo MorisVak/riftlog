@@ -156,7 +156,8 @@ image prop on purpose. Don't add one.
 `components/deck/cardRow.tsx` (list), `components/deck/cardGrid.tsx`
 (gallery), the deck header or the card sheet → `components/deck/cardArt.tsx`,
 the single spot art is decided. Don't render card images anywhere else.
-Deck cards (Home's "Recently played deck", "My decks" rows) show their
+Deck cards (Home's "Recently played deck", "My decks" rows, and the deck
+field of `DeckPicker` — Profile's "Default deck", match setup's "Your deck") show their
 legend's art as a backdrop — `CardBackdrop`, also in `cardArt.tsx`: the art
 on the right ~70%, fading into the card's fill (`fill` = surface / elevated,
 so a selected row has no seam), the date on a dark pill so it reads over any
