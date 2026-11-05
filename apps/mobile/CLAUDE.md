@@ -530,10 +530,14 @@ Conventions:
   `matchContext`). A take-back at 0 records nothing. `setScore` jumps a score
   without events and isn't used by the board — don't wire it to UI.
 - **Match detail** (`app/matches/[id].tsx`, `fetchMatch` →
-  `lib/matchDetailView.ts` → `components/match/gameCard.tsx`): a header with
-  the result (title in its color, letter badge, format), the **matchup** —
-  your legend vs theirs as two face portraits, you left, with the final
-  score between them — and the date / clock. Below, one rhythm: section
+  `lib/matchDetailView.ts` → `components/match/gameCard.tsx`): a **versus
+  banner**, edge to edge — your legend on the left, theirs on the right,
+  meeting at a slanted cut (the right box is `skewX`-ed to clip, the art
+  inside skewed back upright — no mask needed); the side that lost is
+  darkened (a draw darkens neither), and the result word, the score and
+  both names run along the bottom. Deliberately unlike setup's portraits (no
+  "You"/"Opponent" tags, no boxes): a finished match gets its own look.
+  Format, date and clock follow as one quiet line. Below, one rhythm: section
   label, one grouped card. **Games** is a single card with a line per game
   (`gameCard.tsx`: "G n", scores, a bar, W/L/D), **Deck** a tappable card
   that looks like a deck, not a match row (the legend as a small upright

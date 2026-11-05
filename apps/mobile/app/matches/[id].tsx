@@ -20,7 +20,6 @@ import { DomainIcons } from '@/components/deck/domain';
 import { useCardMatch } from '@/hooks/useCardMatch';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
-/** Which note the editor is open on. */
 type LoadState =
   | { kind: 'loading' }
   | { kind: 'ready'; vm: MatchDetailVM }
@@ -230,104 +229,124 @@ const MatchDetail = () => {
   );
 };
 
-// `background` (tailwind.config.js), clear → nearly opaque: the shade under a
-// portrait's names. Gradient stops can't take a class.
-const SHADE = ['#0D1B2A00', '#0D1B2AF2'] as const;
-const PORTRAIT_H = 176;
-
-/** One side of the matchup: the legend's art (face crop) with its names. */
-const MatchupSide = ({ name, legend, side }: { name: string; legend: CardRef | null; side: string }) => {
-  const legendName = legend ? splitCardName(legend.name) : null;
-  return (
-    <View
-      accessible
-      accessibilityLabel={`${side}: ${name}, ${legend ? legend.name : 'no legend'}`}
-      style={{ height: PORTRAIT_H }}
-      className="relative flex-1 overflow-hidden rounded-xl border border-border bg-elevated"
-    >
-      {legend ? (
-        <>
-          <LegendPortrait card={legend} />
-          <LinearGradient
-            colors={SHADE}
-            locations={[0.4, 1]}
-            style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
-          />
-        </>
-      ) : (
-        <View className="absolute inset-0 items-center justify-center">
-          <Icon name="user" size={28} className="text-ink-tertiary" />
-        </View>
-      )}
-      <View className="absolute left-2 top-2 rounded-full bg-background/70 px-2.5 py-1">
-        <Text className="font-display text-[11px] text-ink-primary">{side}</Text>
-      </View>
-      <View className="absolute bottom-0 left-0 right-0 px-3 pb-2.5">
-        <Text className="font-display-bold text-[17px] text-ink-primary" numberOfLines={1}>
-          {legendName ? legendName.head : 'No legend'}
-        </Text>
-        <Text className="text-[12px] text-ink-secondary" numberOfLines={1}>
-          {name}
-        </Text>
-      </View>
-    </View>
-  );
-};
+// `background` (tailwind.config.js), mirrored for gradient stops (they can't
+// take a class): clear → nearly opaque, for the banner's bottom shade.
+const SHADE = ['#0D1B2A00', '#0D1B2A99', '#0D1B2AF7'] as const;
+const BANNER_H = 216;
+/** The slant of the cut between the two sides. */
+const CUT = '-11deg';
 
 /**
- * The header: the result (title in its color, letter badge), then the
- * matchup — your legend vs theirs, you left — with the final score between
- * them, then the date and the clock.
+ * One side of the versus banner: the legend's art (face crop), or a quiet
+ * silhouette when unknown, darkened when this side lost.
+ */
+const BannerArt = ({ legend, lost }: { legend: CardRef | null; lost: boolean }) => (
+  <>
+    {legend ? (
+      <LegendPortrait card={legend} />
+    ) : (
+      <View className="absolute inset-0 items-center justify-center bg-elevated">
+        <Icon name="user" size={40} className="text-border" />
+      </View>
+    )}
+    {lost && <View className="absolute inset-0 bg-background/60" />}
+  </>
+);
+
+/** A side's names in its bottom corner: the champion, then the player. */
+const BannerName = ({
+  name,
+  legend,
+  align,
+}: {
+  name: string;
+  legend: CardRef | null;
+  align: 'left' | 'right';
+}) => (
+  <View className={`flex-1 ${align === 'right' ? 'items-end' : ''}`}>
+    <Text className="font-display-bold text-[18px] text-ink-primary" numberOfLines={1}>
+      {legend ? splitCardName(legend.name).head : 'No legend'}
+    </Text>
+    <Text className="text-[13px] text-ink-secondary" numberOfLines={1}>
+      {name}
+    </Text>
+  </View>
+);
+
+/**
+ * The match as a versus banner, edge to edge: your legend on the left (you're
+ * p1), theirs on the right, meeting at a slanted cut. The side that lost is
+ * darkened, so the result reads in the picture too (a draw darkens neither);
+ * the result word in its color, the score, and both sides' names sit along
+ * the bottom. Format, date and clock follow as one quiet line.
+ *
+ * The cut needs no mask: the right side's box is skewed (clipping its art to
+ * a parallelogram) and the art inside is skewed back, so it stays upright.
  */
 const ResultCard = ({ vm }: { vm: MatchDetailVM }) => {
   const r = RESULT[vm.result];
+  const youLost = vm.result === 'loss';
+  const theyLost = vm.result === 'win';
   return (
-    <View className="flex-row overflow-hidden rounded-2xl border border-border bg-surface">
-      <View className={`w-1 ${r.bar}`} />
-      <View className="flex-1 p-3.5">
-        <View className="mb-3 flex-row items-center gap-3 px-0.5">
-          <View className={`h-10 w-10 items-center justify-center rounded-xl ${r.badge}`}>
-            <Text className={`font-display-bold text-lg ${r.text}`}>{vm.letter}</Text>
-          </View>
-          <View className="flex-1">
-            <Text className={`font-display-bold text-[24px] leading-7 ${r.text}`}>{vm.title}</Text>
-            <Text className="text-[13px] text-ink-secondary">{vm.formatLong}</Text>
-          </View>
+    <View>
+      <View
+        accessible
+        accessibilityLabel={`${vm.title}, ${vm.score}. ${vm.you} with ${
+          vm.yourLegend?.name ?? 'no legend'
+        } versus ${vm.opponent} with ${vm.opponentLegend?.name ?? 'no legend'}`}
+        style={{ height: BANNER_H }}
+        className="-mx-4 overflow-hidden bg-background"
+      >
+        {/* Yours: the left side, running under theirs at the cut. */}
+        <View className="absolute bottom-0 left-0 top-0 w-[60%]">
+          <BannerArt legend={vm.yourLegend} lost={youLost} />
         </View>
 
-        {/* The matchup, with the score (you – them) between the portraits. */}
-        <View className="relative flex-row gap-2.5">
-          <MatchupSide side="You" name={vm.you} legend={vm.yourLegend} />
-          <MatchupSide side="Opponent" name={vm.opponent} legend={vm.opponentLegend} />
+        {/* Theirs: a skewed box (the slanted cut), art skewed back upright. */}
+        <View
+          style={{ transform: [{ skewX: CUT }] }}
+          className="absolute bottom-0 left-[50%] right-[-20%] top-0 overflow-hidden border-l-2 border-background"
+        >
           <View
-            pointerEvents="none"
-            style={{ top: PORTRAIT_H / 2 - 22, left: '50%', transform: [{ translateX: -44 }] }}
-            className="absolute h-11 w-[88px] items-center justify-center rounded-full border border-border bg-background"
+            style={{ transform: [{ skewX: CUT.replace('-', '') }] }}
+            className="absolute bottom-0 left-[-12%] right-[8%] top-0"
           >
-            <Text className="font-mono text-[22px] text-ink-primary">{vm.score}</Text>
+            <BannerArt legend={vm.opponentLegend} lost={theyLost} />
           </View>
         </View>
 
-        <View className="mt-3 flex-row flex-wrap items-center gap-x-2 gap-y-1 px-0.5">
-          <View className="flex-row items-center gap-1.5">
-            <Icon name="calendar" size={13} className="text-ink-secondary" />
-            <Text className="text-[13px] text-ink-secondary">{vm.dateLong}</Text>
+        <LinearGradient
+          colors={SHADE}
+          locations={[0.35, 0.68, 1]}
+          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+        />
+
+        {/* Along the bottom: you · result and score · them. */}
+        <View className="absolute bottom-0 left-0 right-0 flex-row items-end gap-3 px-4 pb-3.5">
+          <BannerName name={vm.you} legend={vm.yourLegend} align="left" />
+          <View className="items-center">
+            <Text className={`font-display-bold text-[15px] ${r.text}`}>{vm.title}</Text>
+            <Text className="font-mono text-[36px] leading-[40px] text-ink-primary">
+              {vm.score}
+            </Text>
           </View>
-          {vm.timer && (
-            <>
-              <Text className="text-[13px] text-ink-tertiary">·</Text>
-              <View className="flex-row items-center gap-1.5">
-                <Icon name="clock" size={13} className="text-ink-secondary" />
-                <Text className="text-[13px] text-ink-secondary">
-                  played {vm.timer.played} of {vm.timer.limit}
-                </Text>
-                {vm.timer.overtime && (
-                  <Text className="text-[13px] text-loss-text">· overtime</Text>
-                )}
-              </View>
-            </>
-          )}
+          <BannerName name={vm.opponent} legend={vm.opponentLegend} align="right" />
         </View>
+      </View>
+
+      <View className="mt-3 flex-row flex-wrap items-center gap-x-2 gap-y-1">
+        <Text className="text-[13px] text-ink-secondary">{vm.formatLong}</Text>
+        <Text className="text-[13px] text-ink-tertiary">·</Text>
+        <Text className="text-[13px] text-ink-secondary">{vm.dateLong}</Text>
+        {vm.timer && (
+          <>
+            <Text className="text-[13px] text-ink-tertiary">·</Text>
+            <Text className="text-[13px] text-ink-secondary">
+              played {vm.timer.played} of {vm.timer.limit}
+            </Text>
+            {vm.timer.overtime && <Text className="text-[13px] text-loss-text">· overtime</Text>}
+          </>
+        )}
       </View>
     </View>
   );
