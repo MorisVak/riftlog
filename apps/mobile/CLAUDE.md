@@ -183,6 +183,11 @@ the single spot art is decided. Don't render card images anywhere else.
   each) or the rainbow; `InlineRune` is the in-text version. Card text draws
   `:rb_rune_<domain>:` / `:rb_rune_rainbow:` as these symbols, with spoken
   labels (each glyph has its own shape, so color isn't the only signal).
+- **Keyword badges** (`KeywordBadge` in `components/deck/cardText.tsx`):
+  `[Tank]`, `[Ganking]` … render as slanted uppercase badges in the printed
+  cards' four colors (`keyword-{teal,pink,lime,gray}` tokens; lime takes dark
+  text). The keyword → color map is `KEYWORD_GROUP`; a keyword not in it is
+  gray, so add new ones there when a set brings them.
 - **The card sheet is a centered popup** (`components/deck/cardSheet.tsx`, a
   transparent fade `Modal` over `bg-background/80`; ✕ or a tap outside
   closes it), laid out after Piltover Archive's: art, name, chips (supertype

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { DOMAINS, type Domain } from '@riftlog/core';
 import { InlineRune, domainLabel } from '@/components/deck/domain';
 
@@ -9,11 +9,49 @@ import { InlineRune, domainLabel } from '@/components/deck/domain';
  * the rainbow ":rb_rune_rainbow:" = any rune), each with a spoken label; each
  * domain's symbol has its own shape, so color never carries meaning alone —
  * other codes as small labelled chips (":rb_energy_2:" → "2", ":rb_might:" →
- * "Might"), and keywords ("[Deflect]") in bold.
+ * "Might"), and keywords ("[Deflect]") as the slanted badges the cards print,
+ * in their four colors (see `KEYWORD_GROUP`).
  * The text itself is shown exactly as stored.
  */
 
 const TOKEN = /(:rb_[a-z0-9_]+:|\[[^\]]+\])/g;
+
+/**
+ * Each keyword's badge color, as printed on the cards. Keyed by the keyword
+ * without a trailing number ("Assault 2" → "assault"); anything unlisted is
+ * gray. Full class names, since NativeWind can't compile built ones.
+ */
+type KeywordGroup = 'teal' | 'pink' | 'lime' | 'gray';
+const KEYWORD_GROUP: Record<string, KeywordGroup> = {
+  action: 'teal', reaction: 'teal', accelerate: 'teal', ambush: 'teal', deploy: 'teal', flow: 'teal',
+  hidden: 'teal', legion: 'teal', 'quick-draw': 'teal', repeat: 'teal', 'show off': 'teal',
+  assault: 'pink', backline: 'pink', disarm: 'pink', shield: 'pink', tank: 'pink',
+  deathknell: 'lime', deflect: 'lime', empowered: 'lime', ganking: 'lime', hunt: 'lime', level: 'lime',
+  temporary: 'lime',
+};
+const KEYWORD_CLASSES: Record<KeywordGroup, { bg: string; text: string }> = {
+  teal: { bg: 'bg-keyword-teal', text: 'text-ink-primary' },
+  pink: { bg: 'bg-keyword-pink', text: 'text-ink-primary' },
+  lime: { bg: 'bg-keyword-lime', text: 'text-background' },
+  gray: { bg: 'bg-keyword-gray', text: 'text-ink-primary' },
+};
+
+/** A keyword badge, slanted like the printed one; read out as the keyword itself. */
+const KeywordBadge = ({ keyword }: { keyword: string }) => {
+  const group = KEYWORD_GROUP[keyword.replace(/\s*\d+$/, '').toLowerCase()] ?? 'gray';
+  const c = KEYWORD_CLASSES[group];
+  return (
+    <View
+      accessible
+      accessibilityLabel={keyword}
+      // Inline views sit on the baseline; drop it to the text's middle.
+      style={{ transform: [{ translateY: 4 }, { skewX: '-12deg' }] }}
+      className={`mx-0.5 rounded-[3px] px-1.5 py-px ${c.bg}`}
+    >
+      <Text className={`font-display-bold text-[11px] uppercase tracking-wide ${c.text}`}>{keyword}</Text>
+    </View>
+  );
+};
 
 const isDomain = (d: string): d is Domain => (DOMAINS as readonly string[]).includes(d);
 
@@ -50,11 +88,7 @@ function renderToken(token: string, key: number): React.ReactNode {
   }
   // [>] and [>>] separate a condition from its effect.
   if (token === '[>]' || token === '[>>]') return <Text key={key}>{' → '}</Text>;
-  return (
-    <Text key={key} className="font-display-bold text-ink-primary">
-      {token.slice(1, -1)}
-    </Text>
-  );
+  return <KeywordBadge key={key} keyword={token.slice(1, -1)} />;
 }
 
 const CardText = ({ text, className = '' }: { text: string; className?: string }) => {

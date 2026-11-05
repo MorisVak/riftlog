@@ -103,6 +103,16 @@ module.exports = {
           violet: '#8000FF',
         },
 
+        // Keyword badges in card text ("TANK", "GANKING"), colored as on the
+        // printed cards: four groups. Never color alone — the badge always
+        // spells the keyword. `lime` takes dark text, the others light.
+        keyword: {
+          teal: '#1EA289',
+          pink: '#C9346C',
+          lime: '#99B330',
+          gray: '#6B6F70',
+        },
+
         // Deck changes between versions — a card added / increased (`added`)
         // or cut / reduced (`cut`), shown in the decklist's "Show changes"
         // mode. Their own family: a deck edit isn't a result or a scoring
