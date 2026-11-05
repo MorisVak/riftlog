@@ -540,10 +540,10 @@ Conventions:
   Format, date and clock follow as one quiet line. Below, one rhythm: section
   label, one grouped card. **Games** is a single card with a line per game
   (`gameCard.tsx`: "G n", scores, a bar, W/L/D), **Deck** a tappable card
-  that looks like a deck, not a match row (the legend as a small upright
-  card, the deck name with an "Older version" chip when edited since, the
-  legend's name with its domains, "Decklist ›"), **Notes** a single card of
-  in-place note fields.
+  with your legend's art (`CardBackdrop`), the deck name with an "Older
+  version" chip when edited since (a chip, not a sentence), the legend's
+  name, and a chevron — the owner prefers this over an upright-card variant
+  that was tried — **Notes** a single card of in-place note fields.
   The per-game bars (fill = your share of points, `pointShare` in core) that
   expand into a score graph (`components/match/scoreGraph.tsx`, step lines
   drawn from plain Views — no SVG dependency), and your deck. The graph uses

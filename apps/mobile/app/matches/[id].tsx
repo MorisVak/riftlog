@@ -15,9 +15,7 @@ import { deckHref, type HistoryDeckVM, type Result } from '@/lib/historyView';
 import GameCard from '@/components/match/gameCard';
 import InlineNote from '@/components/match/inlineNote';
 import Icon from '@/components/icon';
-import CardArt, { LegendPortrait } from '@/components/deck/cardArt';
-import { DomainIcons } from '@/components/deck/domain';
-import { useCardMatch } from '@/hooks/useCardMatch';
+import { CardBackdrop, LegendPortrait } from '@/components/deck/cardArt';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 type LoadState =
@@ -356,67 +354,6 @@ const ResultCard = ({ vm }: { vm: MatchDetailVM }) => {
  * The deck you played, linking to its list AS PLAYED (the pinned version) —
  * or a note that none was chosen. Says so when the deck was edited since.
  */
-/**
- * The deck you played, looking like a deck — not like a match row: the
- * legend as a small upright card, the deck's name ("Older version" if it was
- * edited since), the legend's name with its domains, and "Decklist" to open
- * the list as played. Deleted since: named, not linked.
- */
-const PlayedDeck = ({
-  deck,
-  legend,
-  onOpen,
-}: {
-  deck: HistoryDeckVM;
-  legend: CardRef | null;
-  onOpen: (deck: HistoryDeckVM) => void;
-}) => {
-  const { match } = useCardMatch(legend ?? { name: '', code: null });
-  const domains = legend && match && match.kind !== 'unknown' ? match.card.domains : [];
-  return (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel={`Open decklist ${deck.name}`}
-      disabled={deck.deleted}
-      onPress={() => onOpen(deck)}
-      className="flex-row items-center gap-3.5 rounded-2xl border border-border bg-surface p-3 active:bg-elevated"
-    >
-      {legend && <CardArt card={legend} variant="feature" />}
-      <View className="flex-1 gap-1">
-        <View className="flex-row items-center gap-2">
-          <Text
-            className="flex-shrink font-display-bold text-[17px] text-ink-primary"
-            numberOfLines={1}
-          >
-            {deck.name}
-          </Text>
-          {deck.edited && (
-            <View className="rounded-full border border-border px-2 py-0.5">
-              <Text className="text-[11px] text-ink-secondary">Older version</Text>
-            </View>
-          )}
-        </View>
-        {legend && (
-          <View className="flex-row items-center gap-1.5">
-            <DomainIcons domains={domains} size={14} />
-            <Text className="flex-shrink text-[13px] text-ink-secondary" numberOfLines={1}>
-              {legend.name}
-            </Text>
-          </View>
-        )}
-        {deck.deleted ? (
-          <Text className="text-[13px] text-ink-tertiary">Deleted</Text>
-        ) : (
-          <View className="mt-1 flex-row items-center gap-0.5">
-            <Text className="font-display text-[14px] text-accent">Decklist</Text>
-            <Icon name="chevron-right" size={15} className="text-accent" />
-          </View>
-        )}
-      </View>
-    </Pressable>
-  );
-};
-
 const DeckCard = ({
   vm,
   onOpen,
@@ -433,7 +370,45 @@ const DeckCard = ({
       </View>
     );
   }
-  return <PlayedDeck deck={vm.deck} legend={vm.yourLegend} onOpen={onOpen} />;
-};
+  const deck = vm.deck;
+  // The whole card opens the list as played; deleted since: named, not linked.
+  return (
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={`Open decklist ${deck.name}`}
+      disabled={deck.deleted}
+      onPress={() => onOpen(deck)}
+      className="relative min-h-[64px] flex-row items-center gap-3 overflow-hidden rounded-2xl border border-border bg-surface px-4 py-3 active:opacity-80"
+    >
+      {vm.yourLegend && <CardBackdrop card={vm.yourLegend} />}
+      <View className="flex-1">
+        <View className="flex-row items-center gap-2">
+          <Text className="flex-shrink font-display-bold text-[17px] text-ink-primary" numberOfLines={1}>
+            {deck.name}
+          </Text>
+          {deck.edited && (
+            <View className="rounded-full bg-background/70 px-2 py-0.5">
+              <Text className="font-display text-[11px] text-ink-secondary">Older version</Text>
+            </View>
+          )}
+        </View>
+        {vm.yourLegend && (
+          <Text className="text-[13px] text-ink-secondary" numberOfLines={1}>
+            {vm.yourLegend.name}
+          </Text>
+        )}
+      </View>
+      {deck.deleted ? (
+        <View className="rounded-md bg-background/70 px-2 py-1">
+          <Text className="text-[12px] text-ink-tertiary">Deleted</Text>
+        </View>
+      ) : (
+        <View className="h-8 w-8 items-center justify-center rounded-full bg-background/70">
+          <Icon name="chevron-right" size={16} className="text-ink-primary" />
+        </View>
+      )}
+    </Pressable>
+  );
+};;
 
 export default MatchDetail;
