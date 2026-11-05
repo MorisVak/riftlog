@@ -1,63 +1,45 @@
-/* eslint-disable @next/next/no-img-element --
- * Details are pre-optimized 1x/2x WebP pairs (scripts/process-screenshots.mjs);
- * a plain <img srcSet> serves exactly those files. */
 import type { ReactNode } from "react";
+import { PhoneFrame } from "./PhoneFrame";
 import { Reveal } from "./Reveal";
-import { DETAILS, type DetailName } from "./screenshots.generated";
+import type { ScreenshotName } from "./screenshots.generated";
+
+export type FeaturePoint = { title: string; body: ReactNode };
+/** A still of the app. Feature rows show stills only: clips here read as noisy. */
+export type FeatureShot = { shot: ScreenshotName; alt: string; caption: string };
 
 /**
- * One feature: what it does, beside the part of the app that does it. The
- * picture is a tight crop of a real screen (`DETAILS`), not a whole phone —
- * one claim, one piece of UI, so the eye goes straight to what the text
- * talks about. A feature with nothing to show (yet) is text only.
+ * Every phone on the page is this wide — the same size in every row (rows
+ * hold four, which fit the desktop content width; on phones they scroll).
  */
-export type FeatureTile = {
-  title: string;
-  body: ReactNode;
-} & ({ detail: DetailName; alt: string } | { detail?: never; alt?: never });
-
-/** A part of a screen, at the size it has in the app. */
-function DetailShot({ name, alt }: { name: DetailName; alt: string }) {
-  const { width, height } = DETAILS[name];
-  return (
-    <img
-      src={`/screenshots/details/${name}.webp`}
-      srcSet={`/screenshots/details/${name}.webp 1x, /screenshots/details/${name}@2x.webp 2x`}
-      width={width}
-      height={height}
-      alt={alt}
-      loading="lazy"
-      decoding="async"
-      className="mx-auto block h-auto w-full max-w-[390px] rounded-xl"
-    />
-  );
-}
+const PHONE_W = "w-[250px]";
 
 /**
- * One feature area of the one-pager: a heading and intro, then its features
- * as tiles in a masonry grid (CSS columns, so tall and short pictures pack
- * without gaps). Phones are kept for the hero and the face-off.
+ * One feature area of the one-pager: heading + intro beside a list of points,
+ * then a row of real screenshots. On narrow screens the phones scroll
+ * sideways (snapping) instead of shrinking past readability.
  */
 export function FeatureSection({
   id,
   eyebrow,
   title,
   intro,
-  tiles,
+  points,
+  shots,
   footnote,
 }: {
   id: string;
   eyebrow: string;
   title: string;
   intro: string;
-  tiles: FeatureTile[];
+  points: FeaturePoint[];
+  shots: FeatureShot[];
   footnote?: ReactNode;
 }) {
   return (
     <section id={id} className="scroll-mt-20 border-t border-border/60">
       <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-28">
-        <Reveal className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[5fr_7fr] lg:gap-16">
+          <Reveal>
             <p className="font-display text-sm font-semibold uppercase tracking-widest text-accent-soft">
               {eyebrow}
             </p>
@@ -67,35 +49,47 @@ export function FeatureSection({
             <p className="mt-4 font-display text-lg leading-relaxed text-ink-secondary">
               {intro}
             </p>
-          </div>
-          {footnote && <div className="shrink-0">{footnote}</div>}
-        </Reveal>
+            {footnote && <div className="mt-6">{footnote}</div>}
+          </Reveal>
 
-        <div className="mt-12 gap-6 sm:columns-2 lg:columns-3">
-          {tiles.map((t, i) => (
-            <Reveal
-              key={t.title}
-              delay={(i % 3) * 90}
-              className="mb-6 break-inside-avoid"
-            >
-              <figure className="overflow-hidden rounded-2xl border border-border bg-surface">
-                {t.detail && (
-                  <div className="border-b border-border/60 bg-background p-3 sm:p-4">
-                    <DetailShot name={t.detail} alt={t.alt} />
-                  </div>
-                )}
-                <figcaption className="p-5">
-                  <h3 className="font-display text-base font-semibold text-ink-primary">
-                    {t.title}
-                  </h3>
-                  <p className="mt-1.5 font-display text-[15px] leading-relaxed text-ink-secondary">
-                    {t.body}
-                  </p>
-                </figcaption>
-              </figure>
-            </Reveal>
-          ))}
+          <dl className="grid grid-cols-1 gap-x-8 gap-y-7 sm:grid-cols-2">
+            {points.map((p, i) => (
+              <Reveal
+                key={p.title}
+                delay={100 + i * 80}
+                className="border-l-2 border-accent/40 pl-4"
+              >
+                <dt className="font-display text-base font-semibold text-ink-primary">
+                  {p.title}
+                </dt>
+                <dd className="mt-1.5 font-display text-[15px] leading-relaxed text-ink-secondary">
+                  {p.body}
+                </dd>
+              </Reveal>
+            ))}
+          </dl>
         </div>
+
+        <Reveal
+          group
+          className="-mx-5 mt-14 snap-x snap-mandatory overflow-x-auto px-5 pb-4 sm:mx-0 sm:px-0"
+        >
+          <ul className="mx-auto flex w-max gap-6">
+            {shots.map(({ shot, alt, caption }, i) => (
+              <li
+                key={shot}
+                data-reveal-child
+                style={{ transitionDelay: `${i * 140}ms` }}
+                className={`${PHONE_W} shrink-0 snap-center`}
+              >
+                <PhoneFrame shot={shot} alt={alt} />
+                <p className="mt-4 text-center font-display text-sm text-ink-secondary">
+                  {caption}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
       </div>
     </section>
   );

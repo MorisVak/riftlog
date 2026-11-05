@@ -17,6 +17,28 @@ export function ScoreboardSection() {
       eyebrow="At the table"
       title="Built for the table"
       intro="Put one phone between you two. Riftlog keeps score and shows who's playing who."
+      points={[
+        {
+          title: "Legends on the board",
+          body: "Pick both legends in setup. Each half of the board shows its player's legend, and every game opens with a face-off.",
+        },
+        {
+          title: "Score each point",
+          body: "Tap Conquer, Hold or Special. A mis-tap? Tap the score to take it back.",
+        },
+        {
+          title: "Match clock",
+          body: "One optional timer for the whole match. Pause it anytime. At zero it counts into overtime.",
+        },
+        {
+          title: "Bo1 or Bo3",
+          body: "Riftlog tracks the series and ends it once there's a winner. Between games you see the series and can note what happened.",
+        },
+        {
+          title: "You end the game",
+          body: "Tap the winner. Nothing ends on its own, so a stray tap can't finish a game.",
+        },
+      ]}
       footnote={
         <div className="flex flex-wrap gap-2">
           <Swatch className="bg-conquer" label="Conquer" />
@@ -24,36 +46,26 @@ export function ScoreboardSection() {
           <Swatch className="bg-special" label="Special" />
         </div>
       }
-      tiles={[
+      shots={[
         {
-          title: "Legends on the board",
-          body: "Pick both legends in setup. Each half of the board shows its player's legend, and every game opens with a face-off.",
-          detail: "setup-legends",
-          alt: "New match: Riven, from the Rivon deck, against Akali",
+          shot: "setup",
+          alt: "New match sheet: Riven against Akali, player names, the Rivon deck, Best of 3 and a 30 minute clock",
+          caption: "Match setup",
         },
         {
-          title: "Score each point",
-          body: "Tap Conquer, Hold or Special. A mis-tap? Tap the score to take it back.",
-          detail: "board-score",
-          alt: "Your half of the board: 5 points, with Conquer, Hold and Special under it and End below",
+          shot: "board",
+          alt: "The score board mid-game: 5 to 3, Riven behind your half and Akali behind theirs, with Conquer, Hold and Special under each score",
+          caption: "Score board",
         },
         {
-          title: "Bo1 or Bo3, with a clock",
-          body: "Riftlog tracks the series and ends it once there's a winner. One optional clock covers the whole match. Pause it anytime; at zero it counts into overtime.",
-          detail: "setup-format",
-          alt: "Format and clock in setup: Best of 3 and 30 minutes picked",
+          shot: "who-won",
+          alt: "Who won game 1? Riven on 8 and Akali on 5, tap the winner, with Draw and Keep playing below",
+          caption: "Ending a game",
         },
         {
-          title: "You end the game",
-          body: "Tap the winner. Nothing ends on its own, so a stray tap can't finish a game.",
-          detail: "who-won",
-          alt: "Who won game 1? Riven on 8 and Akali on 5, with Draw and Keep playing below",
-        },
-        {
-          title: "Between games",
-          body: "See the game just played and the series so far, and note what happened.",
-          detail: "between",
-          alt: "Between games: game 1 won 8–5, the series at 1–0 and a field for a game note",
+          shot: "between-games",
+          alt: "Between games: game 1 won 8–5, the series at 1–0, a game note and Start game 2",
+          caption: "Between games",
         },
       ]}
     />
@@ -67,36 +79,44 @@ export function HistorySection() {
       eyebrow="After the match"
       title="Every match, kept"
       intro="Finished matches are saved to your history. Home shows how your last ten went at a glance."
-      tiles={[
+      points={[
         {
           title: "Home at a glance",
-          body: "Your last ten results and your newest matches, right under Start a match.",
-          detail: "home-matches",
-          alt: "Your matches on Home: the last ten results at 7–3 and the four newest matches",
+          body: "Your default deck, your last ten results and your newest matches.",
         },
         {
           title: "Search and filter",
           body: "By opponent, result, format, date, your deck, or either legend.",
-          detail: "filters",
-          alt: "Filter sheet: Wins, Best of 1 and Riven picked, with deck and legend filters",
-        },
-        {
-          title: "Your history",
-          body: "Every match with its result, opponent, format, deck and score, over the legend you played.",
-          detail: "history-rows",
-          alt: "History rows: wins and losses against Ben, Lea, Alex and Ida, each over the legend played",
         },
         {
           title: "Score graphs",
           body: "See how each game played out, point by point.",
-          detail: "graph",
-          alt: "Games card of a 2–1 match, with the score graph of game 3",
         },
         {
           title: "Notes",
           body: "Add a note to any game or match, now or later.",
-          detail: "notes",
-          alt: "Note fields for the round and each game",
+        },
+      ]}
+      shots={[
+        {
+          shot: "home",
+          alt: "Home: the Rivon deck behind Start a match, the last ten results at 7–3, the newest matches and the decks",
+          caption: "Home",
+        },
+        {
+          shot: "history",
+          alt: "Match history: each row with its result, opponent, format, deck and score, over the art of the legend played",
+          caption: "Match history",
+        },
+        {
+          shot: "history-filters",
+          alt: "Filter sheet: result, format, date, your deck, your legend and their legend, with Wins, Best of 1 and Riven picked",
+          caption: "Filters",
+        },
+        {
+          shot: "match-detail",
+          alt: "Match detail: a 2–1 victory of Riven against Miss Fortune, per-game score bars and a score graph for game 3",
+          caption: "Match details",
         },
       ]}
     />
@@ -110,46 +130,50 @@ export function DecksSection() {
       eyebrow="Your decks"
       title="Every list, every version"
       intro="Import your lists, see them as real cards and watch them change over time."
-      tiles={[
+      points={[
         {
           title: "Import your lists",
           body: "Paste a decklist or a deck code. Riftlog checks the card counts for you.",
-          detail: "decks-list",
-          alt: "Decks: Rivon, Ahri Control and Jinx Aggro, each over its legend's art with its domains",
         },
         {
-          title: "Real cards",
-          body: "See a deck as a list or as a gallery of its cards, with counts.",
-          detail: "gallery",
-          alt: "A deck as a gallery of card images, each with its count",
-        },
-        {
-          title: "Card details",
-          body: "Tap a card for its art, stats and text.",
-          detail: "card",
-          alt: "Card details for Riven, Broken Blade: a showcase printing with its type, rarity and domain",
+          title: "Every edit is saved",
+          body: "Each edit creates a new version. Show changes highlights what's in and what's out.",
         },
         {
           title: "Your default deck",
           body: "Set it once. It's on Home and picked for every new match.",
-          detail: "default-deck",
-          alt: "Home's default deck card: Rivon, with Change and Start a match",
         },
         {
           title: "Your legend art",
           body: "Prefer the overnumbered art, or pick each legend's art yourself. It shows everywhere, decklists included.",
-          detail: "legend-art",
-          alt: "Legend art settings: prefer overnumbered art, use it in decklists, and a grid of legends",
+        },
+      ]}
+      footnote={
+        <div className="flex flex-wrap gap-2">
+          <Swatch className="bg-added" label="Added" />
+          <Swatch className="bg-cut" label="Cut" />
+        </div>
+      }
+      shots={[
+        {
+          shot: "decks",
+          alt: "Decks: five decks, each over its legend's art, with domains and the date it was updated",
+          caption: "Your decks",
         },
         {
-          title: "Every edit is saved",
-          body: (
-            <>
-              Each edit creates a new version. Show changes marks what&apos;s{" "}
-              <span className="font-semibold text-added">added</span> and what&apos;s{" "}
-              <span className="font-semibold text-cut">cut</span>.
-            </>
-          ),
+          shot: "deck",
+          alt: "The Rivon deck: legend and chosen champion, Chaos and Calm, the rune split, battlefields and the main deck",
+          caption: "Deck view",
+        },
+        {
+          shot: "deck-gallery",
+          alt: "The same deck as a gallery of card images, each with its count",
+          caption: "Gallery",
+        },
+        {
+          shot: "legend-art",
+          alt: "Legend art settings: prefer overnumbered art, use it in decklists, and every legend with the art it shows",
+          caption: "Legend art",
         },
       ]}
     />

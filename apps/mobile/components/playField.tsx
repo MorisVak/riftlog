@@ -137,8 +137,13 @@ const PlayField = () => {
       <TrackingField className="rotate-180" playerId="p2" />
 
       {/* The halves are separated by a line, not a band — the Bo3 series pips
-          live inside it (see BoardDivider). */}
-      <BoardDivider />
+          live inside it (see BoardDivider). It takes no height: the halves
+          (and their legend art) meet exactly at the line, and the divider is
+          drawn over the seam, centred on it. As a plain row it was a ~16pt
+          band of background between the two arts. */}
+      <View pointerEvents="none" style={{ height: 0, zIndex: 10 }} className="justify-center">
+        <BoardDivider />
+      </View>
 
       <TrackingField playerId="p1" onEnd={openEnd} />
 

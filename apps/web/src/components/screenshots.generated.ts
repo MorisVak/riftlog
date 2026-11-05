@@ -4,11 +4,11 @@
 export const SCREENSHOTS = {
   "home": {
     "width": 390,
-    "height": 796
+    "height": 845
   },
   "setup": {
     "width": 390,
-    "height": 796
+    "height": 845
   },
   "board": {
     "width": 390,
@@ -20,117 +20,52 @@ export const SCREENSHOTS = {
   },
   "who-won": {
     "width": 390,
-    "height": 796
+    "height": 845
   },
   "between-games": {
     "width": 390,
-    "height": 800
+    "height": 845
   },
   "between-games-landscape": {
     "width": 796,
-    "height": 390
+    "height": 367
   },
   "match-complete": {
     "width": 390,
-    "height": 796
+    "height": 845
   },
   "history": {
     "width": 390,
-    "height": 796
+    "height": 845
   },
   "history-filters": {
     "width": 390,
-    "height": 796
+    "height": 845
   },
   "match-detail": {
     "width": 390,
-    "height": 796
+    "height": 845
   },
   "decks": {
     "width": 390,
-    "height": 796
+    "height": 845
   },
   "deck": {
     "width": 390,
-    "height": 796
+    "height": 845
   },
   "deck-gallery": {
     "width": 390,
-    "height": 796
+    "height": 845
   },
   "card-sheet": {
     "width": 390,
-    "height": 796
+    "height": 845
   },
   "legend-art": {
     "width": 390,
-    "height": 796
+    "height": 845
   }
 } as const;
 
 export type ScreenshotName = keyof typeof SCREENSHOTS;
-
-export const DETAILS = {
-  "setup-legends": {
-    "width": 374,
-    "height": 230
-  },
-  "board-score": {
-    "width": 330,
-    "height": 335
-  },
-  "setup-format": {
-    "width": 374,
-    "height": 158
-  },
-  "who-won": {
-    "width": 304,
-    "height": 366
-  },
-  "between": {
-    "width": 374,
-    "height": 452
-  },
-  "home-matches": {
-    "width": 374,
-    "height": 300
-  },
-  "history-rows": {
-    "width": 390,
-    "height": 264
-  },
-  "filters": {
-    "width": 390,
-    "height": 495
-  },
-  "graph": {
-    "width": 374,
-    "height": 310
-  },
-  "notes": {
-    "width": 374,
-    "height": 189
-  },
-  "decks-list": {
-    "width": 374,
-    "height": 280
-  },
-  "gallery": {
-    "width": 350,
-    "height": 300
-  },
-  "card": {
-    "width": 360,
-    "height": 560
-  },
-  "default-deck": {
-    "width": 374,
-    "height": 160
-  },
-  "legend-art": {
-    "width": 374,
-    "height": 394
-  }
-} as const;
-
-export type DetailName = keyof typeof DETAILS;

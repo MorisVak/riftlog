@@ -520,7 +520,10 @@ There is no ticking value in context, no paused flag, nothing on `Game`:
 The two halves are separated by a **line, not a bar** — no format label, no
 game counter, nothing taking board space from either player:
 
-- `components/boardDivider.tsx` draws the line. For a Bo3 the series cells sit
+- `components/boardDivider.tsx` draws the line. It **takes no height** (a
+  0-height wrapper in `playField.tsx`, drawn over the seam): the halves and
+  their legend art meet exactly at the line — as a plain row it left a ~16pt
+  band of background between the two arts. For a Bo3 the series cells sit
   *inline* with it (line → cells → line) with **no gaps**, so the run reads as
   one connected honeycomb chain rather than dots on a rule. Cells are hexagons
   built from plain Views — a body rectangle plus a border-trick triangle at each
