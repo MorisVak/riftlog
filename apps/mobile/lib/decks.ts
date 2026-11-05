@@ -6,6 +6,7 @@ import {
   type DeckSnapshot,
 } from '@riftlog/core';
 import { supabase } from './supabase';
+import { DEMO, demoDeck, demoDeckVersions, demoDecks } from './demo';
 
 /**
  * Decks, read from Postgres on demand and never cached on-device — same rule
@@ -97,6 +98,12 @@ function toDeck(row: DeckRow): Deck | null {
 
 /** The caller's decks, most recently updated first. */
 export async function fetchMyDecks(): Promise<Deck[]> {
+  if (DEMO) return demoDecks();
+  return fetchMyDecksLive();
+}
+
+/** Your decks from Postgres, even in demo mode (which borrows your Riven deck). */
+export async function fetchMyDecksLive(): Promise<Deck[]> {
   const { data, error } = await supabase
     .from('decks')
     .select(DECK_COLUMNS)
@@ -109,6 +116,7 @@ export async function fetchMyDecks(): Promise<Deck[]> {
 
 /** One deck, or null if it doesn't exist, was deleted, or isn't the caller's. */
 export async function fetchDeck(id: string): Promise<Deck | null> {
+  if (DEMO) return demoDeck(id);
   const { data, error } = await supabase
     .from('decks')
     .select(DECK_COLUMNS)
@@ -130,6 +138,7 @@ export type DeckVersion = { id: string; list: DeckList; createdAt: string };
  * that somehow aren't a valid list are skipped.
  */
 export async function fetchDeckVersions(deckId: string): Promise<DeckVersion[]> {
+  if (DEMO) return demoDeckVersions(deckId);
   const { data, error } = await supabase
     .from('deck_versions')
     .select('id, list, created_at')
@@ -152,6 +161,7 @@ export async function createDeck(input: {
   importSource?: DeckImportSource;
   sourceCode?: string | null;
 }): Promise<string> {
+  if (DEMO) return 'demo';
   const { data, error } = await supabase.rpc('create_deck', {
     p_name: input.name.trim(),
     p_import_source: input.importSource ?? 'text',
@@ -175,6 +185,7 @@ export async function renameDeck(
   id: string,
   name: string,
 ): Promise<{ name: string; updatedAt: string }> {
+  if (DEMO) return { name, updatedAt: new Date().toISOString() };
   const { data, error } = await supabase
     .from('decks')
     .update({ name: name.trim() })
@@ -192,6 +203,7 @@ export async function renameDeck(
  * (new) current version id.
  */
 export async function updateDeckList(id: string, list: DeckList): Promise<string> {
+  if (DEMO) return id;
   const { data, error } = await supabase.rpc('update_deck_list', {
     p_deck_id: id,
     // See createDeck: DeckList is plain JSON.
@@ -207,6 +219,7 @@ export async function updateDeckList(id: string, list: DeckList): Promise<string
  * is no restore yet, so the UI treats this as final.
  */
 export async function deleteDeck(id: string): Promise<void> {
+  if (DEMO) return;
   const { error } = await supabase.rpc('delete_deck', { p_deck_id: id });
   if (error) throw error;
 }
@@ -217,6 +230,7 @@ export async function deleteDeck(id: string): Promise<void> {
  * server-side.
  */
 export async function deleteDecks(ids: string[]): Promise<void> {
+  if (DEMO) return;
   if (ids.length === 0) return;
   const { error } = await supabase.rpc('delete_decks', { p_deck_ids: ids });
   if (error) throw error;

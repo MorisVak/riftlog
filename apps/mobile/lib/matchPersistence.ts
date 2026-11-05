@@ -1,5 +1,6 @@
 import { normalizeNote, type CardRef, type Database, type Match } from '@riftlog/core';
 import { supabase } from './supabase';
+import { DEMO, demoMatch, demoMatches } from './demo';
 import { totalPausedMs } from './clock';
 
 type MatchInsert = Database['public']['Tables']['matches']['Insert'];
@@ -54,6 +55,7 @@ export type MatchListRow = Omit<MatchWithGames, 'games'> & { games: ListGameRow[
  * offline outbox + retry.
  */
 export async function saveCompletedMatch(match: Match): Promise<void> {
+  if (DEMO) return; // Demo mode writes nothing (lib/demo.ts).
   if (!match.endedAt) {
     throw new Error('saveCompletedMatch called with an unsettled match');
   }
@@ -175,6 +177,7 @@ const withDeck = <G,>({ deck_version, ...row }: HistoryRow<G>): MatchRow & {
 };
 
 export async function fetchMatchHistory(): Promise<MatchListRow[]> {
+  if (DEMO) return demoMatches();
   const { data, error } = await supabase
     .from('matches')
     .select(HISTORY_COLUMNS)
@@ -191,6 +194,7 @@ export async function fetchMatchHistory(): Promise<MatchListRow[]> {
  * for the match detail screen. null if it doesn't exist or isn't the caller's.
  */
 export async function fetchMatch(id: string): Promise<MatchWithGames | null> {
+  if (DEMO) return demoMatch(id);
   const { data, error } = await supabase
     .from('matches')
     .select(DETAIL_COLUMNS)
@@ -211,6 +215,7 @@ export async function fetchMatch(id: string): Promise<MatchWithGames | null> {
  * their own. Errors propagate to the caller.
  */
 export async function deleteMatch(matchId: string): Promise<void> {
+  if (DEMO) return;
   const { error } = await supabase.from('matches').delete().eq('id', matchId);
   if (error) throw error;
 }
@@ -221,6 +226,7 @@ export async function deleteMatch(matchId: string): Promise<void> {
  * ids that aren't theirs are simply not deleted.
  */
 export async function deleteMatches(matchIds: string[]): Promise<void> {
+  if (DEMO) return;
   if (matchIds.length === 0) return;
   const { error } = await supabase.from('matches').delete().in('id', matchIds);
   if (error) throw error;
@@ -235,6 +241,7 @@ export async function updateMatchNote(
   text: string,
 ): Promise<string | null> {
   const notes = normalizeNote(text);
+  if (DEMO) return notes;
   const { error } = await supabase.from('matches').update({ notes }).eq('id', matchId);
   if (error) throw error;
   return notes;
@@ -246,6 +253,7 @@ export async function updateGameNote(
   text: string,
 ): Promise<string | null> {
   const notes = normalizeNote(text);
+  if (DEMO) return notes;
   const { error } = await supabase.from('games').update({ notes }).eq('id', gameId);
   if (error) throw error;
   return notes;

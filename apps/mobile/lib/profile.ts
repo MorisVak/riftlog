@@ -1,5 +1,6 @@
 import { parseLegendArt, type LegendArt, type Profile } from '@riftlog/core';
 import { supabase } from './supabase';
+import { DEMO, demoDefaultDeckId } from './demo';
 
 /**
  * Read the signed-in user's profile. RLS scopes `profiles` to the caller's own
@@ -27,7 +28,8 @@ export async function fetchMyProfile(): Promise<Profile | null> {
     displayName: data.display_name,
     onboardedAt: data.onboarded_at,
     usernameChangedAt: data.username_changed_at,
-    defaultDeckId: data.default_deck_id,
+    // Demo mode (lib/demo.ts): the demo's own default deck.
+    defaultDeckId: DEMO ? await demoDefaultDeckId() : data.default_deck_id,
     legendArt: parseLegendArt(data.legend_art),
     createdAt: data.created_at,
     updatedAt: data.updated_at,
@@ -40,6 +42,7 @@ export async function fetchMyProfile(): Promise<Profile | null> {
  * accepts one of the caller's own decks.
  */
 export async function setDefaultDeck(deckId: string | null): Promise<void> {
+  if (DEMO) return;
   // The local session is enough for the id; RLS checks it server-side.
   const { data: auth } = await supabase.auth.getSession();
   const uid = auth.session?.user.id;

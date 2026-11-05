@@ -727,6 +727,21 @@ misidentified the simulator as a physical device and failed on code signing.
 can't resolve the new package ("Unable to resolve module") even though it's
 in `node_modules`. Physical devices need a new EAS build.
 
+## Demo mode (screenshots and recordings)
+
+`lib/demo.ts`. Dev builds only, switched on when Metro starts:
+`EXPO_PUBLIC_DEMO=1 pnpm exec expo start --dev-client --clear` (restart
+Metro without it to go back). Matches, decks and the default deck then come
+from a generated, varied world instead of Postgres — the owner's real Riven
+deck ("Rivon", read from the account, never changed) as the default deck,
+four generated decks from real catalog cards, and a month of matches
+against fictional opponents and all kinds of legends, with recorded points
+for the graphs (fixed seed: the same every run). **Every write is skipped**
+in demo mode (saving a match, notes, deck edits, deletes, the default deck)
+— the guards sit in `lib/matchPersistence.ts`, `lib/decks.ts`,
+`lib/profile.ts`. Sign-in, the profile and the legend-art setting stay real.
+Use it for website shots so they don't show the owner's real history.
+
 ## Development
 
 - Run on simulator: `pnpm mobile start` then press `i`
