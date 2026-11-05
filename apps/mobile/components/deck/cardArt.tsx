@@ -379,12 +379,10 @@ const BackdropOverlays = ({ fill, tint }: { fill: Fill; tint?: Tint }) => {
   return (
     <>
       {tint && (
-        // A color blend keeps the art's light and shade and takes the
-        // result's hue; at 35% the art's own colors still come through.
-        <View
-          style={{ mixBlendMode: 'color', opacity: 0.35 }}
-          className={`absolute inset-0 ${TINTS[tint]}`}
-        />
+        // A plain wash of the result's color, not a blend mode: a blend
+        // renders every row offscreen on every frame, which made History
+        // lag when a row expands. Light enough for the art to come through.
+        <View style={{ opacity: 0.22 }} className={`absolute inset-0 ${TINTS[tint]}`} />
       )}
       <LinearGradient
         colors={[fade.solid, fade.clear]}
@@ -434,8 +432,6 @@ export const CardBackdrop = ({
       pointerEvents="none"
       accessible={false}
       importantForAccessibility="no-hide-descendants"
-      // `isolate` keeps the tint's blend inside the box.
-      style={{ isolation: 'isolate' }}
       className={`${BACKDROP_BOX} w-[70%]`}
     >
       <FocusedArt printing={printing} focusAt={FOCUS_AT} edgeFade={FADES[fill]} />

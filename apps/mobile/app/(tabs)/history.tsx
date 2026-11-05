@@ -401,6 +401,12 @@ const History = () => {
         }}
         ItemSeparatorComponent={() => <View className="h-2" />}
         showsVerticalScrollIndicator={false}
+        // Each row carries legend art: keep only a few screens of rows
+        // mounted (the default is ~21 screens — every row), so expanding
+        // one, which moves the rows below every frame, stays smooth.
+        initialNumToRender={10}
+        maxToRenderPerBatch={8}
+        windowSize={5}
         renderItem={({ item, index }) => (
           <HistoryRow
             vm={item}

@@ -392,8 +392,10 @@ it.
 **Match rows show your legend.** History and Home's recent matches draw your
 legend as the row's backdrop — the same `CardBackdrop` as the deck cards, so
 every legend's face comes out the same size — tinted with the result
-(`tint`: a `mixBlendMode: 'color'` layer of `bg-win` / `bg-loss` / `bg-draw`
-at 35% — never alone: the letter badge and result bar stay), with the title +
+(`tint`: a plain `bg-win` / `bg-loss` / `bg-draw` wash at 22% — **not** a
+`mixBlendMode`: a blend renders every row offscreen on every frame, and
+expanding a row, which moves all rows below it, lagged visibly; never alone:
+the letter badge and result bar stay), with the title +
 meta line and the score on soft dark pills. The legend is the one stored on
 p1 with the match; for matches saved before that, the deck version played
 (`fetchMatchHistory` selects just `list->legend`, no backfill), shown in the
@@ -401,7 +403,9 @@ p1 with the match; for matches saved before that, the deck version played
 `lib/historyView.ts` — older versions from text import name only the card).
 The opponent's legend is stored but not shown in the row; the title is just
 their name ("vs Opponent" when blank). Only your own matches are ever read
-back — never aggregated across users (Riot policy).
+back — never aggregated across users (Riot policy). History's `FlatList`
+keeps a small window mounted (`windowSize={5}`, `initialNumToRender={10}`):
+every row carries art, and the default (~21 screens) mounted all of them.
 
 **Legends whose face fills their card** (Vex - Gloomist, Kennen): a crop in
 `lib/legendArtFocus.manual.json` may be wider than the art (`w` > 1) to bring
