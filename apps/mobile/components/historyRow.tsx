@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 import Animated, {
-  Easing,
   FadeInDown,
   runOnJS,
   useAnimatedStyle,
@@ -9,12 +8,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { deckHref, type HistoryRowVM, type Result } from '@/lib/historyView';
+import type { HistoryRowVM, Result } from '@/lib/historyView';
 import MatchMeta from './matchMeta';
-import MatchRowDetail from './match/matchRowDetail';
 import { CardBackdrop } from './deck/cardArt';
 import PressOverlay from './pressOverlay';
 import { SelectionGutter } from './selectCheck';
@@ -31,10 +28,6 @@ const INK_SECONDARY = '#868FB0';
 const INK_PRIMARY = '#E4E5F2';
 
 
-// Expand/collapse share one timing window so the result bar, the detail height,
-// and the chevron all move together — no half-collapsed "cut off" bar.
-const EXPAND_MS = 240;
-const EXPAND_EASING = Easing.inOut(Easing.cubic);
 
 // Swipe-left distance that fully reveals the delete action sitting behind the
 // card (matches the w-20 trash button).
@@ -45,8 +38,8 @@ const SWIPE_MS = 180;
 type Props = {
   vm: HistoryRowVM;
   index: number;
-  expanded: boolean;
-  onToggle: (id: string) => void;
+  /** Opens the match detail. */
+  onOpen: (id: string) => void;
   onDelete: (id: string) => void;
   /** Selection mode (see hooks/useSelection): taps toggle, swipe is off. */
   selecting?: boolean;
@@ -59,8 +52,7 @@ type Props = {
 const HistoryRow = ({
   vm,
   index,
-  expanded,
-  onToggle,
+  onOpen,
   onDelete,
   selecting = false,
   selected = false,
@@ -68,39 +60,7 @@ const HistoryRow = ({
   onLongPress,
 }: Props) => {
   const r = RESULT[vm.result];
-  const router = useRouter();
 
-  // Natural height of the detail block, measured once from the always-mounted
-  // (but clipped) content so we can animate the container height to/from it.
-  const [detailH, setDetailH] = useState(0);
-  // Whether the detail has ever been opened: it's built then, and kept.
-  const [opened, setOpened] = useState(expanded);
-  useEffect(() => {
-    if (expanded) setOpened(true);
-  }, [expanded]);
-
-  const progress = useSharedValue(expanded ? 1 : 0);
-  useEffect(() => {
-    progress.value = withTiming(expanded ? 1 : 0, {
-      duration: EXPAND_MS,
-      easing: EXPAND_EASING,
-    });
-  }, [expanded, progress]);
-
-  // Animating `height` (a layout prop) re-lays out the row each frame, so the
-  // self-stretch result bar tracks the growing/shrinking card in lockstep.
-  // `detailH` as a dependency: the detail is built on first open, so its
-  // height arrives after the animation has started.
-  const detailStyle = useAnimatedStyle(
-    () => ({
-      height: detailH * progress.value,
-      opacity: progress.value,
-    }),
-    [detailH],
-  );
-  const chevronStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${progress.value * 180}deg` }],
-  }));
 
   // Swipe-left to reveal the delete action that sits *behind* the card.
   const [open, setOpen] = useState(false);
@@ -139,8 +99,8 @@ const HistoryRow = ({
       runOnJS(setOpen)(shouldOpen);
     });
 
-  // Selecting: a tap toggles the row. Otherwise tapping an open row closes
-  // it, and tapping a closed one toggles the detail.
+  // Selecting: a tap toggles the row. Otherwise tapping a swiped-open row
+  // closes it, and tapping a closed one opens the match detail.
   const onCardPress = () => {
     if (selecting) {
       Haptics.selectionAsync();
@@ -152,7 +112,7 @@ const HistoryRow = ({
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onToggle(vm.id);
+    onOpen(vm.id);
   };
 
   // Safety guard before a destructive, irreversible delete.
@@ -223,16 +183,13 @@ const HistoryRow = ({
         </Text>
       </View>
 
-      {/* No expanding while selecting, so no chevron either. */}
+      {/* Opens the match detail; no chevron while selecting. */}
       {selecting ? (
         <View className="w-3" />
       ) : (
-        <Animated.View
-          style={chevronStyle}
-          className="h-[26px] w-9 items-center justify-center"
-        >
-          <Feather name="chevron-down" size={16} color={INK_SECONDARY} />
-        </Animated.View>
+        <View className="h-[26px] w-8 items-center justify-center">
+          <Feather name="chevron-right" size={16} color={INK_SECONDARY} />
+        </View>
       )}
     </>
   );
@@ -252,9 +209,7 @@ const HistoryRow = ({
           .delay(Math.min(index, 8) * 35)
           .withInitialValues({ transform: [{ translateY: 6 }] })}
         className={`flex-1 overflow-hidden rounded-xl border bg-surface ${
-          // Selected (selection mode): full accent. Open: a softer accent
-          // frame, so the expanded row stands apart from the rest.
-          selected ? 'border-accent' : expanded ? 'border-accent/50' : 'border-border'
+          selected ? 'border-accent' : 'border-border'
         }`}
       >
         {/* Delete action sits BEHIND the card; the card slides left to reveal it. */}
@@ -277,7 +232,7 @@ const HistoryRow = ({
             style={cardStyle}
             className={`flex-row ${selected ? 'bg-elevated' : 'bg-surface'}`}
           >
-            {/* Result bar spans the full card height, including the expanded area. */}
+            {/* Result bar spans the full card height. */}
             <View className={`w-1 self-stretch ${r.bar}`} />
 
             <View className="flex-1">
@@ -308,27 +263,6 @@ const HistoryRow = ({
                   </>
                 )}
               </Pressable>
-
-              {/* Height + opacity animate from a single `progress`. The content
-                  is only built once the row has been opened: closed rows stay
-                  light (it holds legend art). */}
-              <Animated.View style={detailStyle} className="overflow-hidden">
-                {/* Absolute, so it keeps its natural height to measure while
-                    the container is still 0 tall (content built on open). */}
-                <View
-                  style={{ position: 'absolute', left: 0, right: 0, top: 0 }}
-                  onLayout={(e) => setDetailH(e.nativeEvent.layout.height)}
-                >
-                  {opened && (
-                    <MatchRowDetail
-                      vm={vm}
-                      disabled={selecting}
-                      onOpenDeck={() => vm.deck && router.push(deckHref(vm.deck))}
-                      onOpenDetails={() => router.push(`/matches/${vm.id}`)}
-                    />
-                  )}
-                </View>
-              </Animated.View>
             </View>
           </Animated.View>
         </GestureDetector>
@@ -337,6 +271,6 @@ const HistoryRow = ({
   );
 };
 
-// Memoized: expanding one row re-renders the list (`extraData`), and every
+// Memoized: the list re-renders on selection changes (`extraData`), and every
 // row carries legend art — only the rows whose props changed should redraw.
 export default React.memo(HistoryRow);

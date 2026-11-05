@@ -14,7 +14,7 @@ import Animated, {
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -235,32 +235,14 @@ const History = () => {
   const [rows, setRows] = useState<MatchWithGames[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('All');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const selection = useSelection();
   const { exit: exitSelection, clearSelected } = selection;
-
-  // Entering selection mode collapses any expanded row.
-  useEffect(() => {
-    if (selection.active) setExpandedId(null);
-  }, [selection.active]);
 
   // A filter change can hide selected rows; never act on rows you can't see.
   useEffect(() => {
     clearSelected();
   }, [filter, clearSelected]);
 
-  // Arriving from a Home "Recent matches" row: open that match straight away.
-  // The filter is reset too, otherwise an active chip (e.g. Wins) could hide
-  // the very row we were asked to show. The param is cleared once applied, so
-  // returning to this tab later doesn't re-expand it — and so tapping the same
-  // match again from Home is a fresh param change that re-triggers this.
-  const { matchId } = useLocalSearchParams<{ matchId?: string }>();
-  useEffect(() => {
-    if (!matchId) return;
-    setFilter('All');
-    setExpandedId(matchId);
-    router.setParams({ matchId: '' });
-  }, [matchId]);
 
   const titleIntro = useSharedValue(0);
   const filterIntro = useSharedValue(0);
@@ -300,15 +282,11 @@ const History = () => {
     [vms, filter],
   );
 
-  const toggle = useCallback(
-    (id: string) => setExpandedId((cur) => (cur === id ? null : id)),
-    [],
-  );
+  const openMatch = useCallback((id: string) => router.push(`/matches/${id}`), []);
 
   // Optimistically drop the row, then delete from Postgres (cascade removes its
   // games). On failure, restore the row so the list stays truthful.
   const handleDelete = useCallback((id: string) => {
-    setExpandedId((cur) => (cur === id ? null : cur));
     let removed: MatchWithGames | undefined;
     setRows((cur) => {
       if (!cur) return cur;
@@ -391,8 +369,8 @@ const History = () => {
     body = (
       <FlatList
         data={visible}
-        // Rows read expansion + selection state that isn't in `data`.
-        extraData={[expandedId, selection]}
+        // Rows read selection state that isn't in `data`.
+        extraData={selection}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
           paddingTop: topPad,
@@ -411,8 +389,7 @@ const History = () => {
           <HistoryRow
             vm={item}
             index={index}
-            expanded={expandedId === item.id}
-            onToggle={toggle}
+            onOpen={openMatch}
             onDelete={handleDelete}
             selecting={selection.active}
             selected={selection.isSelected(item.id)}

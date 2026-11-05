@@ -407,31 +407,14 @@ their name ("vs Opponent" when blank). Only your own matches are ever read
 back — never aggregated across users (Riot policy). History's `FlatList`
 keeps a small window mounted (`windowSize={5}`, `initialNumToRender={10}`):
 every row carries art, and the default (~21 screens) mounted all of them.
-`HistoryRow` is `React.memo` (callbacks from History are stable), so
-expanding one row — which re-renders the list via `extraData` — redraws only
-that row. Rows with a press overlay build their content **outside** the
+`HistoryRow` is `React.memo` (callbacks from History are stable), so a
+selection change — which re-renders the list via `extraData` — redraws only
+the rows it affects. Rows with a press overlay build their content **outside** the
 `Pressable` children function (`const content = …`), so a press redraws only
 the overlay, not the art. **Don't wrap `CardBackdrop` (or other components
 rendered inside a `Pressable`) in `React.memo`:** NativeWind's css-interop
 then throws "Component is not a function (it is Object)" and the app
 renders a blank white screen.
-
-**The expanded History row** (`components/match/matchRowDetail.tsx`) is
-**flat on purpose** — no boxes, only what the row doesn't already show: a
-thin divider, the matchup on one line (your legend vs theirs as small face
-portraits with the champions' names, you left — the opponent's legend shows
-here, not in the title), the games on one line ("G1 8–5 W", letters in the
-result color), the clock for a timed match, then two text links: "Decklist"
-("(as played)" if edited since) and "Details →". The open row gets a soft
-accent frame (`border-accent/50`; selection mode's full accent stays
-distinct); other rows are **not** dimmed, as that would re-render every row
-per tap. (A richer boxed version — matchup panel, game tiles, a deck card
-with art — read as cluttered and repeated the row; if this one doesn't work
-either, the fallback is dropping the expansion and opening the match detail
-on tap.) It's built only once a row is first opened (`opened` in
-`HistoryRow`) and measured absolutely, so it keeps its natural height while
-the animated container is still 0 tall (`detailH` is a dependency of the
-animated style).
 
 **Legends whose face fills their card** (Vex - Gloomist, Kennen): a crop in
 `lib/legendArtFocus.manual.json` may be wider than the art (`w` > 1) to bring
@@ -861,7 +844,7 @@ re-read on failure.
 in the list header, or long-press a row (which selects it). While selecting,
 a tap toggles a row (a check circle *outside* the card, to its left, plus an
 accent outline), swipe-to-delete and
-expanding are off, and the header becomes `components/selectionBar.tsx`
+opening the detail are off, and the header becomes `components/selectionBar.tsx`
 (Cancel · "N selected" · actions). State is `hooks/useSelection.ts`; actions
 are a data array, so a future "Move to folder" is one more entry. Today the
 only action is the trash can → `deleteMatches(ids)` (hard, cascade) or
@@ -880,8 +863,8 @@ view-model is the single place row display is decided; keep the components dumb.
 Rules that are easy to get wrong:
 
 - **Never render a bare player name.** `p1` is you, so the row labels the other
-  side — `vs {opponent}` — and the expanded detail names both in score order
-  (`you – opponent`).
+  side — `vs {opponent}` — and the match detail names both, you first, in
+  score order (`you – opponent`).
 - **Absent is not zero.** Rows written before a column existed read back as
   `undefined`, so optional fields use loose `== null` checks. A strict `=== null`
   on `time_limit_seconds` is what once rendered a `NaN:NaN` clock on every row.
@@ -897,12 +880,11 @@ Rules that are easy to get wrong:
   renders with the name first so Recent matches below doesn't jump.
 - **Home's preview row mirrors the History row.** Both render the same
   `HistoryRowVM` and share `components/matchMeta.tsx` for the format + clock
-  line, so they can't drift. Home's copy just drops the swipe-delete and the
-  expandable detail.
-- **Tapping a Home row deep-links into History.** It navigates with a `matchId`
-  param; History expands that row, resets the filter to `All` so a chip can't
-  hide it, then clears the param (so re-focusing the tab doesn't re-expand, and
-  tapping the same match again still works).
+  line, so they can't drift. Home's copy just drops the swipe-delete.
+- **Tapping a match row — History or Home — opens the match detail**
+  (`/matches/[id]`). There is no inline expansion: it was tried in several
+  forms and read as clutter that duplicated the detail screen, and animating
+  a row's height inside the list was the main source of History's lag.
 
 ## Auth & guest mode
 

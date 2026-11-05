@@ -320,14 +320,7 @@ const Home = () => {
               <RecentMatchRow
                 key={vm.id}
                 vm={vm}
-                // Hand the tapped match to the History tab, which expands that
-                // row on arrival (and clears the param again).
-                onPress={() =>
-                  router.navigate({
-                    pathname: '/history',
-                    params: { matchId: vm.id },
-                  })
-                }
+                onPress={() => router.push(`/matches/${vm.id}`)}
               />
             ))}
           </View>
