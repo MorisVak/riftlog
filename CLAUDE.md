@@ -170,9 +170,9 @@ up:
   decoded in memory (`cachePolicy="memory-disk"`); the history query skips
   each game's recorded points (half the payload); matches and decks are
   kept in memory for the session, shown at once and refreshed quietly, and
-  only changed rows redraw. **Next: measure on a release build on a device**
-  (`preview` profile + the perf monitor) — the simulator runs a dev build,
-  several times slower. Then, if still needed: batch the in-progress
+  only changed rows redraw. **Next: the owner checks it on TestFlight** (a
+  release build on a device) — the simulator runs a dev build, several
+  times slower. Then, if still needed: batch the in-progress
   match's storage write (it runs on every score tap; a ~300 ms window
   would be lost if the app is killed), pass known box sizes to `FocusedArt`
   so art doesn't wait a layout pass, and cap History's up-front rows for
@@ -181,10 +181,12 @@ up:
   the `delete_my_account` RPC). Open: `/privacy` still describes deletion by
   email only (legal pages need the owner's sign-off to change), and Sign in
   with Apple tokens aren't revoked on deletion yet (Apple asks for it).
-- **Refine the card screen and the look of the card surfaces** — hard
-  todo. The card sheet and how cards look across the app (deck view rows and
-  gallery, identity cards, import preview, the Unsorted section, flags) work
-  but are a first pass; polish them before launch.
+- **Website rework (hard todo).** riftlog.net still shows the app as it
+  was: new screenshots of the reworked app, short animated recordings
+  (GIF / video) of the key moments (game-start intro, scoring and a
+  take-back, between games), and the page's motion reworked to match. No
+  card art on the website — record with the art flag off or keep art out of
+  frame. Details in `SPEC.md`.
 - **"Buy me a coffee" in the app** — built (Profile → Support, opens the
   browser). App Store risk: Apple can treat a tip link as a digital
   purchase outside in-app purchase (Guideline 3.1.1); be ready to hide it

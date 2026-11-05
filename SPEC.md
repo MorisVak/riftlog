@@ -760,32 +760,22 @@ and card art and text (Features 4 and 6) are built.
 
 ## Roadmap (suggested build order)
 
-> **URGENT TODO — in-app account deletion.** Blocks App Store submission:
-> Apple Guideline 5.1.1(v) requires any app that lets you create an account
-> to let you delete it **from inside the app**. Not built yet. Today
-> `/privacy` on riftlog.net tells users to request deletion by email (handled
-> within 30 days). Needs: a "Delete account" action on Profile with a clear
-> confirmation, a server-side path that deletes the `auth.users` row (the
-> cascade removes profile, matches, games, decks, versions and feedback
-> rate-limit rows — feedback itself is unlinked by design), signing the
-> device out and clearing local state. Do this before any App Store
-> submission, ahead of the steps below.
+> **URGENT TODO — Sign in with Apple on account deletion.** In-app account
+> deletion is built (Profile → Delete account, the `delete_my_account` RPC,
+> FK cascades). Still open: when an account that signs in with Apple is
+> deleted, Apple expects the app to revoke the user's Apple tokens (REST
+> API `/auth/revoke`, with a client secret signed by a Sign in with Apple
+> key) — a small server function. Also: `/privacy` still describes deletion
+> by email only; update it with the owner's sign-off.
 
-> **HARD TODO — refine the card screen and the look of the card
-> surfaces.** The card details sheet and how cards look everywhere in the
-> app — deck view rows and gallery tiles, the legend / champion identity
-> cards, the import preview, the "Unsorted" section and the problem flags —
-> work but are a first pass (Features 4 and 6). Polish the layout and visuals
-> before launch.
-
-> **HARD TODO — "Buy me a coffee" link in the app.** The website's header
-> already links to https://buymeacoffee.com/moriscodes (a small cup, like
-> riftatlas.com). The app needs the same link, most likely on the Profile
-> screen (e.g. a "Support Riftlog" row that opens the page in the browser).
-> Not built yet. Keep it an optional tip, never a paid tier — the Riot policy
-> requires a free tier. Check Apple's rules on tipping links before an App
-> Store submission (Guideline 3.1.1 / 3.2.1): a link out to a donation page
-> may need to be framed as a personal donation, not payment for app content.
+> **HARD TODO — website rework.** riftlog.net still shows the app as it
+> was: retake the screenshots of the reworked app (Home's hero, the versus
+> banners, the board with legends, History's filters, the Decks tab) and
+> add short animated recordings (GIF / video) of the key moments — the
+> game-start intro, scoring and a take-back, between games — with the
+> page's motion reworked to match. No card art on the website (see the
+> card-art rule in `CLAUDE.md`), so recordings need the art flag off or
+> the art kept out of frame.
 
 > **URGENT TODO — custom SMTP for sign-in emails.** Blocks email sign-in
 > for real users: no email sender is configured, so Supabase Auth uses its
