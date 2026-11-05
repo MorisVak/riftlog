@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import type { HistoryRowVM, Result } from '@/lib/historyView';
 import MatchMeta from './matchMeta';
-import { MatchBackdrop } from './deck/cardArt';
+import { CardBackdrop } from './deck/cardArt';
 import PressOverlay from './pressOverlay';
 
 // Result tokens, paired with a letter + left bar so color is never the only
@@ -26,8 +26,8 @@ type Props = {
  * (format, plus the clock for a timed match) — minus the swipe-to-delete and the
  * expandable per-game detail. Tapping opens the History tab with this match
  * already expanded. Score color always rides alongside the letter badge and
- * left bar. Your legend is the row's backdrop (`MatchBackdrop`, tinted with
- * the result); the text and the score sit on dark pills over it.
+ * left bar. Your legend is the row's backdrop (`CardBackdrop`, as on the deck
+ * cards, tinted with the result); the text and the score sit on dark pills.
  */
 const RecentMatchRow = ({ vm, onPress }: Props) => {
   const r = RESULT[vm.result];
@@ -39,7 +39,7 @@ const RecentMatchRow = ({ vm, onPress }: Props) => {
     >
       {({ pressed }) => (
         <>
-          <MatchBackdrop legend={vm.yourLegend} tint={vm.result} />
+          {vm.yourLegend && <CardBackdrop card={vm.yourLegend} tint={vm.result} />}
           <View className={`w-1 self-stretch ${r.bar}`} />
           <View className="min-h-[64px] flex-1 flex-row items-center px-3 py-2">
             <View
@@ -66,12 +66,6 @@ const RecentMatchRow = ({ vm, onPress }: Props) => {
                 >
                   <Text className="font-normal text-ink-secondary">vs </Text>
                   {vm.opponent}
-                  {vm.opponentChampion && (
-                    <Text className="font-normal text-ink-secondary">
-                      {' · '}
-                      {vm.opponentChampion}
-                    </Text>
-                  )}
                 </Text>
                 <MatchMeta vm={vm} />
               </View>

@@ -1,6 +1,5 @@
 import {
   normalizeCardName,
-  splitCardName,
   type CardRef,
   type Player,
   type PlayerId,
@@ -35,18 +34,8 @@ export type HistoryRowVM = {
   letter: 'W' | 'L' | 'D';
   /** The device owner's name (p1) — shown in the expanded detail only. */
   you: string;
-  /**
-   * Who you played against (p2) — always rendered with a "vs" prefix. Their
-   * name, else their legend's champion ("Kennen"), else "Opponent".
-   */
+  /** Who you played against (p2) — always rendered with a "vs" prefix. */
   opponent: string;
-  /**
-   * The opponent's legend's champion, shown beside `opponent` ("vs Alex ·
-   * Kennen") — null when it's already the opponent label, or unknown.
-   */
-  opponentChampion: string | null;
-  /** The opponent's legend (picked in setup); null on older matches. */
-  opponentLegend: CardRef | null;
   /** Your legend (your deck's, or picked in setup); null if unknown. */
   yourLegend: CardRef | null;
   format: 'BO1' | 'BO3';
@@ -186,21 +175,12 @@ export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
     };
   });
 
-  // A typed name wins; with none, the legend names the opponent. A blank
-  // field is stored as the default "Opponent" (see matchContext), so that
-  // counts as no name.
-  const typedName = nameOr(p2?.name, '').replace(/^opponent$/i, '');
-  const opponentLegend = p2?.legend ?? null;
-  const champion = opponentLegend ? splitCardName(opponentLegend.name).head : null;
-
   return {
     id: m.id,
     result,
     letter: LETTER[result],
     you: nameOr(p1?.name, 'You'),
-    opponent: typedName || champion || 'Opponent',
-    opponentChampion: typedName && champion ? champion : null,
-    opponentLegend,
+    opponent: nameOr(p2?.name, 'Opponent'),
     yourLegend: yourLegendFor(p1?.legend ?? null, m.deck),
     format: isBo1 ? 'BO1' : 'BO3',
     score,
