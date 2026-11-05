@@ -959,12 +959,15 @@ Rules that are easy to get wrong:
   results as W/L/D tiles, **newest on the left** — read left to right like
   the match list, no "newest first" label needed — each opening its match,
   plus the record of those ten, e.g. "6–4"; all-time stats wait for the
-  stats section) and then **as many recent match rows as fit** — **one
-  card**: the strip on top (`bare`), the rows as lines below it
-  (`components/recentMatchRow.tsx` `grouped`: no own border, a hairline
-  above), since they're the same matches. A `flex-1` wrapper around the
-  card only measures the space; the card itself is as tall as its rows
-  (`floor` of what fits — 2 on a small phone, 3–4 on a big one), with
+  stats section) and then **as many match lines as fit** — all in **one
+  card**: the strip on top (`bare`), the matches as plain lines below it
+  (`components/home/matchLine.tsx`, 56pt: result bar + letter, the face of
+  *their* legend, "vs" name, format · deck, score in the result color, date —
+  **no backdrop art**: art rows repeated your legend line after line and
+  looked busy). The section is `flex-1` and measures itself (heading +
+  strip + borders, then `floor` of whole lines — 3–4 on most phones); the
+  leftover is shared above and below it (`justify-center`), so it reads as
+  even spacing, never a gap at the bottom. With
   "See all"; then **Your decks**
   (`components/home/deckStrip.tsx`): a sideways row of deck tiles — legend
   face, name, your record with that deck (own matches only), "Default"
@@ -972,7 +975,8 @@ Rules that are easy to get wrong:
   "See all" opens Decks. So Home reads: play → how it's going → what you
   play with. **Home fills exactly one screen**: no scrolling on a 6.1"
   iPhone (852pt) and no empty space at the bottom — the slack goes to
-  *content* (more match rows), never to stretching a card (a hero that grew
+  *content* (more match lines, the rest as even section spacing), never to
+  stretching a card (a hero that grew
   to fill the space was rejected outright). Hero 176pt, deck art 72pt,
   tight section spacing; the ScrollView's content has `flexGrow: 1`.
   Smaller phones may scroll
@@ -980,8 +984,8 @@ Rules that are easy to get wrong:
   profile button: Profile is a tab. (A flat purple CTA, a separate deck
   field and a three-number stats box were merged into the hero and the
   strip. A fixed two rows looked too little and three made Home scroll —
-  hence rows that fit. A "last match" versus card was tried there and
-  dropped: the first row already is the last match. "Form" was renamed:
+  hence lines that fit. A "last match" versus card and art rows inside the
+  card were tried and dropped. "Form" was renamed:
   it read as misleading.)
 - **The default deck can be set in three places**: Home's hero (Change),
   the deck screen's top bar (**Make default** / **Default** pill beside

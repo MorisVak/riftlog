@@ -17,7 +17,7 @@ import MatchSetup from '@/components/matchSetup';
 import DeckPicker from '@/components/deck/deckPicker';
 import HeroCard, { type HeroDeckState } from '@/components/home/heroCard';
 import LastTenStrip from '@/components/home/lastTenStrip';
-import RecentMatchRow from '@/components/recentMatchRow';
+import MatchLine, { MATCH_LINE_H } from '@/components/home/matchLine';
 import DeckStrip from '@/components/home/deckStrip';
 import { useProfile } from '@/contexts/profileContext';
 import { setDefaultDeck } from '@/lib/profile';
@@ -28,9 +28,6 @@ import { playIntro, useRise } from '@/hooks/useScreenIntro';
 import { useInGameScreen } from '@/hooks/useInGameScreen';
 
 const BACKGROUND = '#0D1B2A'; // for Feather icons inside accent fills
-// A grouped recent match row's height (`recentMatchRow.tsx`: 64pt + its
-// hairline) — for how many fit in Home's matches card.
-const ROW_H = 65;
 // `background` mirrored for the gradient behind the status bar.
 const STATUS_SHADE = ['#0D1B2A', '#0D1B2A00'] as const;
 const ACCENT = '#8B93D9';
@@ -108,10 +105,12 @@ const Home = () => {
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
   const last = vms[0] ?? null;
   // How many match rows fit the space Home has left (measured).
+  // How many match lines fit: the section's height, less its heading, the
+  // Last 10 strip and the card's borders (2pt), in whole lines.
   const [matchesH, setMatchesH] = useState(0);
+  const [headH, setHeadH] = useState(0);
   const [stripH, setStripH] = useState(0);
-  // The card's two borders (2pt) and the strip come first; then whole rows.
-  const rowsFit = Math.max(1, Math.floor((matchesH - stripH - 2) / ROW_H));
+  const linesFit = Math.max(1, Math.floor((matchesH - headH - stripH - 2) / MATCH_LINE_H));
 
   // "Default deck": the deck a new match starts with — your default deck (the
   // setup sheet preselects it). Choosing one here sets the default, as on
@@ -201,9 +200,20 @@ const Home = () => {
           />
         </Animated.View>
 
-        {/* Your matches — grows into the height left over (rows fill it). */}
-        <Animated.View style={recentStyle} className="flex-1">
-          <View className="mb-2.5 mt-5 flex-row items-baseline justify-between px-0.5">
+        {/* Your matches: one card — Last 10 on top, then as many match
+            lines as fit the height Home has left. What's left after whole
+            lines is shared above and below the section (justify-center),
+            so it reads as even spacing between the sections, never as a gap
+            at the bottom — and nothing is stretched. */}
+        <Animated.View
+          style={[recentStyle, { minHeight: headH + stripH + MATCH_LINE_H + 2 }]}
+          className="flex-1 justify-center"
+          onLayout={(e) => setMatchesH(e.nativeEvent.layout.height)}
+        >
+          <View
+            onLayout={(e) => setHeadH(e.nativeEvent.layout.height)}
+            className="flex-row items-baseline justify-between px-0.5 pb-2.5 pt-5"
+          >
             <Text className="font-display-bold text-[15px] text-ink-primary">Your matches</Text>
             <Pressable onPress={() => router.navigate('/history')}>
               <Text className="text-[13px] font-semibold text-accent">See all</Text>
@@ -223,25 +233,13 @@ const Home = () => {
           ) : !last ? (
             <HistoryEmptyState />
           ) : (
-            // One card: the last ten at a glance on top, then as many of
-            // the newest matches as fit the space left, as lines below it —
-            // so Home fills the screen on any phone without scrolling, and
-            // nothing is stretched to do it (the card is as tall as its rows;
-            // the space around it is only measured).
-            <View className="flex-1" onLayout={(e) => setMatchesH(e.nativeEvent.layout.height)}>
-              <View className="overflow-hidden rounded-2xl border border-border bg-surface">
-                <View onLayout={(e) => setStripH(e.nativeEvent.layout.height)}>
-                  <LastTenStrip bare vms={vms} onOpen={(id) => router.push(`/matches/${id}`)} />
-                </View>
-                {vms.slice(0, rowsFit).map((vm) => (
-                  <RecentMatchRow
-                    key={vm.id}
-                    grouped
-                    vm={vm}
-                    onPress={() => router.push(`/matches/${vm.id}`)}
-                  />
-                ))}
+            <View className="overflow-hidden rounded-2xl border border-border bg-surface">
+              <View onLayout={(e) => setStripH(e.nativeEvent.layout.height)}>
+                <LastTenStrip bare vms={vms} onOpen={(id) => router.push(`/matches/${id}`)} />
               </View>
+              {vms.slice(0, linesFit).map((vm) => (
+                <MatchLine key={vm.id} vm={vm} onPress={() => router.push(`/matches/${vm.id}`)} />
+              ))}
             </View>
           )}
         </Animated.View>
