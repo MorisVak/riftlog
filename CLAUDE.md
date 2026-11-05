@@ -196,7 +196,11 @@ up:
   (GIF / video) of the key moments (game-start intro, scoring and a
   take-back, between games), and the page's motion reworked to match. No
   card art on the website — record with the art flag off or keep art out of
-  frame. Details in `SPEC.md`.
+  frame. **Part of it: the privacy notice** — `/privacy` ("Your choices")
+  still says accounts are deleted by email within 30 days; add in-app
+  deletion (Profile → Delete account, immediate; Apple sign-in revoked), and
+  `/terms` points there too. Legal pages need the owner's sign-off. Details
+  in `SPEC.md`.
 - **"Buy me a coffee" in the app** — built (Profile → Support, opens the
   browser). App Store risk: Apple can treat a tip link as a digital
   purchase outside in-app purchase (Guideline 3.1.1); be ready to hide it
