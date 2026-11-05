@@ -42,8 +42,16 @@ const CUT = 11;
 
 // `background` (tailwind.config.js) mirrored for gradient stops: the shades
 // behind the top label and the bottom names.
-const SHADE_TOP = ['#0D1B2AE6', '#0D1B2A00'] as const;
-const SHADE_BOTTOM = ['#0D1B2A00', '#0D1B2AF2'] as const;
+const SHADE_TOP = ['#0D1B2AF5', '#0D1B2ACC', '#0D1B2A00'] as const;
+const SHADE_BOTTOM = ['#0D1B2A00', '#0D1B2AD9', '#0D1B2AFA'] as const;
+const SHADE_VS = ['#0D1B2A00', '#0D1B2AB3', '#0D1B2A00'] as const;
+// A soft dark halo under text that sits over art (a style object, like the
+// shadow rule in apps/mobile/CLAUDE.md asks; `background` mirrored).
+const TEXT_HALO = {
+  textShadowColor: '#0D1B2A',
+  textShadowOffset: { width: 0, height: 1 },
+  textShadowRadius: 8,
+} as const;
 
 const initialOf = (s: string | undefined | null): string =>
   (s ?? '').trim().charAt(0).toUpperCase() || '?';
@@ -70,12 +78,21 @@ const SideName = ({
 }) => (
   <View className={`flex-1 ${align === 'right' ? 'items-end' : ''}`}>
     {legend && (
-      <Text className="font-display-bold text-[28px] text-ink-primary" numberOfLines={1}>
+      <Text
+        style={TEXT_HALO}
+        className="font-display-bold text-[32px] text-ink-primary"
+        numberOfLines={1}
+      >
         {splitCardName(legend.name).head}
       </Text>
     )}
     <Text
-      className={legend ? 'text-[17px] text-ink-secondary' : 'font-display-bold text-[24px] text-ink-primary'}
+      style={TEXT_HALO}
+      className={
+        legend
+          ? 'font-display text-[20px] text-ink-primary/85'
+          : 'font-display-bold text-[28px] text-ink-primary'
+      }
       numberOfLines={1}
     >
       {name}
@@ -175,18 +192,27 @@ const IntroOverlay = ({
 
           <LinearGradient
             colors={SHADE_TOP}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '32%' }}
+            locations={[0, 0.55, 1]}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '38%' }}
           />
           <LinearGradient
             colors={SHADE_BOTTOM}
-            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%' }}
+            locations={[0, 0.55, 1]}
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '52%' }}
+          />
+          {/* A dark band behind "VS", so it reads over both legends. */}
+          <LinearGradient
+            colors={SHADE_VS}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={{ position: 'absolute', top: 0, bottom: 0, left: '35%', width: '30%' }}
           />
 
           {/* VS at the cut. */}
           <View className="absolute inset-0 items-center justify-center">
             <Animated.Text
-              style={vsStyle}
-              className="font-display-bold text-[64px] text-ink-primary"
+              style={[vsStyle, TEXT_HALO]}
+              className="font-display-bold text-[72px] text-ink-primary"
             >
               VS
             </Animated.Text>
@@ -195,12 +221,15 @@ const IntroOverlay = ({
           {/* The label and the format, top centre. */}
           <Animated.View style={textStyle} className="absolute left-0 right-0 top-6 items-center">
             <Text
-              className="font-display-bold text-[22px] uppercase tracking-[6px] text-ink-primary"
+              style={TEXT_HALO}
+              className="font-display-bold text-[26px] uppercase tracking-[6px] text-ink-primary"
               numberOfLines={1}
             >
               {label}
             </Text>
-            <Text className="mt-1 text-[15px] text-ink-secondary">{format}</Text>
+            <Text style={TEXT_HALO} className="mt-1 font-display text-[17px] text-ink-primary/80">
+              {format}
+            </Text>
           </Animated.View>
 
           {/* The names in the bottom corners. */}
