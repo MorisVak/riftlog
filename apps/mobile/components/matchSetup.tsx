@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown, FadeOutDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -225,6 +225,13 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
   // chosen deck's legend wins.
   const [yourLegend, setYourLegend] = useState<CardRef | null>(null);
   const [sheet, setSheet] = useState<'you' | 'them' | null>(null);
+  // Custom opens the wheels at the very bottom: slide them into view.
+  const scroll = useRef<ScrollView>(null);
+  const revealWheels = useRef(false);
+  const pickClock = (c: Clock) => {
+    revealWheels.current = c === 'custom';
+    setClock(c);
+  };
 
   const deckChosen = signedIn && deck !== null;
   const shownYourLegend = deckChosen ? (deck?.list.legend ?? null) : yourLegend;
@@ -292,6 +299,12 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
           className="flex-1"
         >
           <ScrollView
+            ref={scroll}
+            onContentSizeChange={() => {
+              if (!revealWheels.current) return;
+              revealWheels.current = false;
+              scroll.current?.scrollToEnd({ animated: true });
+            }}
             contentContainerStyle={{ padding: 20, paddingTop: 16, paddingBottom: 24 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -401,10 +414,18 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
                   { value: 'custom', label: 'Custom' },
                 ]}
                 value={clock}
-                onChange={setClock}
+                onChange={pickClock}
               />
               {clock === 'custom' && (
-                <Animated.View entering={FadeIn.duration(160)} className="mt-2">
+                // Slides up into place (FadeInDown starts below), and back
+                // down when another clock is picked.
+                <Animated.View
+                  entering={FadeInDown.duration(280)
+                    .easing(Easing.out(Easing.cubic))
+                    .withInitialValues({ opacity: 0, transform: [{ translateY: 40 }] })}
+                  exiting={FadeOutDown.duration(180)}
+                  className="mt-2"
+                >
                   <DurationPicker
                     minutes={custom.minutes}
                     seconds={custom.seconds}

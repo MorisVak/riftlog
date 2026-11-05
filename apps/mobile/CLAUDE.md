@@ -494,7 +494,9 @@ game counter, nothing taking board space from either player:
   (excluding pauses) and the overtime flag are derived in `lib/historyView.ts`.
 - Setup's Clock offers Off, two presets (30 / 60 min) and **Custom**, which
   opens `components/durationPicker.tsx` — minute/second wheels built from a
-  snapping `ScrollView`, not a picker dependency. A timed match at 00:00 can't
+  snapping `ScrollView`, not a picker dependency. They slide up into place
+  (`FadeInDown`, which starts below) and the sheet scrolls to them if they
+  open below the fold. A timed match at 00:00 can't
   start; the Start button disables and says so.
 
 Conventions:
