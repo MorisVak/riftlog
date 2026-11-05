@@ -95,12 +95,42 @@ const CardText = ({ text, className = '' }: { text: string; className?: string }
   if (text.trim() === '') {
     return <Text className={`text-[14px] text-ink-tertiary ${className}`}>No rules text.</Text>;
   }
-  const parts = text.split(TOKEN);
+  const { lead, options } = splitOptions(text);
+  const textClass = `text-[15px] leading-6 text-ink-primary ${className}`;
+  if (options.length === 0) return <Text className={textClass}>{renderLine(text)}</Text>;
   return (
-    <Text className={`text-[15px] leading-6 text-ink-primary ${className}`}>
-      {parts.map((part, i) => (i % 2 === 1 ? renderToken(part, i) : part))}
-    </Text>
+    <View>
+      {lead !== '' && <Text className={textClass}>{renderLine(lead)}</Text>}
+      {options.map((option, i) => (
+        <View key={i} className="mt-1 flex-row pl-1">
+          <Text accessible={false} className={`w-4 ${textClass}`}>
+            •
+          </Text>
+          <Text className={`flex-1 ${textClass}`}>{renderLine(option)}</Text>
+        </View>
+      ))}
+    </View>
   );
 };
+
+/** One stretch of text with its icon codes and keywords drawn. */
+const renderLine = (line: string): React.ReactNode =>
+  line.split(TOKEN).map((part, i) => (i % 2 === 1 ? renderToken(part, i) : part));
+
+/**
+ * A "choose one —" card lists its options one per line after the line that
+ * ends in "—"; the printed card bullets them. Both sources mark them as a
+ * list (Riftcodex <li>, Riot "- "), which the importer flattens to lines.
+ * In every such card so far the options run to the end of the text.
+ */
+function splitOptions(text: string): { lead: string; options: string[] } {
+  const lines = text.split('\n');
+  const at = lines.findIndex((l) => /—\s*$/.test(l));
+  if (at === -1 || at === lines.length - 1) return { lead: text, options: [] };
+  return {
+    lead: lines.slice(0, at + 1).join('\n'),
+    options: lines.slice(at + 1).filter((l) => l.trim() !== ''),
+  };
+}
 
 export default CardText;

@@ -188,6 +188,11 @@ the single spot art is decided. Don't render card images anywhere else.
   cards' four colors (`keyword-{teal,pink,lime,gray}` tokens; lime takes dark
   text). The keyword → color map is `KEYWORD_GROUP`; a keyword not in it is
   gray, so add new ones there when a set brings them.
+- **"Choose one —" options are bullets** (`splitOptions` in
+  `cardText.tsx`): every line after the first line ending in "—" is drawn as
+  a bullet with a hanging indent. The sources mark these as lists (Riftcodex
+  `<li>`, Riot "- "), but the importer stores them as plain lines; in all 17
+  such cards today the options run to the end of the text.
 - **The card sheet is a centered popup** (`components/deck/cardSheet.tsx`, a
   transparent fade `Modal` over `bg-background/80`; ✕ or a tap outside
   closes it), laid out after Piltover Archive's: art, name, chips (supertype
