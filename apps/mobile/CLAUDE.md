@@ -18,8 +18,10 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
     (`components/tabBar.tsx`, passed as `tabBar`): a rounded bar floating
     just above the bottom edge, a soft accent pill behind the active tab
     that glides to the next on a tap (Reanimated spring), that tab's icon
-    popping (1.18× and back), a light haptic on press. Screens cross-fade
-    (`animation: 'fade'`). Hidden (renders nothing) during a match.
+    popping (1.18× and back), a light haptic on press. **No screen
+    transition between tabs:** `animation: 'fade'` was tried and flashed
+    bright between the dark screens — don't bring it back. Hidden (renders
+    nothing) during a match.
   - `(tabs)/index.tsx` — Home; also hosts the whole match flow by `phase`
   - `(tabs)/history.tsx` — match history (account-gated)
   - `(tabs)/decks.tsx` — your decks: the title row carries Select and

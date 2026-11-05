@@ -9,10 +9,11 @@ import React from 'react';
 // This layout re-renders on every match change (it reads `phase` from context —
 // a score tap, a clock pause), and rebuilding these inline made each one look
 // like a fresh navigator configuration.
+// No screen animation between tabs: the navigator's cross-fade flashed the
+// light layer underneath through the dark screens. The bar's pill glide is
+// the tab-change feedback.
 const SCREEN_OPTIONS = {
   headerShown: false,
-  // Switching tabs cross-fades the screens; the bar's pill glides along.
-  animation: 'fade',
 } as const;
 
 const renderTabBar = (props: BottomTabBarProps) => <TabBar {...props} />;
