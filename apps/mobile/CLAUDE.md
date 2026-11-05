@@ -162,8 +162,8 @@ image prop on purpose. Don't add one.
 `components/deck/cardRow.tsx` (list), `components/deck/cardGrid.tsx`
 (gallery), the deck header or the card sheet → `components/deck/cardArt.tsx`,
 the single spot art is decided. Don't render card images anywhere else.
-Deck cards (Home's "Recently played deck", the Decks tab's rows, and the deck
-field of `DeckPicker` — Profile's "Default deck", match setup's "Your deck") show their
+Deck cards (the Decks tab's rows and the deck field of `DeckPicker` —
+Home's "Your deck", Profile's "Default deck", match setup's "Your deck") show their
 legend's art as a backdrop — `CardBackdrop`, also in `cardArt.tsx`: the art
 on the right ~70%, fading into the card's fill (`fill` = surface / elevated,
 so a selected row has no seam), the date on a dark pill so it reads over any
@@ -929,10 +929,14 @@ Rules that are easy to get wrong:
 - **Legacy placeholder names are normalized.** Matches started with blank name
   fields stored the literal `"Player 1"` / `"Player 2"`; those render as
   `You` / `Opponent` rather than being shown as if they were real names.
-- **Home's "Recently played deck"** (`components/deck/recentDeckCard.tsx`) is
-  derived from the same `fetchMatchHistory()` rows — the newest match whose
-  `deck` isn't archived — then `fetchDeck` fills in legend + domains. It
-  renders with the name first so Recent matches below doesn't jump.
+- **Home** (`app/(tabs)/index.tsx`), top to bottom: the brand, **Start a
+  match**, **Your deck** — the deck a match starts with: your default deck,
+  as a `DeckPicker` field (choosing sets the default, as on Profile; no
+  decks yet → an "Import a deck" card; a guest gets a stand-in) — and **Your
+  matches**: the record (wins · losses · win rate, sentence case) right
+  above the three newest rows, with "See all". No profile button: Profile
+  is a tab. (A "Recently played deck" card was replaced by Your deck: two
+  ideas of "your deck" — last played vs. default — read as one question.)
 - **Home's preview row mirrors the History row.** Both render the same
   `HistoryRowVM` and share `components/matchMeta.tsx` for the format + clock
   line, so they can't drift. Home's copy just drops the swipe-delete.

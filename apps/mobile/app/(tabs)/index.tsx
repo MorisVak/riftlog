@@ -1,11 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,12 +15,12 @@ import MatchOverview from '@/components/matchOverview';
 import { SCREEN_ENTER } from '@/components/transitions';
 import MatchSetup from '@/components/matchSetup';
 import RecentMatchRow from '@/components/recentMatchRow';
-import RecentDeckCard from '@/components/deck/recentDeckCard';
-import { fetchDeck, type Deck } from '@/lib/decks';
-import {
-  fetchMatchHistory,
-  type MatchWithGames,
-} from '@/lib/matchPersistence';
+import DeckPicker from '@/components/deck/deckPicker';
+import Icon from '@/components/icon';
+import { useProfile } from '@/contexts/profileContext';
+import { setDefaultDeck } from '@/lib/profile';
+import { fetchMyDecks, type Deck } from '@/lib/decks';
+import { fetchMatchHistory, type MatchWithGames } from '@/lib/matchPersistence';
 import { toHistoryRowVM, type HistoryRowVM } from '@/lib/historyView';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 import { useInGameScreen } from '@/hooks/useInGameScreen';
@@ -57,11 +51,9 @@ const StatCell = ({
   color: string;
   last?: boolean;
 }) => (
-  <View className={`flex-1 px-2 py-5 ${last ? '' : 'border-r border-border'}`}>
+  <View className={`flex-1 px-2 py-3.5 ${last ? '' : 'border-r border-border'}`}>
     <Text className={`text-center font-mono text-xl ${color}`}>{value}</Text>
-    <Text className="mt-1 text-center text-[10.5px] font-semibold uppercase tracking-wide text-ink-secondary">
-      {label}
-    </Text>
+    <Text className="mt-0.5 text-center text-[12px] text-ink-secondary">{label}</Text>
   </View>
 );
 
@@ -89,7 +81,7 @@ const GuestRecentState = () => (
   </View>
 );
 
-/** Guest stand-in for "Recently played deck": decks need an account. */
+/** Guest stand-in for "Your deck": decks need an account. */
 const GuestDeckState = () => (
   <View className="rounded-2xl border border-border bg-surface px-6 py-8">
     <Text className="text-center font-display text-base text-ink-primary">
@@ -112,13 +104,11 @@ const Home = () => {
 
   const headerIntro = useSharedValue(0);
   const ctaIntro = useSharedValue(0);
-  const statsIntro = useSharedValue(0);
   const deckIntro = useSharedValue(0);
   const recentIntro = useSharedValue(0);
   const headerStyle = useRise(headerIntro);
   const deckStyle = useRise(deckIntro);
   const ctaStyle = useRise(ctaIntro);
-  const statsStyle = useRise(statsIntro);
   const recentStyle = useRise(recentIntro);
 
   useFocusEffect(
@@ -126,9 +116,9 @@ const Home = () => {
       let active = true;
       setError(null);
       // Replay the intro on each focus, staggering the elements top-to-bottom
-      // (header → CTA → stats → recent) so the screen assembles dynamically
+      // (header → CTA → deck → matches) so the screen assembles dynamically
       // rather than fading in all at once, matching the other tabs.
-      playIntro([headerIntro, ctaIntro, statsIntro, deckIntro, recentIntro]);
+      playIntro([headerIntro, ctaIntro, deckIntro, recentIntro]);
       // Home is the one guest-usable screen, so it must not touch the network
       // while signed out — stats read as zeroes and the recent list explains
       // itself instead.
@@ -140,44 +130,44 @@ const Home = () => {
       fetchMatchHistory()
         .then((data) => active && setRows(data))
         .catch((e) => active && setError(e?.message ?? 'Failed to load matches'));
+      fetchMyDecks()
+        .then((d) => active && setDecks(d))
+        .catch(() => active && setDecks((cur) => cur ?? []));
       return () => {
         active = false;
       };
-    }, [authed, headerIntro, ctaIntro, statsIntro, deckIntro, recentIntro]),
+    }, [authed, headerIntro, ctaIntro, deckIntro, recentIntro]),
   );
 
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
   const recent = useMemo(() => vms.slice(0, 3), [vms]);
   const stats = useMemo(() => deriveStats(vms), [vms]);
 
-  // "Recently played deck": the deck from the most recent match that had one
-  // (history is newest-first). A deck deleted since is skipped — the card
-  // must open something.
-  const lastPlayed = useMemo(() => {
-    const m = (rows ?? []).find((r) => r.deck && r.deck.archivedAt === null);
-    return m?.deck ? { id: m.deck.id, name: m.deck.name, playedAt: m.ended_at } : null;
-  }, [rows]);
-  const [lastDeck, setLastDeck] = useState<Deck | null>(null);
-  const lastDeckId = lastPlayed?.id ?? null;
-  useEffect(() => {
-    setLastDeck(null);
-    if (!lastDeckId) return;
-    let active = true;
-    // Only for the card's legend + domains; the name is already known, so a
-    // failed fetch just leaves the card without them.
-    fetchDeck(lastDeckId)
-      .then((d) => active && setLastDeck(d))
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [lastDeckId]);
+  // "Your deck": the deck a new match starts with — your default deck (the
+  // setup sheet preselects it). Choosing one here sets the default, as on
+  // Profile. Your decks are read for it on focus; none yet → an import card.
+  const { profile, refresh: refreshProfile } = useProfile();
+  const [decks, setDecks] = useState<Deck[] | null>(null);
+  const [pendingDefault, setPendingDefault] = useState<string | null | undefined>(undefined);
+  const defaultDeckId =
+    pendingDefault !== undefined ? pendingDefault : (profile?.defaultDeckId ?? null);
+  const defaultDeck = decks?.find((d) => d.id === defaultDeckId) ?? null;
+  const chooseDefault = (deck: Deck | null) => {
+    const id = deck?.id ?? null;
+    setPendingDefault(id);
+    setDefaultDeck(id)
+      .then(() => refreshProfile())
+      .catch((e) => {
+        if (__DEV__) console.warn('[home] default deck save failed:', e);
+        Alert.alert('Could not save', 'Please check your connection and try again.');
+      })
+      .finally(() => setPendingDefault(undefined));
+  };
 
   // A guest never fetches, so `rows === null` isn't "still loading" for them.
   // Session restore counts as loading though — otherwise every cold start
   // flashes the guest state at a signed-in user before the session resolves.
-  const loading =
-    status === 'loading' || (authed && rows === null && error === null);
+  const loading = status === 'loading' || (authed && rows === null && error === null);
 
   return (
     <View className="flex-1 bg-background">
@@ -189,7 +179,7 @@ const Home = () => {
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Brand header */}
+        {/* Brand header. No profile button: Profile is a tab. */}
         <Animated.View
           style={headerStyle}
           className="mb-6 mt-1 flex-row items-center justify-between"
@@ -202,14 +192,6 @@ const Home = () => {
               Riftlog
             </Text>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open profile"
-            onPress={() => router.navigate('/profile')}
-            className="h-9 w-9 items-center justify-center rounded-full border border-border bg-elevated active:bg-surface"
-          >
-            <Feather name="user" size={18} color={ACCENT} />
-          </Pressable>
         </Animated.View>
 
         {/* Guest notice. Renders nothing when signed in; rides the header's
@@ -220,111 +202,126 @@ const Home = () => {
 
         {/* Start CTA */}
         <Animated.View style={ctaStyle}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Start a match"
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setSetupOpen(true);
-          }}
-          className="rounded-[20px] bg-accent shadow-accent-card active:bg-accent-strong"
-        >
-          {/* overflow-hidden lives on this inner wrapper, not the Pressable, so
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Start a match"
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setSetupOpen(true);
+            }}
+            className="rounded-[20px] bg-accent shadow-accent-card active:bg-accent-strong"
+          >
+            {/* overflow-hidden lives on this inner wrapper, not the Pressable, so
               it clips the decorative rings without clipping the card's own
               accent drop shadow (iOS clips a view's shadow when overflow is
               hidden on the same view). */}
-          <View className="overflow-hidden rounded-[20px] p-6">
-            {/* Decorative rings */}
-            <View className="absolute -right-8 -top-8 h-[140px] w-[140px] rounded-full border border-background/15" />
-            <View className="absolute -bottom-11 right-1.5 h-[110px] w-[110px] rounded-full border border-background/10" />
-            <View className="flex-row items-center gap-3.5">
-              <View className="h-[52px] w-[52px] items-center justify-center rounded-[15px] bg-background/15">
-                <Feather name="play" size={20} color={BACKGROUND} />
-              </View>
-              <View>
-                <Text className="font-display-bold text-[19px] tracking-tight text-background">
-                  Start a match
-                </Text>
-                <Text className="mt-0.5 text-[13px] font-medium text-background/60">
-                  Track score live, log it forever
-                </Text>
+            <View className="overflow-hidden rounded-[20px] p-6">
+              {/* Decorative rings */}
+              <View className="absolute -right-8 -top-8 h-[140px] w-[140px] rounded-full border border-background/15" />
+              <View className="absolute -bottom-11 right-1.5 h-[110px] w-[110px] rounded-full border border-background/10" />
+              <View className="flex-row items-center gap-3.5">
+                <View className="h-[52px] w-[52px] items-center justify-center rounded-[15px] bg-background/15">
+                  <Feather name="play" size={20} color={BACKGROUND} />
+                </View>
+                <View>
+                  <Text className="font-display-bold text-[19px] tracking-tight text-background">
+                    Start a match
+                  </Text>
+                  <Text className="mt-0.5 text-[13px] font-medium text-background/60">
+                    Track score live, log it forever
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
-        </Pressable>
+          </Pressable>
         </Animated.View>
 
-        {/* Season stats — your own saved matches, so none for a guest (they
-            have nothing saved; a row of zeroes would just look broken).
-            Shown while the session restores so a signed-in cold start
-            doesn't jump. */}
-        {status !== 'guest' && (
-          <Animated.View
-            style={statsStyle}
-            className="mt-3.5 flex-row overflow-hidden rounded-2xl border border-border bg-surface"
-          >
-            <StatCell value={stats.wins} label="Wins" color="text-win-text" />
-            <StatCell value={stats.losses} label="Losses" color="text-loss-text" />
-            <StatCell value={stats.winRate} label="Win rate" color="text-accent" last />
-          </Animated.View>
-        )}
-
-        {/* Recently played deck — signed in, once a match has been played
-            with a deck; a guest gets a stand-in, like Recent matches. */}
-        {(status === 'guest' || (authed && lastPlayed)) && (
+        {/* Your deck — the one a new match starts with. A guest gets a
+            stand-in (decks need an account). */}
+        {status !== 'loading' && (
           <Animated.View style={deckStyle}>
-            <View className="mb-3 mt-6 px-0.5">
-              <Text className="font-display-bold text-[15px] text-ink-primary">
-                Recently played deck
-              </Text>
-            </View>
-            {authed && lastPlayed ? (
-              <RecentDeckCard
-                name={lastPlayed.name}
-                playedAt={lastPlayed.playedAt}
-                deck={lastDeck}
-                onPress={() => router.push(`/decks/${lastPlayed.id}`)}
-              />
-            ) : (
+            <Text className="mb-2 mt-6 px-0.5 font-display-bold text-[15px] text-ink-primary">
+              Your deck
+            </Text>
+            {status === 'guest' ? (
               <GuestDeckState />
+            ) : decks === null ? (
+              <View className="h-[64px] rounded-2xl border border-border bg-surface" />
+            ) : decks.length === 0 ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.push('/decks/import')}
+                className="flex-row items-center gap-3 rounded-2xl border border-dashed border-border px-4 py-4 active:bg-surface"
+              >
+                <Icon name="plus" size={18} className="text-accent" />
+                <View className="flex-1">
+                  <Text className="font-display text-[15px] text-ink-primary">Import a deck</Text>
+                  <Text className="mt-0.5 text-[13px] text-ink-secondary">
+                    Paste a decklist or a deck code.
+                  </Text>
+                </View>
+              </Pressable>
+            ) : (
+              <>
+                <DeckPicker
+                  value={defaultDeck}
+                  onChange={chooseDefault}
+                  noneLabel="No default deck"
+                  title="Your deck"
+                  defaultDeckId={defaultDeckId}
+                />
+                <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
+                  Picked for you when you start a match.
+                </Text>
+              </>
             )}
           </Animated.View>
         )}
 
         {/* Recent matches */}
         <Animated.View style={recentStyle}>
-        <View className="mb-3 mt-6 flex-row items-baseline justify-between px-0.5">
-          <Text className="font-display-bold text-[15px] text-ink-primary">
-            Recent matches
-          </Text>
-          <Pressable onPress={() => router.navigate('/history')}>
-            <Text className="text-[13px] font-semibold text-accent">See all</Text>
-          </Pressable>
-        </View>
+          <View className="mb-3 mt-6 flex-row items-baseline justify-between px-0.5">
+            <Text className="font-display-bold text-[15px] text-ink-primary">Your matches</Text>
+            <Pressable onPress={() => router.navigate('/history')}>
+              <Text className="text-[13px] font-semibold text-accent">See all</Text>
+            </Pressable>
+          </View>
 
-        {loading ? (
-          <View className="items-center py-10">
-            <ActivityIndicator color={ACCENT} />
-          </View>
-        ) : status === 'guest' ? (
-          <GuestRecentState />
-        ) : error !== null ? (
-          <View className="rounded-2xl border border-border bg-surface px-6 py-8">
-            <Text className="text-center text-sm text-loss-text">{error}</Text>
-          </View>
-        ) : recent.length === 0 ? (
-          <HistoryEmptyState />
-        ) : (
-          <View className="gap-2">
-            {recent.map((vm) => (
-              <RecentMatchRow
-                key={vm.id}
-                vm={vm}
-                onPress={() => router.push(`/matches/${vm.id}`)}
-              />
-            ))}
-          </View>
-        )}
+          {/* Your record — your own saved matches, so none for a guest (they
+            have nothing saved; a row of zeroes would just look broken).
+            Shown while the session restores so a signed-in cold start
+            doesn't jump. */}
+          {authed && !loading && error === null && vms.length > 0 && (
+            <Animated.View className="mb-2 flex-row overflow-hidden rounded-2xl border border-border bg-surface">
+              <StatCell value={stats.wins} label="Wins" color="text-win-text" />
+              <StatCell value={stats.losses} label="Losses" color="text-loss-text" />
+              <StatCell value={stats.winRate} label="Win rate" color="text-accent" last />
+            </Animated.View>
+          )}
+
+          {loading ? (
+            <View className="items-center py-10">
+              <ActivityIndicator color={ACCENT} />
+            </View>
+          ) : status === 'guest' ? (
+            <GuestRecentState />
+          ) : error !== null ? (
+            <View className="rounded-2xl border border-border bg-surface px-6 py-8">
+              <Text className="text-center text-sm text-loss-text">{error}</Text>
+            </View>
+          ) : recent.length === 0 ? (
+            <HistoryEmptyState />
+          ) : (
+            <View className="gap-2">
+              {recent.map((vm) => (
+                <RecentMatchRow
+                  key={vm.id}
+                  vm={vm}
+                  onPress={() => router.push(`/matches/${vm.id}`)}
+                />
+              ))}
+            </View>
+          )}
         </Animated.View>
       </ScrollView>
 
