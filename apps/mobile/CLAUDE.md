@@ -339,8 +339,14 @@ A settled Bo3 can therefore have fewer than three games; nothing downstream
 (overview, history, persistence) assumes a fixed count — they all map over
 `match.games`.
 
-**Pre-match setup** (`components/matchSetup.tsx`) is a native **page sheet**
-over Home (swipe down or ✕ to close; `onDismiss` unmounts it), built around
+**Pre-match setup** (`components/matchSetup.tsx`) is a **bottom sheet as tall
+as its content**, in a transparent `Modal` (so it covers the tab bar too; it
+has its own `GestureHandlerRootView`). It slides up on open, and drag the
+handle down, tap outside or ✕ to close. Two layers: the outer takes the
+slide and the drag, the inner is the sheet with `layout={LinearTransition}`,
+so it grows smoothly when the custom wheels open; it's capped below the
+status bar and its content scrolls past that. (A native page sheet is always
+full height on iPhone — it left empty space under short content.) Built around
 the **matchup**: two legend portraits side by side — **you left (p1), the
 opponent right**, "VS" between — each a `LegendPortrait` (the legend's art,
 cropped on its face) you tap to choose, with the two name fields under them.
@@ -381,24 +387,21 @@ and `p2` the opponent (see the p1-perspective rule below).
 Still deferred: the track-turns control. See the match flow before extending
 it.
 
-**Match rows show the matchup.** History and Home's recent matches draw both
-legends across the whole row — `MatchBackdrop` in `cardArt.tsx`: yours on
-the left, theirs on the right, **crossfading** in the middle (36–64% of the
-row). There's no mask in the app (that's a native module), so the fade is
-their art drawn again in `FADE_STEPS` (32) thin strips of rising opacity
-over yours; strip edges and the image's position are snapped to whole
-device pixels, or the strips show as lines. Each art is cropped by height
-on its face and zoomed past the card frame and the domain-icon column
-(`artRect` with `ICON_COLUMN`, `coverInside`). **Tinted with the result**
-(`tint`: a `mixBlendMode: 'color'` layer of `bg-win` / `bg-loss` / `bg-draw`
-at 35% — never alone: the letter badge and result bar stay), under a scrim
-that's darkest behind the text on the left and at the right edge (score
-pill, chevron), plus a soft dark pill hugging the title and meta line. With
-one legend known it's that one across the row. A press
-lays the overlay. With no name typed the row reads "vs Kennen" (a typed
-name: "vs Alex · Kennen"; a blank name is stored as the default
-"Opponent", which counts as none). Only your own matches are ever read
-back — never aggregated across users (Riot policy).
+**Match rows show your legend.** History and Home's recent matches draw your
+legend (your deck's, or the one picked in setup) across the whole row —
+`MatchBackdrop` in `cardArt.tsx`, cropped by height on the face and zoomed
+past the card frame and the domain-icon column (`artRect` with
+`ICON_COLUMN`, `coverInside`) — **tinted with the result** (`tint`: a
+`mixBlendMode: 'color'` layer of `bg-win` / `bg-loss` / `bg-draw` at 35% —
+never alone: the letter badge and result bar stay), under a scrim that's
+darkest behind the text on the left and at the right edge (score pill,
+chevron), plus a soft dark pill hugging the title and meta line. (Both
+legends crossfading was tried and dropped as too busy; the opponent's
+legend shows in the title instead.) A press lays the overlay. With no name
+typed the row reads "vs Kennen" (a typed name: "vs Alex · Kennen"; a blank
+name is stored as the default "Opponent", which counts as none). Only your
+own matches are ever read back — never aggregated across users (Riot
+policy).
 
 ### Timed mode
 
