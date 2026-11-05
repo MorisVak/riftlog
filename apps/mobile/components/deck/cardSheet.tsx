@@ -3,7 +3,7 @@ import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View, useWindowDi
 import type { CardRef, CatalogCard, CatalogPrinting, Domain } from '@riftlog/core';
 import Icon from '@/components/icon';
 import CardArt from '@/components/deck/cardArt';
-import CardText from '@/components/deck/cardText';
+import CardText, { MightIcon } from '@/components/deck/cardText';
 import { DomainChip, RuneIcon, asDomain, domainLabel } from '@/components/deck/domain';
 import RarityIcon from '@/components/deck/rarity';
 import { useCatalog } from '@/contexts/catalogContext';
@@ -197,6 +197,7 @@ const Stats = ({ info, domains }: { info: CatalogCard; domains: Domain[] }) => {
           a11y={isGear ? `Might bonus: plus ${info.might}` : `Might: ${info.might}`}
         >
           <StatNumber>{isGear ? `+${info.might}` : info.might}</StatNumber>
+          <MightIcon size={22} />
         </Stat>
       )}
     </View>

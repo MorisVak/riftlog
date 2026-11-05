@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import { DOMAINS, type Domain } from '@riftlog/core';
 import { InlineRune, domainLabel } from '@/components/deck/domain';
 
@@ -8,8 +8,8 @@ import { InlineRune, domainLabel } from '@/components/deck/domain';
  * drawn as on the printed card — runes as Riot's rune symbols (":rb_rune_fury:",
  * the rainbow ":rb_rune_rainbow:" = any rune), each with a spoken label; each
  * domain's symbol has its own shape, so color never carries meaning alone —
- * other codes as small labelled chips (":rb_energy_2:" → "2", ":rb_might:" →
- * "Might"), and keywords ("[Deflect]") as the slanted badges the cards print,
+ * ":rb_might:" as Riot's might glyph, other codes as small labelled chips
+ * (":rb_energy_2:" → "2"), and keywords ("[Deflect]") as the slanted badges the cards print,
  * in their four colors (see `KEYWORD_GROUP`).
  * The text itself is shown exactly as stored.
  */
@@ -53,6 +53,16 @@ const KeywordBadge = ({ keyword }: { keyword: string }) => {
   );
 };
 
+/** Riot's might glyph (white, rendered from its SVG to `assets/icons/might.png`). */
+export const MightIcon = ({ size = 15 }: { size?: number }) => (
+  <Image
+    source={require('@/assets/icons/might.png')}
+    style={{ width: size, height: size }}
+    accessible={false}
+    importantForAccessibility="no"
+  />
+);
+
 const isDomain = (d: string): d is Domain => (DOMAINS as readonly string[]).includes(d);
 
 const Chip = ({ label, className, a11y }: { label: string; className: string; a11y: string }) => (
@@ -79,7 +89,13 @@ function renderToken(token: string, key: number): React.ReactNode {
       );
     }
   }
-  if (token === ':rb_might:') return <Chip key={key} label="Might" a11y="Might" className="bg-elevated text-ink-primary" />;
+  if (token === ':rb_might:') {
+    return (
+      <Text key={key} accessibilityLabel="Might">
+        <MightIcon size={15} />
+      </Text>
+    );
+  }
   if (token === ':rb_exhaust:') return <Chip key={key} label="Exhaust" a11y="Exhaust" className="bg-elevated text-ink-primary" />;
   if (token.startsWith(':rb_')) {
     // An icon we don't know yet: show its name rather than the raw code.

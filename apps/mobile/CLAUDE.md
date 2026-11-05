@@ -194,6 +194,9 @@ from the file gets the default crop.
   each) or the rainbow; `InlineRune` is the in-text version. Card text draws
   `:rb_rune_<domain>:` / `:rb_rune_rainbow:` as these symbols, with spoken
   labels (each glyph has its own shape, so color isn't the only signal).
+  `:rb_might:` is Riot's might glyph (`assets/icons/might.png`, rendered
+  white from its SVG; `MightIcon` in `cardText.tsx`), also beside the card
+  sheet's Might value.
 - **Keyword badges** (`KeywordBadge` in `components/deck/cardText.tsx`):
   `[Tank]`, `[Ganking]` … render as slanted uppercase badges in the printed
   cards' four colors (`keyword-{teal,pink,lime,gray}` tokens; lime takes dark
