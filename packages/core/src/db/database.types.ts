@@ -583,6 +583,7 @@ export type Database = {
           default_deck_id: string | null
           display_name: string
           id: string
+          legend_art: Json
           onboarded_at: string | null
           updated_at: string
           username: string
@@ -593,6 +594,7 @@ export type Database = {
           default_deck_id?: string | null
           display_name: string
           id: string
+          legend_art?: Json
           onboarded_at?: string | null
           updated_at?: string
           username: string
@@ -603,6 +605,7 @@ export type Database = {
           default_deck_id?: string | null
           display_name?: string
           id?: string
+          legend_art?: Json
           onboarded_at?: string | null
           updated_at?: string
           username?: string
@@ -719,6 +722,7 @@ export type Database = {
       delete_deck: { Args: { p_deck_id: string }; Returns: undefined }
       delete_decks: { Args: { p_deck_ids: string[] }; Returns: number }
       delete_feedback: { Args: { p_ids: string[] }; Returns: number }
+      delete_my_account: { Args: never; Returns: undefined }
       feedback_unread_count: { Args: never; Returns: number }
       insert_seed_profile: {
         Args: { p_display_name: string; p_uid: string }

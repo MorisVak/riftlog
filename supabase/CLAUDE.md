@@ -184,7 +184,7 @@ removed solely by the cascade from `auth.users`, so the client can neither mint
 nor drop a profile. Don't "fix" this by adding an insert policy.
 
 **RLS picks the row; column grants pick the columns.** `authenticated` holds
-`UPDATE (display_name, default_deck_id)` and nothing else on `profiles` (insert / delete /
+`UPDATE (display_name, default_deck_id, legend_art)` and nothing else on `profiles` (insert / delete /
 truncate revoked from `anon` and `authenticated`). Without that, the owner
 update policy would let a client rewrite its own `username` — skipping format,
 reserved, and rate-limit checks — or stamp `onboarded_at`. **Don't re-grant
@@ -195,6 +195,21 @@ composite FK `(default_deck_id, id) → decks (id, owner_id)` means it can only
 name one of the owner's own decks (`on delete set null (default_deck_id)` for
 real deletes). Soft deletes don't trip an FK, so `delete_deck` / `delete_decks`
 also clear it when they archive that deck.
+
+**`legend_art`** (jsonb, not null, default `'{}'`; must be an object ≤ 16 KB)
+is a display preference — which art legends are drawn with:
+`{ overnumbered: boolean, picks: { <card id>: <printing code> } }`, parsed
+defensively by core's `parseLegendArt`. Owner-written with a plain update;
+it never touches a deck's list or deck code.
+
+**`delete_my_account()`** (`security definer`, `require_account()`,
+EXECUTE for `authenticated` only) deletes the caller's own `auth.users` row;
+everything else of theirs goes through the `on delete cascade` FKs
+(profiles, matches → games, decks → versions, feedback_submissions, admin
+rows). Anonymous feedback has no user column and stays. The client signs
+out locally afterwards. **Not yet:** revoking Sign in with Apple tokens on
+deletion (Apple asks for it with SIWA; needs the Apple REST API + client
+secret, server-side).
 
 ### Profile RPCs
 
@@ -564,8 +579,8 @@ offline outbox. Still ahead (later slices / features):
   users until a provider (Resend / Postmark / Brevo) is set under
   Authentication → SMTP, with a verified riftlog.net domain. Add the provider
   to `/privacy` when it is.
-- **Account deletion (urgent, see `../SPEC.md`)** — needs a server-side path
-  that deletes the `auth.users` row; the FK cascades remove the rest.
+- **Account deletion** — built (`delete_my_account`). Open: revoking Sign
+  in with Apple tokens on deletion (Apple REST API, server-side).
 - The card catalog importer (Riftcodex → catalog, secret key), then the
   app's catalog cache and card display — the schema is in place.
 - First Edge Function (none needed so far — text import parses on-device)
