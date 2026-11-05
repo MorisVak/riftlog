@@ -406,6 +406,14 @@ their name ("vs Opponent" when blank). Only your own matches are ever read
 back — never aggregated across users (Riot policy). History's `FlatList`
 keeps a small window mounted (`windowSize={5}`, `initialNumToRender={10}`):
 every row carries art, and the default (~21 screens) mounted all of them.
+`HistoryRow` is `React.memo` (callbacks from History are stable), so
+expanding one row — which re-renders the list via `extraData` — redraws only
+that row. Rows with a press overlay build their content **outside** the
+`Pressable` children function (`const content = …`), so a press redraws only
+the overlay, not the art. **Don't wrap `CardBackdrop` (or other components
+rendered inside a `Pressable`) in `React.memo`:** NativeWind's css-interop
+then throws "Component is not a function (it is Object)" and the app
+renders a blank white screen.
 
 **Legends whose face fills their card** (Vex - Gloomist, Kennen): a crop in
 `lib/legendArtFocus.manual.json` may be wider than the art (`w` > 1) to bring

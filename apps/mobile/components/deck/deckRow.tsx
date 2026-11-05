@@ -55,6 +55,59 @@ const DeckRow = ({
     date === 'created' ? deck.createdAt : deck.updatedAt,
   );
 
+  // Built once, outside the press callback: a press then redraws only
+  // the overlay, not the art and text (that made taps lag).
+  const content = (
+    <>
+      {deck.list.legend && (
+        <CardBackdrop card={deck.list.legend} fill={selected ? 'elevated' : 'surface'} />
+      )}
+      <View className="flex-1">
+        <View className="flex-row items-center justify-between gap-2">
+          <View className="flex-1 flex-row items-center gap-2">
+            <Text
+              className="flex-shrink font-display-bold text-[15px] text-ink-primary"
+              numberOfLines={1}
+            >
+              {deck.name}
+            </Text>
+            {isDefault && (
+              <View className="rounded-full bg-accent/15 px-2 py-0.5">
+                <Text className="font-display text-[11px] text-accent">
+                  Default
+                </Text>
+              </View>
+            )}
+          </View>
+          {/* On a pill: it sits over the legend's art. */}
+          <View className="rounded-md bg-background/70 px-1.5 py-0.5">
+            <Text className="font-mono-medium text-[11px] text-ink-secondary">
+              {shownDate}
+            </Text>
+          </View>
+        </View>
+        <Text
+          className="mt-0.5 text-[13px] text-ink-secondary"
+          numberOfLines={1}
+        >
+          {deck.list.legend?.name ?? 'No legend'}
+        </Text>
+        {domains && (
+          <View className="mt-2">
+            <DomainChips domains={domains} />
+          </View>
+        )}
+      </View>
+      {!selecting && (
+        <Icon
+          name="chevron-right"
+          size={18}
+          className="text-ink-tertiary"
+        />
+      )}
+    </>
+  );
+
   return (
     // In selection mode the check sits OUTSIDE the card, to its left (as in a
     // WhatsApp chat); the gutter slides open and pushes the card right.
@@ -111,52 +164,7 @@ const DeckRow = ({
             >
               {({ pressed }) => (
                 <>
-                  {deck.list.legend && (
-                    <CardBackdrop card={deck.list.legend} fill={selected ? 'elevated' : 'surface'} />
-                  )}
-                  <View className="flex-1">
-                    <View className="flex-row items-center justify-between gap-2">
-                      <View className="flex-1 flex-row items-center gap-2">
-                        <Text
-                          className="flex-shrink font-display-bold text-[15px] text-ink-primary"
-                          numberOfLines={1}
-                        >
-                          {deck.name}
-                        </Text>
-                        {isDefault && (
-                          <View className="rounded-full bg-accent/15 px-2 py-0.5">
-                            <Text className="font-display text-[11px] text-accent">
-                              Default
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                      {/* On a pill: it sits over the legend's art. */}
-                      <View className="rounded-md bg-background/70 px-1.5 py-0.5">
-                        <Text className="font-mono-medium text-[11px] text-ink-secondary">
-                          {shownDate}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text
-                      className="mt-0.5 text-[13px] text-ink-secondary"
-                      numberOfLines={1}
-                    >
-                      {deck.list.legend?.name ?? 'No legend'}
-                    </Text>
-                    {domains && (
-                      <View className="mt-2">
-                        <DomainChips domains={domains} />
-                      </View>
-                    )}
-                  </View>
-                  {!selecting && (
-                    <Icon
-                      name="chevron-right"
-                      size={18}
-                      className="text-ink-tertiary"
-                    />
-                  )}
+                  {content}
                   <PressOverlay pressed={pressed} />
                 </>
               )}

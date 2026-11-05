@@ -31,6 +31,58 @@ type Props = {
  */
 const RecentMatchRow = ({ vm, onPress }: Props) => {
   const r = RESULT[vm.result];
+  // Built once, outside the press callback: a press then redraws only
+  // the overlay, not the art and text (that made taps lag).
+  const content = (
+    <>
+      {vm.yourLegend && <CardBackdrop card={vm.yourLegend} tint={vm.result} />}
+      <View className={`w-1 self-stretch ${r.bar}`} />
+      <View className="min-h-[64px] flex-1 flex-row items-center px-3 py-2">
+        <View
+          className={`h-8 w-8 items-center justify-center rounded-lg ${r.badge}`}
+        >
+          <Text className={`font-display-bold text-[13px] ${r.text}`}>
+            {vm.letter}
+          </Text>
+        </View>
+
+        <View className="ml-3 flex-1">
+          {/* A soft dark pill hugging the text over the legend art. */}
+          <View
+            className={
+              vm.yourLegend
+                ? 'max-w-full self-start rounded-lg bg-background/55 px-2 py-1'
+                : ''
+            }
+          >
+            {/* "vs" prefix, same as the History row: the name is the opponent. */}
+            <Text
+              className="font-display text-[15px] font-semibold text-ink-primary"
+              numberOfLines={1}
+            >
+              <Text className="font-normal text-ink-secondary">vs </Text>
+              {vm.opponent}
+            </Text>
+            <MatchMeta vm={vm} />
+          </View>
+        </View>
+
+        <View
+          className={`items-end ${
+            vm.yourLegend
+              ? 'rounded-md bg-background/70 px-1.5 py-0.5'
+              : ''
+          }`}
+        >
+          <Text className="font-mono text-[14px] text-ink-primary">
+            {vm.score}
+          </Text>
+          <Text className="mt-0.5 text-[11px] text-ink-secondary">{vm.date}</Text>
+        </View>
+      </View>
+    </>
+  );
+
   return (
     <Pressable
       onPress={onPress}
@@ -39,51 +91,7 @@ const RecentMatchRow = ({ vm, onPress }: Props) => {
     >
       {({ pressed }) => (
         <>
-          {vm.yourLegend && <CardBackdrop card={vm.yourLegend} tint={vm.result} />}
-          <View className={`w-1 self-stretch ${r.bar}`} />
-          <View className="min-h-[64px] flex-1 flex-row items-center px-3 py-2">
-            <View
-              className={`h-8 w-8 items-center justify-center rounded-lg ${r.badge}`}
-            >
-              <Text className={`font-display-bold text-[13px] ${r.text}`}>
-                {vm.letter}
-              </Text>
-            </View>
-
-            <View className="ml-3 flex-1">
-              {/* A soft dark pill hugging the text over the legend art. */}
-              <View
-                className={
-                  vm.yourLegend
-                    ? 'max-w-full self-start rounded-lg bg-background/55 px-2 py-1'
-                    : ''
-                }
-              >
-                {/* "vs" prefix, same as the History row: the name is the opponent. */}
-                <Text
-                  className="font-display text-[15px] font-semibold text-ink-primary"
-                  numberOfLines={1}
-                >
-                  <Text className="font-normal text-ink-secondary">vs </Text>
-                  {vm.opponent}
-                </Text>
-                <MatchMeta vm={vm} />
-              </View>
-            </View>
-
-            <View
-              className={`items-end ${
-                vm.yourLegend
-                  ? 'rounded-md bg-background/70 px-1.5 py-0.5'
-                  : ''
-              }`}
-            >
-              <Text className="font-mono text-[14px] text-ink-primary">
-                {vm.score}
-              </Text>
-              <Text className="mt-0.5 text-[11px] text-ink-secondary">{vm.date}</Text>
-            </View>
-          </View>
+          {content}
           <PressOverlay pressed={pressed} />
         </>
       )}

@@ -172,6 +172,76 @@ const HistoryRow = ({
     );
   };
 
+  // Built once, outside the press callback: a press then redraws only
+  // the overlay, not the art and text (that made taps lag).
+  const content = (
+    <>
+      {vm.yourLegend && (
+        <CardBackdrop
+          card={vm.yourLegend}
+          fill={selected ? 'elevated' : 'surface'}
+          tint={vm.result}
+        />
+      )}
+
+      <View
+        className={`m-3 h-8 w-8 items-center justify-center rounded-lg ${r.badge}`}
+      >
+        <Text className={`font-display-bold text-sm ${r.text}`}>
+          {vm.letter}
+        </Text>
+      </View>
+
+      <View className="flex-1 py-3">
+        {/* A soft dark pill hugging the text over the legend art. */}
+        <View
+          className={
+            vm.yourLegend
+              ? '-ml-2 max-w-full self-start rounded-lg bg-background/55 px-2 py-1'
+              : ''
+          }
+        >
+          {/* "vs" prefix so the single name reads as the opponent, never
+              as your own. */}
+          <Text
+            className="font-display text-[15px] font-semibold text-ink-primary"
+            numberOfLines={1}
+          >
+            <Text className="font-normal text-ink-secondary">vs </Text>
+            {vm.opponent}
+          </Text>
+          <MatchMeta vm={vm} />
+        </View>
+      </View>
+
+      {/* On a dark pill over the legend art, so it reads on any art. */}
+      <View
+        className={`items-end ${
+          vm.yourLegend
+          ? 'my-3 rounded-md bg-background/70 px-1.5 py-0.5'
+          : 'py-3'
+        }`}
+      >
+        <Text className={`font-mono text-[15px] ${r.text}`}>{vm.score}</Text>
+        <Text className="mt-0.5 text-[11px] text-ink-secondary">
+          {vm.date}
+        </Text>
+      </View>
+
+      {/* No expanding while selecting, so no chevron either. */}
+      {selecting ? (
+        <View className="w-3" />
+      ) : (
+        <Animated.View
+          style={chevronStyle}
+          className="h-[26px] w-9 items-center justify-center"
+        >
+          <Feather name="chevron-down" size={16} color={INK_SECONDARY} />
+        </Animated.View>
+      )}
+    </>
+  );
+
   return (
     // In selection mode the check sits OUTSIDE the card, to its left (as in a
     // WhatsApp chat); the gutter slides open and pushes the card right.
@@ -236,69 +306,7 @@ const HistoryRow = ({
               >
                 {({ pressed }) => (
                   <>
-                    {vm.yourLegend && (
-                      <CardBackdrop
-                        card={vm.yourLegend}
-                        fill={selected ? 'elevated' : 'surface'}
-                        tint={vm.result}
-                      />
-                    )}
-
-                    <View
-                      className={`m-3 h-8 w-8 items-center justify-center rounded-lg ${r.badge}`}
-                    >
-                      <Text className={`font-display-bold text-sm ${r.text}`}>
-                        {vm.letter}
-                      </Text>
-                    </View>
-
-                    <View className="flex-1 py-3">
-                      {/* A soft dark pill hugging the text over the legend art. */}
-                      <View
-                        className={
-                          vm.yourLegend
-                            ? '-ml-2 max-w-full self-start rounded-lg bg-background/55 px-2 py-1'
-                            : ''
-                        }
-                      >
-                        {/* "vs" prefix so the single name reads as the opponent, never
-                            as your own. */}
-                        <Text
-                          className="font-display text-[15px] font-semibold text-ink-primary"
-                          numberOfLines={1}
-                        >
-                          <Text className="font-normal text-ink-secondary">vs </Text>
-                          {vm.opponent}
-                        </Text>
-                        <MatchMeta vm={vm} />
-                      </View>
-                    </View>
-
-                    {/* On a dark pill over the legend art, so it reads on any art. */}
-                    <View
-                      className={`items-end ${
-                        vm.yourLegend
-                        ? 'my-3 rounded-md bg-background/70 px-1.5 py-0.5'
-                        : 'py-3'
-                      }`}
-                    >
-                      <Text className={`font-mono text-[15px] ${r.text}`}>{vm.score}</Text>
-                      <Text className="mt-0.5 text-[11px] text-ink-secondary">
-                        {vm.date}
-                      </Text>
-                    </View>
-
-                    {/* No expanding while selecting, so no chevron either. */}
-                    {selecting ? (
-                      <View className="w-3" />
-                    ) : (
-                      <Animated.View
-                        style={chevronStyle}
-                        className="h-[26px] w-9 items-center justify-center"
-                      >
-                        <Feather name="chevron-down" size={16} color={INK_SECONDARY} />
-                      </Animated.View>
-                    )}
+                    {content}
                     <PressOverlay pressed={pressed} />
                   </>
                 )}
@@ -397,4 +405,6 @@ const HistoryRow = ({
   );
 };
 
-export default HistoryRow;
+// Memoized: expanding one row re-renders the list (`extraData`), and every
+// row carries legend art — only the rows whose props changed should redraw.
+export default React.memo(HistoryRow);

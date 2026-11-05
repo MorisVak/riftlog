@@ -392,6 +392,46 @@ const DeckOption = ({
   onPress: () => void;
 }) => {
   const domains = deckDomains(deck.list);
+  // Built once, outside the press callback: a press then redraws only
+  // the overlay, not the art and text (that made taps lag).
+  const content = (
+    <>
+      {deck.list.legend && <CardBackdrop card={deck.list.legend} />}
+      <View className="flex-1">
+        <View className="flex-row items-center gap-2">
+          <Text
+            className="flex-shrink font-display-bold text-[17px] text-ink-primary"
+            numberOfLines={1}
+          >
+            {deck.name}
+          </Text>
+          {isDefault && (
+            <View className="rounded-full bg-accent/15 px-2 py-0.5">
+              <Text className="font-display text-[11px] text-accent">Default</Text>
+            </View>
+          )}
+        </View>
+        {deck.list.legend && (
+          <Text className="mt-1 text-[14px] text-ink-secondary" numberOfLines={1}>
+            {deck.list.legend.name}
+          </Text>
+        )}
+        {domains && (
+          <View className="mt-2">
+            <DomainChips domains={domains} />
+          </View>
+        )}
+      </View>
+      {selected ? (
+        <View className="h-7 w-7 items-center justify-center rounded-full bg-background/70">
+          <Icon name="check" size={18} className="text-accent" />
+        </View>
+      ) : (
+        <View className="h-7 w-7" />
+      )}
+    </>
+  );
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -407,39 +447,7 @@ const DeckOption = ({
     >
       {({ pressed }) => (
         <>
-          {deck.list.legend && <CardBackdrop card={deck.list.legend} />}
-          <View className="flex-1">
-            <View className="flex-row items-center gap-2">
-              <Text
-                className="flex-shrink font-display-bold text-[17px] text-ink-primary"
-                numberOfLines={1}
-              >
-                {deck.name}
-              </Text>
-              {isDefault && (
-                <View className="rounded-full bg-accent/15 px-2 py-0.5">
-                  <Text className="font-display text-[11px] text-accent">Default</Text>
-                </View>
-              )}
-            </View>
-            {deck.list.legend && (
-              <Text className="mt-1 text-[14px] text-ink-secondary" numberOfLines={1}>
-                {deck.list.legend.name}
-              </Text>
-            )}
-            {domains && (
-              <View className="mt-2">
-                <DomainChips domains={domains} />
-              </View>
-            )}
-          </View>
-          {selected ? (
-            <View className="h-7 w-7 items-center justify-center rounded-full bg-background/70">
-              <Icon name="check" size={18} className="text-accent" />
-            </View>
-          ) : (
-            <View className="h-7 w-7" />
-          )}
+          {content}
           <PressOverlay pressed={pressed} />
         </>
       )}
