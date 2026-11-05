@@ -22,7 +22,7 @@ import DeckStrip from '@/components/home/deckStrip';
 import { useProfile } from '@/contexts/profileContext';
 import { setDefaultDeck } from '@/lib/profile';
 import { fetchMyDecks, type Deck } from '@/lib/decks';
-import { fetchMatchHistory, type MatchWithGames } from '@/lib/matchPersistence';
+import { fetchMatchHistory, type MatchListRow } from '@/lib/matchPersistence';
 import { toHistoryRowVM } from '@/lib/historyView';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 import { useInGameScreen } from '@/hooks/useInGameScreen';
@@ -67,7 +67,7 @@ const Home = () => {
   const { status } = useAuth();
   const authed = status === 'authed';
   const [setupOpen, setSetupOpen] = useState(false);
-  const [rows, setRows] = useState<MatchWithGames[] | null>(null);
+  const [rows, setRows] = useState<MatchListRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const headerIntro = useSharedValue(0);

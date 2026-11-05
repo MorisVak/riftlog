@@ -26,11 +26,20 @@ export type MatchDeckRef = {
 };
 
 /** A match row with its games embedded (newest match first; games by index). */
+/** A game as the list reads it: no points, no notes (see LIST_GAME_COLUMNS). */
+export type ListGameRow = Pick<
+  GameRow,
+  'id' | 'game_index' | 'scores_at_end' | 'winner_id' | 'started_at' | 'ended_at'
+>;
+
 export type MatchWithGames = MatchRow & {
   games: GameRow[];
   /** null when no deck was chosen (or the match predates deck selection). */
   deck: MatchDeckRef | null;
 };
+
+/** A match as History and Home read it: its games without points or notes. */
+export type MatchListRow = Omit<MatchWithGames, 'games'> & { games: ListGameRow[] };
 
 /**
  * Persist a SETTLED match (and its games) directly to Postgres. The device has
@@ -107,8 +116,8 @@ export async function saveCompletedMatch(match: Match): Promise<void> {
 // matches → deck_versions → decks. Both hops name their FK: decks and
 // deck_versions are related both ways (a version's deck, a deck's current
 // version), so PostgREST needs the hint to pick one.
-const HISTORY_COLUMNS =
-  '*, games(*), ' +
+// The deck played, shared by the list and the detail.
+const DECK_COLUMNS =
   // `legend` is just that field of the version's list (a JSON path, not the
   // whole list): the fallback for matches saved before legends were stored.
   'deck_version:deck_versions!matches_deck_version_fkey(id, legend:list->legend, ' +
@@ -118,8 +127,18 @@ const HISTORY_COLUMNS =
   // code) is what the deck shows, and older versions may name only the card.
   'current:deck_versions!decks_current_version_fkey(legend:list->legend)))';
 
-type HistoryRow = MatchRow & {
-  games: GameRow[];
+/**
+ * The list (History, Home) reads only what its rows show of each game — not
+ * the recorded points (`events`) or notes, which only the match detail
+ * needs: they were most of the payload, re-read on every visit.
+ */
+const LIST_GAME_COLUMNS = 'id, game_index, scores_at_end, winner_id, started_at, ended_at';
+const HISTORY_COLUMNS = `*, games(${LIST_GAME_COLUMNS}), ${DECK_COLUMNS}`;
+/** The match detail: every game in full (points for the graphs, notes). */
+const DETAIL_COLUMNS = `*, games(*), ${DECK_COLUMNS}`;
+
+type HistoryRow<G = GameRow> = MatchRow & {
+  games: G[];
   deck_version: {
     id: string;
     legend: CardRef | null;
@@ -133,7 +152,10 @@ type HistoryRow = MatchRow & {
   } | null;
 };
 
-const withDeck = ({ deck_version, ...row }: HistoryRow): MatchWithGames => {
+const withDeck = <G,>({ deck_version, ...row }: HistoryRow<G>): MatchRow & {
+  games: G[];
+  deck: MatchDeckRef | null;
+} => {
   const deck = deck_version?.deck ?? null;
   return {
     ...row,
@@ -152,13 +174,13 @@ const withDeck = ({ deck_version, ...row }: HistoryRow): MatchWithGames => {
   };
 };
 
-export async function fetchMatchHistory(): Promise<MatchWithGames[]> {
+export async function fetchMatchHistory(): Promise<MatchListRow[]> {
   const { data, error } = await supabase
     .from('matches')
     .select(HISTORY_COLUMNS)
     .order('ended_at', { ascending: false })
     .order('game_index', { referencedTable: 'games', ascending: true })
-    .returns<HistoryRow[]>();
+    .returns<HistoryRow<ListGameRow>[]>();
 
   if (error) throw error;
   return (data ?? []).map(withDeck);
@@ -171,7 +193,7 @@ export async function fetchMatchHistory(): Promise<MatchWithGames[]> {
 export async function fetchMatch(id: string): Promise<MatchWithGames | null> {
   const { data, error } = await supabase
     .from('matches')
-    .select(HISTORY_COLUMNS)
+    .select(DETAIL_COLUMNS)
     .eq('id', id)
     .order('game_index', { referencedTable: 'games', ascending: true })
     .returns<HistoryRow[]>()

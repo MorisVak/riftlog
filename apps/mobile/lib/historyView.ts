@@ -4,7 +4,7 @@ import {
   type Player,
   type PlayerId,
 } from '@riftlog/core';
-import type { GameRow, MatchWithGames } from './matchPersistence';
+import type { GameRow, MatchListRow, MatchWithGames } from './matchPersistence';
 import { elapsedSeconds, formatClock } from './clock';
 
 /**
@@ -134,7 +134,7 @@ function yourLegendFor(stored: CardRef | null, deck: MatchWithGames['deck']): Ca
   return played;
 }
 
-export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
+export function toHistoryRowVM(m: MatchListRow): HistoryRowVM {
   const players = (m.players as unknown as Player[]) ?? [];
   const p1 = players.find((p) => p.id === 'p1');
   const p2 = players.find((p) => p.id === 'p2');

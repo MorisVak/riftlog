@@ -24,7 +24,7 @@ import {
   deleteMatch,
   deleteMatches,
   fetchMatchHistory,
-  type MatchWithGames,
+  type MatchListRow,
 } from '@/lib/matchPersistence';
 import { toHistoryRowVM } from '@/lib/historyView';
 import {
@@ -320,7 +320,7 @@ const History = () => {
   const insets = useSafeAreaInsets();
   const { status } = useAuth();
   const authed = status === 'authed';
-  const [rows, setRows] = useState<MatchWithGames[] | null>(null);
+  const [rows, setRows] = useState<MatchListRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<HistoryFilter>(NO_FILTER);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -389,7 +389,7 @@ const History = () => {
   // Optimistically drop the row, then delete from Postgres (cascade removes its
   // games). On failure, restore the row so the list stays truthful.
   const handleDelete = useCallback((id: string) => {
-    let removed: MatchWithGames | undefined;
+    let removed: MatchListRow | undefined;
     setRows((cur) => {
       if (!cur) return cur;
       removed = cur.find((m) => m.id === id);
@@ -421,7 +421,7 @@ const History = () => {
           style: 'destructive',
           onPress: () => {
             const idSet = new Set(ids);
-            let removed: MatchWithGames[] = [];
+            let removed: MatchListRow[] = [];
             setRows((cur) => {
               if (!cur) return cur;
               removed = cur.filter((m) => idSet.has(m.id));
