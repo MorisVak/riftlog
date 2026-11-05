@@ -534,9 +534,12 @@ Conventions:
   `lib/matchDetailView.ts` → `components/match/gameCard.tsx`): a header with
   the result (title in its color, letter badge, format), the **matchup** —
   your legend vs theirs as two face portraits, you left, with the final
-  score between them — and the date / clock; the deck is a tappable card
-  with your legend's art (opens the list as played). Then
-  per-game bars (fill = your share of points, `pointShare` in core) that
+  score between them — and the date / clock. Below, one rhythm: section
+  label, one grouped card. **Games** is a single card with a line per game
+  (`gameCard.tsx`: "G n", scores, a bar, W/L/D), **Deck** a tappable card
+  with your legend's art and an "Older version" chip when edited since (a
+  chip, not a sentence), **Notes** a single card of in-place note fields.
+  The per-game bars (fill = your share of points, `pointShare` in core) that
   expand into a score graph (`components/match/scoreGraph.tsx`, step lines
   drawn from plain Views — no SVG dependency), and your deck. The graph uses
   `scoreSeries` in core, which nets take-backs out first (`netPoints`: a -1
@@ -548,16 +551,18 @@ Conventions:
   direct-labeled with their final score, and the legend explains the action
   colors.
   The VM builds on `toHistoryRowVM` so History and the detail can't disagree.
-- **Notes** (`Game.notes`, `Match.notes`): one shared editor,
-  `components/match/noteEditor.tsx` (a native page-sheet `Modal`, Save /
-  Cancel, 2000-char counter), and `noteRow.tsx` for "note or Add note" rows.
-  Live: the between-games screen and the match-complete screen
-  (`setGameNote` / `setMatchNote` in `matchContext`, signed-in only).
-  **A Bo1 has a round note only** — its one game *is* the round, so the
-  match-complete screen and the match detail hide the game note (the detail
-  still shows one that an older Bo1 already has). Later:
-  the match detail edits Postgres directly (`updateGameNote` /
-  `updateMatchNote`). Text is stored via core's `normalizeNote` (trimmed,
+- **Notes** (`Game.notes`, `Match.notes`). On the **match detail** they're
+  written **in place** — `components/match/inlineNote.tsx`: a label and a
+  growing field, saved to Postgres (`updateGameNote` / `updateMatchNote`)
+  when it loses focus, only if changed; a tap on empty space ends editing
+  (`Keyboard.dismiss`, which also covers a hardware keyboard). The
+  between-games and match-complete screens still use the modal editor,
+  `components/match/noteEditor.tsx` (page-sheet `Modal`, Save / Cancel,
+  2000-char counter) with `noteRow.tsx` rows (`setGameNote` /
+  `setMatchNote` in `matchContext`, signed-in only). **A Bo1 has a round
+  note only** — its one game *is* the round, so the match-complete screen
+  and the match detail hide the game note (the detail still shows one that
+  an older Bo1 already has). Text is stored via core's `normalizeNote` (trimmed,
   blank → null). **The match is already saved when the match-complete screen
   shows**, so `MatchSync` re-syncs a settled match whenever its notes change
   (`notesKey`), and every completed-match write goes through one promise

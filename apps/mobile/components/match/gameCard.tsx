@@ -5,7 +5,6 @@ import * as Haptics from 'expo-haptics';
 import type { DetailGameVM } from '@/lib/matchDetailView';
 import Icon from '@/components/icon';
 import ScoreGraph from '@/components/match/scoreGraph';
-import NoteRow from '@/components/match/noteRow';
 
 // Result tokens — the same win / loss / draw families as History. An
 // unfinished game (the match was ended early) gets neutral ink.
@@ -24,19 +23,13 @@ const TONE: Record<
 };
 
 /**
- * One game on the match detail: "Game n", your score, a bar filled to your
- * share of the points (in the result color), their score, and the W/L/D badge
- * (letter + color, never color alone). Tap to expand the game's score graph
- * when it has one (games recorded before point tracking don't).
+ * One game on the match detail, as a line in the Games group: "G n", your
+ * score, a bar filled to your share of the points (in the result color),
+ * their score, and the W/L/D badge (letter + color, never color alone). Tap
+ * to open the game's score graph below the line when it has one (games
+ * recorded before point tracking don't). Notes live in the Notes section.
  */
-const GameCard = ({
-  game,
-  onEditNote,
-}: {
-  game: DetailGameVM;
-  /** Open the note editor for this game. Omitted: the card has no note row. */
-  onEditNote?: (game: DetailGameVM) => void;
-}) => {
+const GameCard = ({ game, first }: { game: DetailGameVM; first: boolean }) => {
   const [open, setOpen] = useState(false);
   const tone = TONE[game.result];
   const hasTimeline = game.graph !== null;
@@ -50,7 +43,7 @@ const GameCard = ({
   };
 
   return (
-    <View className="overflow-hidden rounded-2xl border border-border bg-surface">
+    <View className={first ? '' : 'border-t border-border/60'}>
       <Pressable
         onPress={toggle}
         disabled={!hasTimeline}
@@ -59,11 +52,9 @@ const GameCard = ({
         accessibilityLabel={`Game ${game.n}, ${game.you} to ${game.them}, ${
           game.result === 'unfinished' ? 'unfinished' : game.result
         }${hasTimeline ? ', show score graph' : ''}`}
-        className="min-h-[64px] flex-row items-center gap-3 px-4 py-3 active:bg-elevated"
+        className="min-h-[56px] flex-row items-center gap-3 px-4 py-3 active:bg-elevated"
       >
-        <Text className="w-10 font-display text-[12px] leading-4 text-ink-secondary">
-          {`Game\n${game.n}`}
-        </Text>
+        <Text className="w-7 font-display text-[13px] text-ink-secondary">G{game.n}</Text>
         <Text
           className={`w-7 text-right font-mono text-[18px] ${
             won ? 'text-ink-primary' : 'text-ink-secondary'
@@ -113,17 +104,6 @@ const GameCard = ({
         </Animated.View>
       )}
 
-      {/* Your note on this game — tap to write or edit. */}
-      {onEditNote && (
-        <View className="border-t border-border/60 px-4">
-          <NoteRow
-            label={`Game ${game.n}`}
-            note={game.notes}
-            onPress={() => onEditNote(game)}
-            lines={2}
-          />
-        </View>
-      )}
     </View>
   );
 };

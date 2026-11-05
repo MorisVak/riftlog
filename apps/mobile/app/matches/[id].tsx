@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Keyboard, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -13,15 +13,12 @@ import { splitCardName, type CardRef } from '@riftlog/core';
 import { toMatchDetailVM, type MatchDetailVM } from '@/lib/matchDetailView';
 import { deckHref, type HistoryDeckVM, type Result } from '@/lib/historyView';
 import GameCard from '@/components/match/gameCard';
-import NoteEditor from '@/components/match/noteEditor';
-import NoteRow from '@/components/match/noteRow';
+import InlineNote from '@/components/match/inlineNote';
 import Icon from '@/components/icon';
 import { CardBackdrop, LegendPortrait } from '@/components/deck/cardArt';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 /** Which note the editor is open on. */
-type Editing = { kind: 'match' } | { kind: 'game'; gameId: string; n: number };
-
 type LoadState =
   | { kind: 'loading' }
   | { kind: 'ready'; vm: MatchDetailVM }
@@ -48,7 +45,6 @@ const MatchDetail = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
-  const [editing, setEditing] = useState<Editing | null>(null);
 
   const resultIntro = useSharedValue(0);
   const gamesIntro = useSharedValue(0);
@@ -79,35 +75,26 @@ const MatchDetail = () => {
   useEffect(load, [load]);
 
   // Notes save straight to Postgres (the match is long since saved), then the
-  // screen updates from what was stored.
-  const saveNote = async (text: string) => {
-    if (state.kind !== 'ready' || !editing) return;
-    const vm = state.vm;
-    if (editing.kind === 'match') {
-      const notes = await updateMatchNote(vm.id, text);
-      setState({ kind: 'ready', vm: { ...vm, notes } });
-    } else {
-      const gameId = editing.gameId;
-      const notes = await updateGameNote(gameId, text);
-      setState({
-        kind: 'ready',
-        vm: {
-          ...vm,
-          detailGames: vm.detailGames.map((g) =>
-            g.id === gameId ? { ...g, notes } : g,
-          ),
-        },
-      });
-    }
+  // screen keeps what was stored. Errors reach the field, which says so.
+  const saveMatchNote = async (text: string) => {
+    if (state.kind !== 'ready') return;
+    const notes = await updateMatchNote(state.vm.id, text);
+    setState((cur) => (cur.kind === 'ready' ? { kind: 'ready', vm: { ...cur.vm, notes } } : cur));
   };
-
-  const editingNote =
-    state.kind !== 'ready' || !editing
-      ? null
-      : editing.kind === 'match'
-        ? state.vm.notes
-        : (state.vm.detailGames.find((g) => g.id === editing.gameId)?.notes ??
-          null);
+  const saveGameNote = async (gameId: string, text: string) => {
+    const notes = await updateGameNote(gameId, text);
+    setState((cur) =>
+      cur.kind === 'ready'
+        ? {
+            kind: 'ready',
+            vm: {
+              ...cur.vm,
+              detailGames: cur.vm.detailGames.map((g) => (g.id === gameId ? { ...g, notes } : g)),
+            },
+          }
+        : cur,
+    );
+  };
 
   const back = () => {
     if (router.canGoBack()) router.back();
@@ -136,6 +123,11 @@ const MatchDetail = () => {
 
       {state.kind === 'ready' ? (
         <ScrollView
+          // Notes are written in place at the bottom: keep the field above
+          // the keyboard; a tap anywhere else or a drag dismisses it, which
+          // saves the note (the default keyboardShouldPersistTaps).
+          automaticallyAdjustKeyboardInsets
+          keyboardDismissMode="interactive"
           contentContainerStyle={{
             paddingHorizontal: 16,
             paddingTop: 8,
@@ -143,62 +135,67 @@ const MatchDetail = () => {
           }}
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View style={resultStyle}>
-            <ResultCard vm={state.vm} />
-          </Animated.View>
+          {/* A tap on empty space ends editing a note (which saves it) — even
+              with a hardware keyboard, where there's no keyboard to dismiss. */}
+          <Pressable accessible={false} onPress={Keyboard.dismiss}>
+            <Animated.View style={resultStyle}>
+              <ResultCard vm={state.vm} />
+            </Animated.View>
 
-          <Animated.View style={gamesStyle}>
-            <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">
-              Games
-            </Text>
-            <View className="gap-2.5">
-              {state.vm.detailGames.map((g) => (
-                <GameCard
-                  key={g.n}
-                  game={g}
-                  // A Bo1's one game is the round, so it only gets the round
-                  // note — unless it already has a game note from before.
-                  onEditNote={
-                    state.vm.format === 'BO1' && !g.notes
-                      ? undefined
-                      : (game) =>
-                          setEditing({ kind: 'game', gameId: game.id, n: game.n })
-                  }
-                />
-              ))}
-            </View>
-            {state.vm.missingTimelines && (
-              <Text className="mt-2 px-1 text-[12px] leading-4 text-ink-tertiary">
-                Score graphs are recorded for games played from now on.
+            <Animated.View style={gamesStyle}>
+              <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">
+                Games
               </Text>
-            )}
-          </Animated.View>
+              <View className="overflow-hidden rounded-2xl border border-border bg-surface">
+                {state.vm.detailGames.map((g, i) => (
+                  <GameCard key={g.n} game={g} first={i === 0} />
+                ))}
+              </View>
+              {state.vm.missingTimelines && (
+                <Text className="mt-2 px-1 text-[12px] leading-4 text-ink-tertiary">
+                  Score graphs are recorded for games played from now on.
+                </Text>
+              )}
+            </Animated.View>
 
-          <Animated.View style={deckStyle}>
-            <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">
-              Deck
-            </Text>
-            <DeckCard
-              vm={state.vm}
-              onOpen={(deck) => router.push(deckHref(deck))}
-            />
-            {/* Match mode (SPEC Feature 8): the opponent's deck card goes here,
-                then an "Opponent" section — linked profile, head-to-head,
-                their win rate. */}
-
-            <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">
-              Notes
-            </Text>
-            <View className="rounded-2xl border border-border bg-surface px-4">
-              <NoteRow
-                label="Round notes"
-                note={state.vm.notes}
-                prompt="Add notes on the round"
-                onPress={() => setEditing({ kind: 'match' })}
-                lines={8}
+            <Animated.View style={deckStyle}>
+              <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">
+                Deck
+              </Text>
+              <DeckCard
+                vm={state.vm}
+                onOpen={(deck) => router.push(deckHref(deck))}
               />
-            </View>
-          </Animated.View>
+              {/* Match mode (SPEC Feature 8): the opponent's deck card goes here,
+                  then an "Opponent" section — linked profile, head-to-head,
+                  their win rate. */}
+
+              <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">
+                Notes
+              </Text>
+              {/* Written in place. A Bo1 has a round note only — its one game is
+                  the round — unless an older game note exists. */}
+              <View className="overflow-hidden rounded-2xl border border-border bg-surface">
+                <InlineNote
+                  label="Round"
+                  note={state.vm.notes}
+                  placeholder="How did the round go?"
+                  onSave={saveMatchNote}
+                />
+                {state.vm.detailGames
+                  .filter((g) => state.vm.format === 'BO3' || g.notes)
+                  .map((g) => (
+                    <View key={g.id} className="border-t border-border/60">
+                      <InlineNote
+                        label={`Game ${g.n}`}
+                        note={g.notes}
+                        onSave={(text) => saveGameNote(g.id, text)}
+                      />
+                    </View>
+                  ))}
+              </View>
+            </Animated.View>
+          </Pressable>
         </ScrollView>
       ) : (
         <View className="flex-1 items-center justify-center px-8">
@@ -227,20 +224,6 @@ const MatchDetail = () => {
         </View>
       )}
 
-      <NoteEditor
-        visible={editing !== null}
-        initial={editingNote}
-        title={
-          editing?.kind === 'game' ? `Game ${editing.n} note` : 'Round notes'
-        }
-        placeholder={
-          editing?.kind === 'game'
-            ? 'What happened this game? Mulligans, key turns, misplays…'
-            : 'How did the round go? What would you change next time?'
-        }
-        onSave={saveNote}
-        onClose={() => setEditing(null)}
-      />
     </View>
   );
 };
@@ -380,12 +363,16 @@ const DeckCard = ({
     >
       {vm.yourLegend && <CardBackdrop card={vm.yourLegend} />}
       <View className="flex-1">
-        <Text className="font-display text-[12px] text-accent">
-          {deck.edited ? 'You played an earlier version' : 'You played'}
-        </Text>
-        <Text className="mt-0.5 font-display-bold text-[17px] text-ink-primary" numberOfLines={1}>
-          {deck.name}
-        </Text>
+        <View className="flex-row items-center gap-2">
+          <Text className="flex-shrink font-display-bold text-[17px] text-ink-primary" numberOfLines={1}>
+            {deck.name}
+          </Text>
+          {deck.edited && (
+            <View className="rounded-full bg-background/70 px-2 py-0.5">
+              <Text className="font-display text-[11px] text-ink-secondary">Older version</Text>
+            </View>
+          )}
+        </View>
         {vm.yourLegend && (
           <Text className="text-[13px] text-ink-secondary" numberOfLines={1}>
             {vm.yourLegend.name}
