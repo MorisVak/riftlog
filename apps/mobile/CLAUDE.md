@@ -194,6 +194,13 @@ the single spot art is decided. Don't render card images anywhere else.
   sit in the sheet's rarity chip; "Promo" has none. The
   catalog cache has a format number (`CACHE_FORMAT` in `lib/catalog.ts`):
   bump it when the fetched columns change, so old caches refetch once.
+- **Foil** (`components/deck/foil.tsx`, as on Piltover Archive): Rare, Epic
+  and Showcase printings get a rainbow sheen over their art on gallery tiles
+  and in the card sheet (not rows or headers) — a `foil`-token gradient three
+  times the card's size, `mixBlendMode: 'color-dodge'` at 60%, sliding across
+  and back (Reanimated, 3 s each way; still with Reduce Motion). No new
+  dependency: blend modes are built into RN 0.81's New Architecture, and the
+  card frame sets `isolation: 'isolate'` so the blend stays inside the card.
 - **Art is behind `CARD_ART`** (`lib/featureFlags.ts`): always on in dev,
   `EXPO_PUBLIC_CARD_ART=1` in the `preview` / `testflight` EAS profiles, off
   in `production`. With it off, rows stay text-only and tiles / the sheet show

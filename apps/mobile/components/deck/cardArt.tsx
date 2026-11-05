@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { splitCardName, type CardRef, type CatalogPrinting } from '@riftlog/core';
 import Icon from '@/components/icon';
+import Foil, { isFoiled } from '@/components/deck/foil';
 import { useCardMatch } from '@/hooks/useCardMatch';
 import { cardImageUrls } from '@/lib/cardImage';
 import { CARD_ART } from '@/lib/featureFlags';
@@ -59,6 +60,8 @@ const CardArt = ({ card, variant, width, chosen = false }: CardArtProps) => {
         height={h}
         rounded={variant === 'thumb' ? 'rounded-[3px]' : 'rounded-lg'}
         chosen={chosen}
+        // Gallery tiles and the card sheet only: rows and headers are too small to read it.
+        foil={(variant === 'tile' || variant === 'sheet') && isFoiled(printing.rarity)}
       />
     );
   }
@@ -110,12 +113,14 @@ const CardImage = ({
   height,
   rounded,
   chosen,
+  foil,
 }: {
   printing: CatalogPrinting;
   width: number;
   height: number;
   rounded: string;
   chosen: boolean;
+  foil: boolean;
 }) => {
   // Our bucket first (small or full), then Riot's CDN; each failure tries the next.
   const urls = cardImageUrls(printing, width);
@@ -126,7 +131,8 @@ const CardImage = ({
     <View
       accessible={false}
       importantForAccessibility="no-hide-descendants"
-      style={{ width, height }}
+      // `isolate` keeps the foil's blend inside the card.
+      style={{ width, height, isolation: 'isolate' }}
       className={`overflow-hidden bg-elevated ${rounded} ${
         chosen ? 'border-2 border-chosen' : 'border border-border/60'
       }`}
@@ -141,6 +147,7 @@ const CardImage = ({
           onError={() => setAttempt((a) => a + 1)}
         />
       )}
+      {uri && foil && <Foil width={width} height={height} />}
     </View>
   );
 };

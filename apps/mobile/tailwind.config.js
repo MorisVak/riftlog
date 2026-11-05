@@ -92,6 +92,17 @@ module.exports = {
           tint: '#3A3017',
         },
 
+        // The foil sheen on rare-and-better card art (`components/deck/foil.tsx`
+        // mirrors these as gradient stops). Decorative only: rarity is also
+        // named in the card sheet's rarity chip.
+        foil: {
+          pink: '#FF0080',
+          gold: '#FFC800',
+          green: '#00FF80',
+          cyan: '#00C8FF',
+          violet: '#8000FF',
+        },
+
         // Deck changes between versions — a card added / increased (`added`)
         // or cut / reduced (`cut`), shown in the decklist's "Show changes"
         // mode. Their own family: a deck edit isn't a result or a scoring
