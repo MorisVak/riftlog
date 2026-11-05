@@ -24,7 +24,7 @@ type DecksState = { kind: 'loading' } | { kind: 'ready'; decks: Deck[] } | { kin
  * Profile tab: you and your settings — the identity header, the default deck,
  * feedback, and Riot's statements at the bottom. Decks have their own tab.
  * The handle is claimed at onboarding; the rename UI and stats come later.
- * Sign out sits in the header because there's nowhere else for it yet.
+ * Sections: Default deck, Feedback, Account (sign out).
  */
 const Profile = () => {
   const insets = useSafeAreaInsets();
@@ -121,11 +121,18 @@ const Profile = () => {
       showsVerticalScrollIndicator={false}
     >
       <Animated.View style={titleStyle}>
-        <Text className="mb-7 font-display-bold text-2xl text-ink-primary">Profile</Text>
+        <Text className="mb-4 h-11 font-display-bold text-2xl leading-[44px] text-ink-primary">
+          Profile
+        </Text>
       </Animated.View>
 
-      <Animated.View style={headerStyle} className="flex-row items-center gap-4">
-        <Avatar size={64} />
+      {/* Who you are, as a card. Sign out lives in Account at the bottom,
+          away from the name, where a stray tap can't reach it. */}
+      <Animated.View
+        style={headerStyle}
+        className="flex-row items-center gap-4 rounded-2xl border border-border bg-surface p-4"
+      >
+        <Avatar size={56} />
 
         <View className="flex-1">
           {/* Until the row loads, hold the header's shape with placeholders
@@ -144,16 +151,6 @@ const Profile = () => {
             {profile ? `@${profile.username}` : loaded ? '—' : ' '}
           </Text>
         </View>
-
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Sign out"
-          onPress={confirmSignOut}
-          hitSlop={8}
-          className="h-10 w-10 items-center justify-center rounded-full border border-border bg-surface active:bg-elevated"
-        >
-          <Icon name="log-out" size={17} className="text-ink-secondary" />
-        </TouchableOpacity>
       </Animated.View>
 
       {profileStatus === 'error' && (
@@ -175,7 +172,7 @@ const Profile = () => {
             defaultDeckId={defaultDeckId}
           />
           <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
-            Picked for you when you start a match. You can still change it there.
+            Picked for you when you start a match. Also on Home.
           </Text>
         </Animated.View>
       )}
@@ -222,6 +219,21 @@ const Profile = () => {
         <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
           Tell us what you like and what to improve. It&apos;s sent anonymously.
         </Text>
+      </Animated.View>
+
+      {/* Account: sign out here (and, later, deleting the account). */}
+      <Animated.View style={decksStyle} className="mt-8">
+        <Text className="mb-2 font-display text-base text-ink-secondary">Account</Text>
+        <View className="overflow-hidden rounded-2xl border border-border bg-surface">
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={confirmSignOut}
+            className="min-h-[52px] flex-row items-center gap-3 px-4 active:bg-elevated"
+          >
+            <Icon name="log-out" size={17} className="text-ink-secondary" />
+            <Text className="flex-1 font-display text-[15px] text-ink-primary">Sign out</Text>
+          </TouchableOpacity>
+        </View>
       </Animated.View>
 
       {/* Riot's statements: the ONE place in the app they appear, always,

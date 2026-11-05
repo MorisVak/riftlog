@@ -20,8 +20,11 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
   - `(tabs)/decks.tsx` — your decks: the title row carries Select and
     Import (as History's carries Select), then search + sort, rows with
     swipe / multi-select delete (account-gated)
-  - `(tabs)/profile.tsx` — profile header, sign out, default deck, Feedback,
-    Riot's statements (account-gated)
+  - `(tabs)/profile.tsx` — you and your settings: an identity card, then
+    sections (Default deck, Feedback, Account → Sign out; account deletion
+    goes in Account), Riot's statements at the bottom (account-gated). Sign
+    out is a row in Account, not an icon by your name, so a stray tap
+    can't reach it.
   - `login.tsx` / `verify-otp.tsx` — modal auth routes
   - `onboarding.tsx` — first-login handle + display-name step (guarded)
   - `decks/import.tsx` — paste-a-decklist import (modal)
