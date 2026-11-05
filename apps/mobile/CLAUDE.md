@@ -957,12 +957,16 @@ Rules that are easy to get wrong:
   Import, a guest "Ready to play" — the same card without art. Then **Your
   matches**: the **form strip** (`components/home/formStrip.tsx`: the last
   ten results as W/L/D tiles, oldest left, plus record and win rate) above
-  the three newest rows, with "See all"; then **Your decks**
+  the two newest rows, with "See all"; then **Your decks**
   (`components/home/deckStrip.tsx`): a sideways row of deck tiles — legend
   face, name, your record with that deck (own matches only), "Default"
   tag — most recently played first, up to eight, ending in an Import tile;
   "See all" opens Decks. So Home reads: play → how it's going → what you
-  play with. Home scrolls, so a shade sits behind the status bar. No
+  play with. **Home fits one screen without scrolling** on a 6.1" iPhone
+  (852pt) — the owner doesn't want Home to scroll; check the height when
+  adding to it (two recent rows, hero 176pt, deck art 72pt, tight section
+  spacing). Smaller phones may scroll a little, so a shade sits behind the
+  status bar. No
   profile button: Profile is a tab. (A flat purple CTA, a separate deck
   field and a three-number stats box were merged into the hero and the
   strip.)

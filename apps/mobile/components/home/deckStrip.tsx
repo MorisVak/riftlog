@@ -53,7 +53,7 @@ const Tile = ({
   // Built outside the press callback: a press redraws only the overlay.
   const content = (
     <>
-      <View className="h-[92px] overflow-hidden bg-elevated">
+      <View className="h-[72px] overflow-hidden bg-elevated">
         {legend && <LegendPortrait card={legend} />}
         {isDefault && (
           <View className="absolute left-2 top-2 rounded-full bg-background/80 px-2 py-0.5">

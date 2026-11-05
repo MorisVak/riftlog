@@ -11,7 +11,7 @@ import Icon from '@/components/icon';
 // button, so it sits on calm ground whatever the art.
 const BOTTOM_SHADE = ['#18223A00', '#18223ACC'] as const;
 
-const HERO_H = 200;
+const HERO_H = 176;
 
 /** What the top-left of the card says, and the action beside it. */
 export type HeroDeckState =

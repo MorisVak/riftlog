@@ -103,7 +103,8 @@ const Home = () => {
   );
 
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
-  const recent = useMemo(() => vms.slice(0, 3), [vms]);
+  // Two: the form strip above already shows the last ten results.
+  const recent = useMemo(() => vms.slice(0, 2), [vms]);
 
   // "Default deck": the deck a new match starts with — your default deck (the
   // setup sheet preselects it). Choosing one here sets the default, as on
@@ -147,14 +148,14 @@ const Home = () => {
         contentContainerStyle={{
           paddingTop: insets.top + 6,
           paddingHorizontal: 14,
-          paddingBottom: 24,
+          paddingBottom: 12,
         }}
         showsVerticalScrollIndicator={false}
       >
         {/* Brand header. No profile button: Profile is a tab. */}
         <Animated.View
           style={headerStyle}
-          className="mb-6 mt-1 flex-row items-center justify-between"
+          className="mb-4 mt-1 flex-row items-center justify-between"
         >
           <View className="flex-row items-center gap-2.5">
             <View className="h-[30px] w-[30px] items-center justify-center rounded-[9px] bg-accent">
@@ -194,7 +195,7 @@ const Home = () => {
 
         {/* Recent matches */}
         <Animated.View style={recentStyle}>
-          <View className="mb-3 mt-6 flex-row items-baseline justify-between px-0.5">
+          <View className="mb-2.5 mt-5 flex-row items-baseline justify-between px-0.5">
             <Text className="font-display-bold text-[15px] text-ink-primary">Your matches</Text>
             <Pressable onPress={() => router.navigate('/history')}>
               <Text className="text-[13px] font-semibold text-accent">See all</Text>
@@ -237,7 +238,7 @@ const Home = () => {
             in with at least one deck (with none, the hero offers Import). */}
         {authed && decks !== null && decks.length > 0 && (
           <Animated.View style={decksStyle}>
-            <View className="mb-3 mt-6 flex-row items-baseline justify-between px-0.5">
+            <View className="mb-2.5 mt-5 flex-row items-baseline justify-between px-0.5">
               <Text className="font-display-bold text-[15px] text-ink-primary">Your decks</Text>
               <Pressable onPress={() => router.navigate('/decks')}>
                 <Text className="text-[13px] font-semibold text-accent">See all</Text>

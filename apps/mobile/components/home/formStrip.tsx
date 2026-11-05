@@ -31,7 +31,7 @@ const FormStrip = ({ vms }: { vms: HistoryRowVM[] }) => {
       accessibilityLabel={`Last ${recent.length} results: ${recent
         .map((v) => v.letter)
         .join(' ')}. ${wins} wins, ${losses} losses, ${rate} win rate.`}
-      className="rounded-2xl border border-border bg-surface px-4 py-3.5"
+      className="rounded-2xl border border-border bg-surface px-4 py-3"
     >
       <View className="flex-row items-baseline justify-between">
         <Text className="font-display text-[13px] text-ink-secondary">Form</Text>
@@ -43,7 +43,7 @@ const FormStrip = ({ vms }: { vms: HistoryRowVM[] }) => {
           <Text className="font-mono text-accent">{rate}</Text> win rate
         </Text>
       </View>
-      <View className="mt-2.5 flex-row gap-1.5">
+      <View className="mt-2 flex-row gap-1.5">
         {Array.from({ length: pad }, (_, i) => (
           <View key={`pad-${i}`} className="h-7 flex-1 rounded-md border border-dashed border-border" />
         ))}
