@@ -1,3 +1,4 @@
+import type { LegendArt } from '../catalog/legendArt';
 /**
  * A Riftlog account's profile. One row per authenticated user, seeded by a
  * Postgres trigger on first sign-in with a neutral handle (`player_<hex>`);
@@ -40,6 +41,9 @@ export type Profile = {
    * owner's own decks (enforced by FK); cleared when that deck is deleted.
    */
   defaultDeckId: string | null;
+
+  /** Which art legends are drawn with (display only; see catalog/legendArt). */
+  legendArt: LegendArt;
 
   createdAt: string; // ISO-8601
   updatedAt: string; // ISO-8601

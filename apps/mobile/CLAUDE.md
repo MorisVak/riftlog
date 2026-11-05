@@ -28,8 +28,19 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
     Import (as History's carries Select), then search + sort, rows with
     swipe / multi-select delete (account-gated)
   - `(tabs)/profile.tsx` — you and your settings: an identity card, then
-    sections (Default deck, Feedback, Account → Sign out; account deletion
-    goes in Account), Riot's statements at the bottom (account-gated). Sign
+    sections (Default deck, **Appearance → Legend art** (card-art flag
+    only), Feedback, **Support → Buy me a coffee** (opens the browser),
+    **Account → Sign out / Delete account** (one destructive confirm, the
+    `delete_my_account` RPC, then a local sign-out)), Riot's statements at
+    the bottom (account-gated).
+  - `legend-art.tsx` — which art legends are drawn with: "Prefer
+    overnumbered art" plus a per-legend pick (a grid of every legend; tap
+    for its printings, "Automatic" to undo). Saved on the profile
+    (`profiles.legend_art`, `setLegendArt`). **Display only:** applied in
+    `cardArt.tsx`'s `useArtPrinting` (backdrops and portraits — deck cards,
+    match rows, the hero, the board, the versus screens) via core's
+    `legendArtPrinting`; decklists, the card sheet and deck codes keep each
+    deck's own printing. Sign
     out is a row in Account, not an icon by your name, so a stray tap
     can't reach it.
   - `login.tsx` / `verify-otp.tsx` — modal auth routes

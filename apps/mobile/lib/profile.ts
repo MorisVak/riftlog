@@ -1,4 +1,4 @@
-import type { Profile } from '@riftlog/core';
+import { parseLegendArt, type LegendArt, type Profile } from '@riftlog/core';
 import { supabase } from './supabase';
 
 /**
@@ -14,7 +14,7 @@ export async function fetchMyProfile(): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
     .select(
-      'id, username, display_name, onboarded_at, username_changed_at, default_deck_id, created_at, updated_at',
+      'id, username, display_name, onboarded_at, username_changed_at, default_deck_id, legend_art, created_at, updated_at',
     )
     .maybeSingle();
 
@@ -28,6 +28,7 @@ export async function fetchMyProfile(): Promise<Profile | null> {
     onboardedAt: data.onboarded_at,
     usernameChangedAt: data.username_changed_at,
     defaultDeckId: data.default_deck_id,
+    legendArt: parseLegendArt(data.legend_art),
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
@@ -47,6 +48,28 @@ export async function setDefaultDeck(deckId: string | null): Promise<void> {
     .from('profiles')
     .update({ default_deck_id: deckId })
     .eq('id', uid);
+  if (error) throw error;
+}
+
+/**
+ * Save which art legends are drawn with (display only). A plain owner-scoped
+ * update — `legend_art` is client-writable; the DB checks it's an object.
+ */
+export async function setLegendArt(value: LegendArt): Promise<void> {
+  const { data: auth } = await supabase.auth.getSession();
+  const uid = auth.session?.user.id;
+  if (!uid) throw new Error('Not signed in');
+  const { error } = await supabase.from('profiles').update({ legend_art: value }).eq('id', uid);
+  if (error) throw error;
+}
+
+/**
+ * Delete the signed-in account for good: the `delete_my_account` RPC removes
+ * the auth user, and every row of theirs goes with it (FK cascades). The
+ * caller signs out locally afterwards.
+ */
+export async function deleteMyAccount(): Promise<void> {
+  const { error } = await supabase.rpc('delete_my_account');
   if (error) throw error;
 }
 

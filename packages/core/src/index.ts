@@ -48,6 +48,13 @@ export {
   unescapeHtml,
 } from './catalog/names';
 export { pickBasePrinting, type BasePrintingCandidate } from './catalog/basePrinting';
+export {
+  NO_LEGEND_ART,
+  legendArtOptions,
+  legendArtPrinting,
+  parseLegendArt,
+  type LegendArt,
+} from './catalog/legendArt';
 export { SMALL_CARD_IMAGE_PX, cardImagePath, smallCardImagePath } from './catalog/imagePaths';
 export {
   buildCatalogIndex,

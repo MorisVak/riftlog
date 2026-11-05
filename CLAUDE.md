@@ -177,15 +177,18 @@ up:
   would be lost if the app is killed), pass known box sizes to `FocusedArt`
   so art doesn't wait a layout pass, and cap History's up-front rows for
   very long histories.
-- **In-app account deletion** — not built; Apple Guideline 5.1.1(v)
-  requires it. Until then `/privacy` promises deletion by email within 30 days.
+- **In-app account deletion** — built (Profile → Account → Delete account,
+  the `delete_my_account` RPC). Open: `/privacy` still describes deletion by
+  email only (legal pages need the owner's sign-off to change), and Sign in
+  with Apple tokens aren't revoked on deletion yet (Apple asks for it).
 - **Refine the card screen and the look of the card surfaces** — hard
   todo. The card sheet and how cards look across the app (deck view rows and
   gallery, identity cards, import preview, the Unsorted section, flags) work
   but are a first pass; polish them before launch.
-- **"Buy me a coffee" in the app** — the website header links to
-  buymeacoffee.com/moriscodes; the app should too, likely on Profile. Not
-  built yet (hard todo).
+- **"Buy me a coffee" in the app** — built (Profile → Support, opens the
+  browser). App Store risk: Apple can treat a tip link as a digital
+  purchase outside in-app purchase (Guideline 3.1.1); be ready to hide it
+  in the review build if it's flagged.
 - **Custom SMTP for sign-in emails** — none configured, so Supabase's
   built-in sender is used, which only reaches members of the Supabase
   organization (~2 emails/hour). Email-code sign-in fails for real users;

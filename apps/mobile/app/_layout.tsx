@@ -60,6 +60,7 @@ const RootStack = () => {
           <Stack.Screen name="decks/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="matches/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="feedback" options={{ headerShown: false }} />
+          <Stack.Screen name="legend-art" options={{ headerShown: false }} />
         </Stack.Protected>
         <Stack.Protected guard={needsOnboarding}>
           <Stack.Screen

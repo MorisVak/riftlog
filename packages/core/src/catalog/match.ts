@@ -73,6 +73,8 @@ export type CatalogIndex = {
   printingByCode: Map<string, CatalogPrinting>;
   /** Each card's base printing (see pickBasePrinting). */
   basePrinting: Map<string, CatalogPrinting>;
+  /** Every printing of each card, by card id, in catalog order. */
+  printingsByCard: Map<string, CatalogPrinting[]>;
 };
 
 const looseKey = (key: string) => key.replace(/'/g, '');
@@ -112,6 +114,7 @@ export function buildCatalogIndex(catalog: Catalog): CatalogIndex {
     cardByLooseKey: looseIndex(catalog.cards),
     printingByCode: new Map(catalog.printings.map((p) => [p.code, p])),
     basePrinting,
+    printingsByCard: byCard,
   };
 }
 

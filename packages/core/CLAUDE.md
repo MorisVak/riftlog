@@ -51,6 +51,8 @@ So nothing here can assume a specific runtime. Pure TS only.
     │   ├── names.ts          normalizeCardName (match key), baseCardName, cleanCardText
     │   ├── printingCode.ts   SET-NNN[variant] (+ promo parent) parse / format
     │   ├── basePrinting.ts   pickBasePrinting — shared by importer and app
+    │   ├── legendArt.ts      LegendArt (profile display preference), parseLegendArt,
+    │   │                     legendArtPrinting / legendArtOptions
     │   ├── match.ts          Catalog types, buildCatalogIndex, matchCard, checkDeckList
     │   ├── deckFromCode.ts   deckListFromCode (sort by type, unknown → unsorted),
     │   │                     resortUnsorted, deckCodeFromList

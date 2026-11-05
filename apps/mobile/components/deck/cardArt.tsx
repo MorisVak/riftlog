@@ -2,10 +2,18 @@ import React, { useState } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import { splitCardName, type CardRef, type CatalogPrinting } from '@riftlog/core';
+import {
+  legendArtPrinting,
+  NO_LEGEND_ART,
+  splitCardName,
+  type CardRef,
+  type CatalogPrinting,
+} from '@riftlog/core';
 import Icon from '@/components/icon';
 import Foil, { isFoiled } from '@/components/deck/foil';
 import { useCardMatch } from '@/hooks/useCardMatch';
+import { useCatalog } from '@/contexts/catalogContext';
+import { useProfile } from '@/contexts/profileContext';
 import { cardImageUrls } from '@/lib/cardImage';
 import legendArtFocus from '@/lib/legendArtFocus.json';
 import { CARD_ART } from '@/lib/featureFlags';
@@ -189,11 +197,19 @@ const DEFAULT_FOCUS: Focus = { x: 0.5, y: 0.3, w: 0.8 };
 const FOCUS_AT = 0.62;
 const backdropFocus = (code: string): Focus => LEGEND_FOCUS[code] ?? DEFAULT_FOCUS;
 
-/** The art printing for a card, or null with the flag off / not in the catalog. */
+/**
+ * The art printing for a legend's decorative art (backdrops, portraits), or
+ * null with the flag off / not in the catalog. Your legend-art preference
+ * (Profile → Legend art) picks the printing here — display only, so the deck
+ * view and the card sheet (`CardArt`) keep showing the deck's own printing.
+ */
 const useArtPrinting = (card: CardRef | null): CatalogPrinting | null => {
   const { match } = useCardMatch(card ?? { name: '', code: null });
-  if (!card || !CARD_ART || !match || match.kind === 'unknown') return null;
-  const p = match.printing;
+  const { index } = useCatalog();
+  const { profile } = useProfile();
+  const pref = profile?.legendArt ?? NO_LEGEND_ART;
+  if (!card || !CARD_ART || !match || match.kind === 'unknown' || !index) return null;
+  const p = legendArtPrinting(match.card, match.printing, pref, index);
   return p && (p.image_url || p.storage_path) ? p : null;
 };
 
