@@ -764,7 +764,14 @@ and card art and text (Features 4 and 6) are built.
 > `delete_my_account` RPC, FK cascades); an account that signs in with Apple
 > first revokes its Apple tokens (the `revoke-apple` Edge Function). Open:
 > `/privacy` still describes deletion by email only (needs the owner's
-> sign-off), and one real test with a throwaway account.
+> sign-off).
+
+> **HARD TODO — test account deletion end to end.** Never run for real yet
+> (the owner tests it with a friend). With a separate Apple account (Hide My
+> Email or someone else's Apple ID, so it can't link to the main account):
+> delete it from Profile, confirm with Apple, and check the data is gone and
+> Riftlog has disappeared from the Apple ID's "Sign in with Apple" list.
+> Once more with a non-Apple account.
 
 > **HARD TODO — website rework.** riftlog.net still shows the app as it
 > was: retake the screenshots of the reworked app (Home's hero, the versus

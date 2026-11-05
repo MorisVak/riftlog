@@ -181,8 +181,16 @@ up:
 - **In-app account deletion** — built (Profile → Account → Delete account,
   the `delete_my_account` RPC; Apple accounts first revoke their Apple
   tokens via the `revoke-apple` Edge Function). Open: `/privacy` still
-  describes deletion by email only (legal pages need the owner's sign-off),
-  and the full flow needs one real test with a throwaway account.
+  describes deletion by email only (legal pages need the owner's sign-off).
+- **Test account deletion end to end (hard todo, owner, with a friend).**
+  The `revoke-apple` function is deployed (active; an unauthenticated call
+  gets 401), but the full flow has never run. Sign in with Apple on a
+  separate account — **Hide My Email**, or a friend's Apple ID, so it can't
+  auto-link to the owner's main account — onboard, Profile → Delete account
+  → confirm → confirm with Apple. Expect the signed-out Home with "Account
+  deleted", the profile / matches / decks gone, and Riftlog gone from
+  Settings → Apple Account → Sign in with Apple. Also once with a Discord /
+  Google / email account (no Apple step).
 - **Website rework (hard todo).** riftlog.net still shows the app as it
   was: new screenshots of the reworked app, short animated recordings
   (GIF / video) of the key moments (game-start intro, scoring and a
