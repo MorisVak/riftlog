@@ -243,12 +243,12 @@ const BACKDROP_ASPECT = 2.6;
 
 /** The printed card frame's width at each edge, as a share of the image. */
 const FRAME_X = 0.07;
-const FRAME_Y = 0.035;
+const FRAME_Y = 0.05;
 /** The backdrop's fade into the card's fill, as stops across the box (solid → clear). */
 const FADE_STOPS = [0.05, 0.75] as const;
 
 /** The left margin that also skips the domain-icon column (top-left). */
-const ICON_COLUMN = 0.2;
+const ICON_COLUMN = 0.25;
 
 /**
  * Where the art's edge goes (its `left` / `top`): `wanted`, but kept inside

@@ -17,7 +17,7 @@ const ON_ACCENT = '#0D1B2A';
 const VIGNETTE = ['#0D1B2AD9', '#0D1B2A66', '#0D1B2AD9'] as const;
 
 // Landscape: the art fades out toward the score (clear → the background).
-const SIDE_FADE = ['#0D1B2A00', '#0D1B2A33', '#0D1B2AF5'] as const;
+const SIDE_FADE = ['#0D1B2A00', '#0D1B2A1A', '#0D1B2AF5'] as const;
 
 /**
  * The player's legend behind their half: dimmed and vignetted, so the score,
@@ -42,7 +42,7 @@ const LegendBackground = ({
       <View className="absolute inset-0 bg-background/30" />
       <LinearGradient
         colors={SIDE_FADE}
-        locations={[0, 0.5, 1]}
+        locations={[0, 0.72, 1]}
         start={{ x: 0, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}

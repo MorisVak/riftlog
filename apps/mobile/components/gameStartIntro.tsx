@@ -188,14 +188,18 @@ const IntroOverlay = ({
             <SideArt legend={you.legend} initial={initialOf(you.name)} />
           </Animated.View>
 
-          {/* Theirs: a skewed box (the slanted cut), art skewed back upright. */}
+          {/* Theirs: a skewed box (the slanted cut), art skewed back upright.
+              The box runs past the screen so the skew never shows its edge;
+              the art inside ends at the screen's edge (right-[21%] of a box
+              67% of the screen wide, from 48%), or a face on the art's right
+              (Akali VEN-189) was pushed off the screen. */}
           <Animated.View
             style={rightStyle}
             className="absolute bottom-0 left-[48%] right-[-15%] top-0 overflow-hidden border-l-4 border-background"
           >
             <View
               style={{ transform: [{ skewX: `${CUT}deg` }] }}
-              className="absolute bottom-0 left-[-10%] right-[6%] top-0"
+              className="absolute bottom-0 left-[-10%] right-[21%] top-0"
             >
               <SideArt legend={opponent.legend} initial={initialOf(opponent.name)} />
             </View>

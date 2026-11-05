@@ -208,7 +208,15 @@ is a `TouchableOpacity`, which dims everything already. **The crop is per printi
 alike — face the same size, at `FOCUS_AT` (62%) across the box, right of the
 fade. Hand-set crops for detection misses go in
 `lib/legendArtFocus.manual.json` (they win on every run). A printing missing
-from the file gets the default crop.
+from the file gets the default crop. Vision misses most **overnumbered**
+art (stylised faces), so those all have manual crops: `x`/`y` the face's
+centre, `w` ≈ 6.6 × the face's height (the generator's size rule, kept to
+0.42–0.8), tighter for a face on the art's left so it lands right of the
+fade (art never shows the card frame, so a left-side face can't move
+further in otherwise). Check new ones on the `--sheet` contact sheet and
+in the app. Art keeps the frame out with `FRAME_X` / `FRAME_Y` (7% / 5%)
+and, in portraits, `ICON_COLUMN` (25%: the domain icons and their gold
+bracket).
 
 - **Matching** (`@riftlog/core` `matchCard`, via `hooks/useCardMatch.ts`): by
   `card.code` when present, else by normalized name to the card's base
@@ -553,7 +561,8 @@ game counter, nothing taking board space from either player:
   score and buttons stay the focus. **Sideways** each half is a wide, short
   strip, and art covering all of it was zoomed far past the image (blurry,
   face cut off): there the art is a panel on the player's own side (44% of
-  the width, behind their name) fading toward the score. The player's name
+  the width, behind their name) fading toward the score over its last
+  quarter — a face near the art's edge (Akali VEN-189) sits there. The player's name
   is larger and bold on a soft pill. **A take-back is quiet on purpose** — it's usually fixing a
   mis-tap: the numeral dips a little and tints toward `loss-text` for a
   moment (`scoringComponent.tsx`), with a soft haptic. (A red flash over

@@ -88,14 +88,17 @@ const VersusBanner = ({
       <BannerArt legend={you.legend} lost={outcome === 'loss'} />
     </View>
 
-    {/* Theirs: a skewed box (the slanted cut), art skewed back upright. */}
+    {/* Theirs: a skewed box (the slanted cut), art skewed back upright. The
+        box runs past the banner so the skew never shows its edge; the art
+        inside ends at the banner's edge (right-[28%] of a box 70% wide, from
+        50%), so a face on the art's right isn't pushed out of view. */}
     <View
       style={{ transform: [{ skewX: `-${CUT}deg` }] }}
       className="absolute bottom-0 left-[50%] right-[-20%] top-0 overflow-hidden border-l-2 border-background"
     >
       <View
         style={{ transform: [{ skewX: `${CUT}deg` }] }}
-        className="absolute bottom-0 left-[-12%] right-[8%] top-0"
+        className="absolute bottom-0 left-[-12%] right-[28%] top-0"
       >
         <BannerArt legend={them.legend} lost={outcome === 'win'} />
       </View>
