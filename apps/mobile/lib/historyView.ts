@@ -1,4 +1,4 @@
-import type { Player, PlayerId } from '@riftlog/core';
+import { splitCardName, type CardRef, type Player, type PlayerId } from '@riftlog/core';
 import type { GameRow, MatchWithGames } from './matchPersistence';
 import { elapsedSeconds, formatClock } from './clock';
 
@@ -29,8 +29,18 @@ export type HistoryRowVM = {
   letter: 'W' | 'L' | 'D';
   /** The device owner's name (p1) — shown in the expanded detail only. */
   you: string;
-  /** Who you played against (p2) — always rendered with a "vs" prefix. */
+  /**
+   * Who you played against (p2) — always rendered with a "vs" prefix. Their
+   * name, else their legend's champion ("Kennen"), else "Opponent".
+   */
   opponent: string;
+  /**
+   * The opponent's legend's champion, shown beside `opponent` ("vs Alex ·
+   * Kennen") — null when it's already the opponent label, or unknown.
+   */
+  opponentChampion: string | null;
+  /** The opponent's legend (picked in setup); null on older matches. */
+  opponentLegend: CardRef | null;
   format: 'BO1' | 'BO3';
   score: string;
   date: string;
@@ -150,12 +160,21 @@ export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
     };
   });
 
+  // A typed name wins; with none, the legend names the opponent. A blank
+  // field is stored as the default "Opponent" (see matchContext), so that
+  // counts as no name.
+  const typedName = nameOr(p2?.name, '').replace(/^opponent$/i, '');
+  const opponentLegend = p2?.legend ?? null;
+  const champion = opponentLegend ? splitCardName(opponentLegend.name).head : null;
+
   return {
     id: m.id,
     result,
     letter: LETTER[result],
     you: nameOr(p1?.name, 'You'),
-    opponent: nameOr(p2?.name, 'Opponent'),
+    opponent: typedName || champion || 'Opponent',
+    opponentChampion: typedName && champion ? champion : null,
+    opponentLegend,
     format: isBo1 ? 'BO1' : 'BO3',
     score,
     date: new Date(m.ended_at).toLocaleDateString(undefined, {

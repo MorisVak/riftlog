@@ -2,6 +2,7 @@ import React, { createContext, ReactNode, useContext, useState } from 'react';
 import { randomUUID } from 'expo-crypto';
 import { normalizeNote } from '@riftlog/core';
 import type {
+  CardRef,
   DeckSnapshot,
   Game,
   Match,
@@ -39,6 +40,12 @@ export type MatchConfig = {
    * or deleting the deck never change what history says you played.
    */
   deck: DeckSnapshot | null;
+  /**
+   * The opponent's legend, picked in setup (required there whenever the card
+   * catalog is loaded). Stored on p2 for History's visuals; p1's legend comes
+   * from `deck`.
+   */
+  opponentLegend: CardRef | null;
 };
 
 /**
@@ -147,9 +154,15 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
       bestOf: config.bestOf,
       players: [
         config.deck
-          ? { ...makePlayer('p1', nameFor(0)), deck: config.deck }
+          ? {
+              ...makePlayer('p1', nameFor(0)),
+              deck: config.deck,
+              ...(config.deck.list.legend ? { legend: config.deck.list.legend } : {}),
+            }
           : makePlayer('p1', nameFor(0)),
-        makePlayer('p2', nameFor(1)),
+        config.opponentLegend
+          ? { ...makePlayer('p2', nameFor(1)), legend: config.opponentLegend }
+          : makePlayer('p2', nameFor(1)),
       ],
       games: [makeGame()],
       currentGameIndex: 0,

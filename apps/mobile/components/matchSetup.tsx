@@ -1,12 +1,15 @@
 import {
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
+  useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
   FadeIn,
@@ -24,8 +27,11 @@ import { useMatch } from '@/contexts/matchContext';
 import { useAuth } from '@/contexts/authContext';
 import { toDeckSnapshot, type Deck } from '@/lib/decks';
 import DeckPicker from './deck/deckPicker';
+import LegendPicker, { useLegends } from './match/legendPicker';
+import type { CardRef } from '@riftlog/core';
 import { useProfile } from '@/contexts/profileContext';
 import DurationPicker from './durationPicker';
+import { CTA_GLOW } from './ctaGlow';
 import React, { useEffect, useState } from 'react';
 
 type MatchSetupProps = {
@@ -66,12 +72,21 @@ const EXIT_DURATION = 200;
 
 /**
  * Pre-match setup sheet. Collects the format (Bo1 / Bo3), the timed-match
- * clock, both player names — `p1` is always you, `p2` the opponent — and,
- * when signed in, the deck you're playing (optional), then starts the match
- * with that config. Turn tracking is still deferred.
+ * clock, both player names — `p1` is always you, `p2` the opponent — when
+ * signed in the deck you're playing (optional), and the opponent's legend
+ * (required whenever the card catalog is loaded, so History can show it),
+ * then starts the match with that config. Turn tracking is still deferred.
  */
 const MatchSetup = ({ onClose }: MatchSetupProps) => {
   const { startMatch } = useMatch();
+  // The sheet never grows past the status bar: when its content is taller
+  // (timed + custom wheels, a small phone), the content scrolls instead. The
+  // space is measured — the sheet sits in Home, above the tab bar — and the
+  // window height stands in until then.
+  const { height: screenH } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const [areaH, setAreaH] = useState(screenH);
+  const maxSheetH = areaH - insets.top - 8;
   // Decks are an account feature; a guest has none and their match isn't saved.
   const { status } = useAuth();
   const signedIn = status === 'authed';
@@ -88,6 +103,10 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
   const [choice, setChoice] = useState<TimeChoice>(TIME_PRESETS[0]);
   const [custom, setCustom] = useState(DEFAULT_CUSTOM);
   const [deck, setDeck] = useState<Deck | null>(null);
+  const [opponentLegend, setOpponentLegend] = useState<CardRef | null>(null);
+  // Required — unless there's no catalog to pick from (first launch offline).
+  const legendsAvailable = useLegends().length > 0;
+  const needsLegend = legendsAvailable && opponentLegend === null;
 
   // The configured clock, in seconds. null when the match isn't timed.
   const timeLimitSeconds = !timed
@@ -96,7 +115,8 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
       ? custom.minutes * 60 + custom.seconds
       : choice * 60;
   // A timed match needs an actual duration — 00:00 on the wheels is not a round.
-  const startable = timeLimitSeconds === null || timeLimitSeconds > 0;
+  const timeSet = timeLimitSeconds === null || timeLimitSeconds > 0;
+  const startable = timeSet && !needsLegend;
 
   const pickFormat = (value: 1 | 3) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -121,6 +141,7 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
       playerNames: [p1Name, p2Name],
       timeLimitSeconds,
       deck: signedIn && deck ? toDeckSnapshot(deck) : null,
+      opponentLegend,
     };
     startMatch(config);
     onClose();
@@ -230,7 +251,10 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
   };
 
   return (
-    <View className="absolute inset-0 z-50">
+    <View
+      className="absolute inset-0 z-50"
+      onLayout={(e) => setAreaH(e.nativeEvent.layout.height)}
+    >
       <TouchableWithoutFeedback onPress={dismiss}>
         <Animated.View
           style={backdropStyle}
@@ -243,8 +267,8 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
         className="flex-1 justify-end"
       >
         <Animated.View
-          style={sheetStyle}
-          className="rounded-t-3xl border-t border-border bg-surface px-5 pb-8 pt-2"
+          style={[sheetStyle, { maxHeight: maxSheetH }]}
+          className="rounded-t-3xl border-t border-border bg-surface px-5 pt-2"
         >
           {/* Drag-to-dismiss is scoped to the grab handle and title rather than
               the whole sheet: the custom-time wheels scroll vertically, and a
@@ -258,126 +282,151 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
             </View>
           </GestureDetector>
 
-          <Text className="mb-2 font-display text-base text-ink-secondary">
-            Format
-          </Text>
-          <View className="mb-5 flex-row gap-2">
-            {formatButton(1, 'Best of 1')}
-            {formatButton(3, 'Best of 3')}
-          </View>
-
-          {/* Timed match. One clock covers the whole match — for a Bo3 the
-              preset is the length of the round, not of each game — and it keeps
-              running through the between-games break (sideboarding is on the
-              clock) and past zero into overtime. */}
-          <TouchableOpacity
-            onPress={toggleTimed}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: timed }}
-            className={`flex-row items-center gap-3 rounded-xl border px-4 py-3 ${
-              timed
-                ? 'mb-3 border-accent bg-elevated'
-                : 'mb-5 border-border bg-elevated active:bg-surface'
-            }`}
+          {/* Everything below the title scrolls once the sheet is at its
+              tallest. The custom-time wheels are scroll views of their own;
+              iOS hands a drag on them to the wheel, not to this. */}
+          <ScrollView
+            bounces={false}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 32 }}
+            style={{ flexGrow: 0 }}
           >
-            <View
-              className={`h-6 w-6 items-center justify-center rounded-md border ${
-                timed ? 'border-accent bg-accent' : 'border-border bg-surface'
-              }`}
-            >
-              {timed && <Feather name="check" size={15} color={ON_ACCENT} />}
-            </View>
-            <View className="flex-1">
-              <Text className="font-display text-base text-ink-primary">
-                Timed match
-              </Text>
-              <Text className="mt-0.5 text-xs text-ink-secondary">
-                One clock for the whole match — it runs between games too.
-              </Text>
-            </View>
-          </TouchableOpacity>
 
-          {timed && (
-            <Animated.View entering={FadeIn.duration(160)} className="mb-5">
-              <View className="flex-row gap-2">
-                {TIME_PRESETS.map((m) => timeButton(m, `${m} min`))}
-                {timeButton('custom', 'Custom')}
-              </View>
-
-              {choice === 'custom' && (
-                <Animated.View entering={FadeIn.duration(160)} className="mt-2">
-                  <DurationPicker
-                    minutes={custom.minutes}
-                    seconds={custom.seconds}
-                    onChange={setCustom}
-                  />
-                </Animated.View>
-              )}
-            </Animated.View>
-          )}
-
-          {/* Asymmetric on purpose: p1 is always the device owner ("you"), and
-              history derives win/loss and the "vs" label from that. Symmetric
-              "Player 1 / Player 2" fields made it easy to enter yourself second
-              and invert every result. */}
-          <Text className="mb-2 font-display text-base text-ink-secondary">
-            You
-          </Text>
-          <TextInput
-            value={p1Name}
-            onChangeText={setP1Name}
-            placeholder="Your name"
-            placeholderTextColor={INK_SECONDARY}
-            returnKeyType="next"
-            className="mb-4 rounded-xl border border-border bg-elevated px-4 py-3 text-base text-ink-primary"
-          />
-          {signedIn && (
-            <View className="mb-4">
-              <View className="mb-2 flex-row items-baseline justify-between">
-                <Text className="font-display text-base text-ink-secondary">
-                  Your deck
-                </Text>
-                <Text className="text-xs text-ink-tertiary">Optional</Text>
-              </View>
-              <DeckPicker
-                value={deck}
-                onChange={setDeck}
-                defaultDeckId={profile?.defaultDeckId ?? null}
-                preselect
-              />
-            </View>
-          )}
-          <Text className="mb-2 font-display text-base text-ink-secondary">
-            Opponent
-          </Text>
-          <TextInput
-            value={p2Name}
-            onChangeText={setP2Name}
-            placeholder="Opponent name"
-            placeholderTextColor={INK_SECONDARY}
-            returnKeyType="done"
-            className="mb-6 rounded-xl border border-border bg-elevated px-4 py-3 text-base text-ink-primary"
-          />
-
-          {/* Disabled only for the one unstartable state: a timed match set to
-              00:00. The label says why rather than leaving a dead button. */}
-          <TouchableOpacity
-            onPress={start}
-            disabled={!startable}
-            className={`items-center rounded-full px-5 py-4 ${
-              startable
-                ? 'bg-accent shadow-accent-btn active:bg-accent-strong'
-                : 'bg-elevated'
-            }`}
-          >
-            <Text
-              className={`font-display-bold text-base ${
-                startable ? 'text-background' : 'text-ink-tertiary'
-              }`}
-            >
-              {startable ? 'Start match' : 'Set a time first'}
+            <Text className="mb-2 font-display text-base text-ink-secondary">
+              Format
             </Text>
-          </TouchableOpacity>
+            <View className="mb-5 flex-row gap-2">
+              {formatButton(1, 'Best of 1')}
+              {formatButton(3, 'Best of 3')}
+            </View>
+
+            {/* Timed match. One clock covers the whole match — for a Bo3 the
+                preset is the length of the round, not of each game — and it keeps
+                running through the between-games break (sideboarding is on the
+                clock) and past zero into overtime. */}
+            <TouchableOpacity
+              onPress={toggleTimed}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: timed }}
+              className={`flex-row items-center gap-3 rounded-xl border px-4 py-3 ${
+                timed
+                  ? 'mb-3 border-accent bg-elevated'
+                  : 'mb-5 border-border bg-elevated active:bg-surface'
+              }`}
+            >
+              <View
+                className={`h-6 w-6 items-center justify-center rounded-md border ${
+                  timed ? 'border-accent bg-accent' : 'border-border bg-surface'
+                }`}
+              >
+                {timed && <Feather name="check" size={15} color={ON_ACCENT} />}
+              </View>
+              <View className="flex-1">
+                <Text className="font-display text-base text-ink-primary">
+                  Timed match
+                </Text>
+                <Text className="mt-0.5 text-xs text-ink-secondary">
+                  One clock for the whole match — it runs between games too.
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {timed && (
+              <Animated.View entering={FadeIn.duration(160)} className="mb-5">
+                <View className="flex-row gap-2">
+                  {TIME_PRESETS.map((m) => timeButton(m, `${m} min`))}
+                  {timeButton('custom', 'Custom')}
+                </View>
+
+                {choice === 'custom' && (
+                  <Animated.View entering={FadeIn.duration(160)} className="mt-2">
+                    <DurationPicker
+                      minutes={custom.minutes}
+                      seconds={custom.seconds}
+                      onChange={setCustom}
+                    />
+                  </Animated.View>
+                )}
+              </Animated.View>
+            )}
+
+            {/* Asymmetric on purpose: p1 is always the device owner ("you"), and
+                history derives win/loss and the "vs" label from that. Symmetric
+                "Player 1 / Player 2" fields made it easy to enter yourself second
+                and invert every result. */}
+            <Text className="mb-2 font-display text-base text-ink-secondary">
+              You
+            </Text>
+            <TextInput
+              value={p1Name}
+              onChangeText={setP1Name}
+              placeholder="Your name"
+              placeholderTextColor={INK_SECONDARY}
+              returnKeyType="next"
+              className="mb-4 rounded-xl border border-border bg-elevated px-4 py-3 text-base text-ink-primary"
+            />
+            {signedIn && (
+              <View className="mb-4">
+                <View className="mb-2 flex-row items-baseline justify-between">
+                  <Text className="font-display text-base text-ink-secondary">
+                    Your deck
+                  </Text>
+                  <Text className="text-xs text-ink-tertiary">Optional</Text>
+                </View>
+                <DeckPicker
+                  value={deck}
+                  onChange={setDeck}
+                  defaultDeckId={profile?.defaultDeckId ?? null}
+                  preselect
+                />
+              </View>
+            )}
+            <Text className="mb-2 font-display text-base text-ink-secondary">
+              Opponent
+            </Text>
+            <TextInput
+              value={p2Name}
+              onChangeText={setP2Name}
+              placeholder="Opponent name"
+              placeholderTextColor={INK_SECONDARY}
+              returnKeyType="done"
+              className="mb-4 rounded-xl border border-border bg-elevated px-4 py-3 text-base text-ink-primary"
+            />
+            <Text className="mb-2 font-display text-base text-ink-secondary">
+              Their legend
+            </Text>
+            <View className="mb-6">
+              <LegendPicker value={opponentLegend} onChange={setOpponentLegend} />
+            </View>
+
+            {/* Disabled while something required is missing — a timed match set
+                to 00:00, or no opponent legend. The label says which rather than
+                leaving a dead button. */}
+            <TouchableOpacity
+              onPress={start}
+              disabled={!startable}
+              // CTA_GLOW, not the `shadow-accent-btn` class: toggling a NativeWind
+              // shadow class as the form becomes valid throws "Couldn't find a
+              // navigation context" (see apps/mobile/CLAUDE.md, "Shadows").
+              style={startable ? CTA_GLOW : undefined}
+              className={`items-center rounded-full px-5 py-4 ${
+                startable ? 'bg-accent active:bg-accent-strong' : 'bg-elevated'
+              }`}
+            >
+              <Text
+                className={`font-display-bold text-base ${
+                  startable ? 'text-background' : 'text-ink-tertiary'
+                }`}
+              >
+                {startable
+                  ? 'Start match'
+                  : !timeSet
+                    ? 'Set a time first'
+                    : 'Choose their legend first'}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
         </Animated.View>
       </KeyboardAvoidingView>
     </View>

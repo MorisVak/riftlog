@@ -360,6 +360,27 @@ details" button to the match detail (`app/matches/[id].tsx`, see below).
 Still deferred: the track-turns control. See the match flow before extending
 it.
 
+**Their legend (required — under internal testing).** Setup also asks for the
+opponent's legend (`components/match/legendPicker.tsx`: a field with the
+pick's art as its backdrop, opening a page sheet with every catalog legend as
+a searchable art grid). Start stays off — "Choose their legend first" — until
+one is picked, except when there's no catalog to pick from (first launch
+offline), so a match can always start. It's stored on p2 as `Player.legend`
+(a `CardRef`) inside `matches.players`, and p1's legend is copied from the
+chosen deck — no migration, older matches simply have none. History and Home's
+recent matches show the opponent's legend as the row backdrop
+(`CardBackdrop`, score/date on a dark pill, press overlay), and with no name
+typed the row reads "vs Kennen" (a typed name: "vs Alex · Kennen"; a blank
+name is stored as the default "Opponent", which counts as none). Only your own
+matches are ever read back — never aggregated across users (Riot policy).
+
+The setup sheet is capped below the status bar (measured: it sits in Home,
+above the tab bar) and everything under its title scrolls, so the tallest
+state (timed + custom wheels) still fits; the grab handle stays reachable.
+Its Start button uses `CTA_GLOW`, not `shadow-accent-btn`: the button now
+enables mid-form, and toggling that class threw "Couldn't find a navigation
+context".
+
 ### Timed mode
 
 `Match.timeLimitSeconds` (null = untimed) is the **only** timed-mode state.

@@ -1,4 +1,4 @@
-import type { DeckSnapshot } from './deck';
+import type { CardRef, DeckSnapshot } from './deck';
 
 /**
  * The local identity of a player *within a single match*.
@@ -13,6 +13,13 @@ export type Player = {
   gameWins: number;
   xp: number;
   deck?: DeckSnapshot;
+  /**
+   * The legend this player played: yours from your deck, the opponent's
+   * picked in match setup. Absent on matches from before setup asked, and
+   * yours when no deck was chosen. Stored with the player in `matches.players`
+   * — only ever read back for your own history (never aggregated across users).
+   */
+  legend?: CardRef;
   /**
    * Forward-compatible: Supabase user ID once auth lands.
    * null for players who don't have a Riftlog account.

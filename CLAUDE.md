@@ -345,7 +345,8 @@ card art on.
   isn't built, even though text import now exists; it goes *after*
   `onboarded_at` is set so it can never block the gate.
 - Track-turns in pre-match setup — the setup sheet itself is built (Bo1/Bo3,
-  player names, timed toggle + round length, optional deck)
+  player names, timed toggle + round length, optional deck, the opponent's
+  legend — required, under internal testing)
 - Deck imports beyond text and deck codes — Riftmana. Plain-text and
   deck-code import (Piltover Archive codes; unknown printings kept in an
   "Unsorted" section), "Copy deck code", editing a deck's list (each save is a new

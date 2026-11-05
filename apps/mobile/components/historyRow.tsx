@@ -14,6 +14,8 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { deckHref, type HistoryRowVM, type Result } from '@/lib/historyView';
 import MatchMeta from './matchMeta';
+import { CardBackdrop } from './deck/cardArt';
+import PressOverlay from './pressOverlay';
 import { SelectionGutter } from './selectCheck';
 
 // Result tokens, paired with a letter + left bar so color is never the only
@@ -228,47 +230,71 @@ const HistoryRow = ({
                 }}
                 delayLongPress={350}
                 accessibilityState={selecting ? { selected } : undefined}
-                className="min-h-[64px] flex-row items-center active:bg-elevated"
+                // The opponent's legend is the backdrop here, which would hide a
+                // background change, so a press shows as an overlay instead.
+                className="relative min-h-[64px] flex-row items-center overflow-hidden"
               >
+                {({ pressed }) => (
+                  <>
+                    {vm.opponentLegend && (
+                      <CardBackdrop
+                        card={vm.opponentLegend}
+                        fill={selected ? 'elevated' : 'surface'}
+                      />
+                    )}
 
-                <View
-                  className={`m-3 h-8 w-8 items-center justify-center rounded-lg ${r.badge}`}
-                >
-                  <Text className={`font-display-bold text-sm ${r.text}`}>
-                    {vm.letter}
-                  </Text>
-                </View>
+                    <View
+                      className={`m-3 h-8 w-8 items-center justify-center rounded-lg ${r.badge}`}
+                    >
+                      <Text className={`font-display-bold text-sm ${r.text}`}>
+                        {vm.letter}
+                      </Text>
+                    </View>
 
-                <View className="flex-1 py-3">
-                  {/* "vs" prefix so the single name reads as the opponent, never
-                      as your own. */}
-                  <Text
-                    className="font-display text-[15px] font-semibold text-ink-primary"
-                    numberOfLines={1}
-                  >
-                    <Text className="font-normal text-ink-secondary">vs </Text>
-                    {vm.opponent}
-                  </Text>
-                  <MatchMeta vm={vm} />
-                </View>
+                    <View className="flex-1 py-3">
+                      {/* "vs" prefix so the single name reads as the opponent, never
+                          as your own. */}
+                      <Text
+                        className="font-display text-[15px] font-semibold text-ink-primary"
+                        numberOfLines={1}
+                      >
+                        <Text className="font-normal text-ink-secondary">vs </Text>
+                        {vm.opponent}
+                        {vm.opponentChampion && (
+                          <Text className="font-normal text-ink-secondary">
+                            {' · '}
+                            {vm.opponentChampion}
+                          </Text>
+                        )}
+                      </Text>
+                      <MatchMeta vm={vm} />
+                    </View>
 
-                <View className="items-end py-3">
-                  <Text className={`font-mono text-[15px] ${r.text}`}>{vm.score}</Text>
-                  <Text className="mt-0.5 text-[11px] text-ink-secondary">
-                    {vm.date}
-                  </Text>
-                </View>
+                    {/* On a dark pill over the legend art, so it reads on any art. */}
+                    <View
+                      className={`items-end ${
+                        vm.opponentLegend ? 'my-3 rounded-md bg-background/70 px-1.5 py-0.5' : 'py-3'
+                      }`}
+                    >
+                      <Text className={`font-mono text-[15px] ${r.text}`}>{vm.score}</Text>
+                      <Text className="mt-0.5 text-[11px] text-ink-secondary">
+                        {vm.date}
+                      </Text>
+                    </View>
 
-                {/* No expanding while selecting, so no chevron either. */}
-                {selecting ? (
-                  <View className="w-3" />
-                ) : (
-                  <Animated.View
-                    style={chevronStyle}
-                    className="h-[26px] w-9 items-center justify-center"
-                  >
-                    <Feather name="chevron-down" size={16} color={INK_SECONDARY} />
-                  </Animated.View>
+                    {/* No expanding while selecting, so no chevron either. */}
+                    {selecting ? (
+                      <View className="w-3" />
+                    ) : (
+                      <Animated.View
+                        style={chevronStyle}
+                        className="h-[26px] w-9 items-center justify-center"
+                      >
+                        <Feather name="chevron-down" size={16} color={INK_SECONDARY} />
+                      </Animated.View>
+                    )}
+                    <PressOverlay pressed={pressed} />
+                  </>
                 )}
               </Pressable>
 

@@ -105,7 +105,7 @@ on purpose for the features below. Don't remove them. (`Match.notes` and
 ## Feature 1 — Live score tracking
 
 **Status:** built. The pre-match setup sheet (format, names, deck, timed
-match), the full-screen board with Conquer / Hold / Special scoring and
+match, the opponent's legend), the full-screen board with Conquer / Hold / Special scoring and
 take-backs, the end-game prompt (win / loss / draw), match resolution, the Bo3
 between-games screen, the game-start "VS" intro, and timed mode (one clock,
 pause, overtime) are all built. Still open: track turns (Feature 10).
@@ -124,7 +124,12 @@ games and the match themselves.
    first. The player can also toggle **timed game** and choose a round
    length; one clock then counts down for the whole match — it keeps running
    between games in a Bo3 (sideboarding is on the clock) and past zero into
-   overtime. Built: format, names, deck, and the timed toggle + presets.
+   overtime. The player also picks the **opponent's legend** from an art
+   grid of every legend — required to start whenever the card catalog is
+   loaded (under internal testing; it may become optional). History and
+   Home show it as the match row's backdrop and, with no opponent name,
+   as the opponent's label ("vs Kennen"). Built: format, names, deck, the
+   timed toggle + presets, and the opponent's legend.
    The match saves the exact deck *version* played, so renaming, editing, or
    deleting the deck later never changes what history says you played.
 2. **During a game.** `incrementScore` / `decrementScore` / `setScore` adjust
@@ -636,7 +641,8 @@ It's the player's own plan, not data from other players.
 player can check the guide for the current matchup while sideboarding
 (that break is on the match clock). Also viewable from the deck.
 
-**Open design:** how a matchup is identified (opponent legend? free text?),
+**Open design:** how a matchup is identified — matches now record the
+opponent's legend (Feature 1), the natural key —
 whether the guide belongs to a deck or to a deck version, and whether it
 links to the deck's actual sideboard so counts can be checked.
 
