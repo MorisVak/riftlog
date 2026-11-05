@@ -369,7 +369,10 @@ offline), so a match can always start. It's stored on p2 as `Player.legend`
 (a `CardRef`) inside `matches.players`, and p1's legend is copied from the
 chosen deck — no migration, older matches simply have none. History and Home's
 recent matches show the opponent's legend as the row backdrop
-(`CardBackdrop`, score/date on a dark pill, press overlay), and with no name
+(`CardBackdrop`, score/date on a dark pill, press overlay), **tinted with the
+result** (`tint`: a `mixBlendMode: 'color'` layer of `bg-win` / `bg-loss` /
+`bg-draw` at 60%, so a loss reads red — never alone: the letter badge and
+result bar stay), and with no name
 typed the row reads "vs Kennen" (a typed name: "vs Alex · Kennen"; a blank
 name is stored as the default "Opponent", which counts as none). Only your own
 matches are ever read back — never aggregated across users (Riot policy).

@@ -240,6 +240,7 @@ const HistoryRow = ({
                       <CardBackdrop
                         card={vm.opponentLegend}
                         fill={selected ? 'elevated' : 'surface'}
+                        tint={vm.result}
                       />
                     )}
 

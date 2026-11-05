@@ -39,7 +39,9 @@ const RecentMatchRow = ({ vm, onPress }: Props) => {
     >
       {({ pressed }) => (
         <>
-          {vm.opponentLegend && <CardBackdrop card={vm.opponentLegend} />}
+          {vm.opponentLegend && (
+            <CardBackdrop card={vm.opponentLegend} tint={vm.result} />
+          )}
           <View className={`w-1 self-stretch ${r.bar}`} />
           <View className="min-h-[64px] flex-1 flex-row items-center px-3 py-2">
             <View

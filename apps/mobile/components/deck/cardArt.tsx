@@ -159,6 +159,9 @@ const CardImage = ({
  * a selected / pressed row (tailwind.config.js). Opaque, clear, and a shade
  * for the right edge — gradient stops can't take a class.
  */
+/** Result colors for `tint` (full class names: NativeWind can't build them). */
+const TINTS = { win: 'bg-win', loss: 'bg-loss', draw: 'bg-draw' } as const;
+
 const FADES = {
   surface: { solid: '#18223A', clear: '#18223A00', shade: '#18223AD9' },
   elevated: { solid: '#222D47', clear: '#222D4700', shade: '#222D47D9' },
@@ -189,10 +192,17 @@ const backdropFocus = (code: string): Focus => LEGEND_FOCUS[code] ?? DEFAULT_FOC
 export const CardBackdrop = ({
   card,
   fill = 'surface',
+  tint,
 }: {
   card: CardRef;
   /** The card's background, so the fade meets it seamlessly. */
   fill?: keyof typeof FADES;
+  /**
+   * A match row's result: the art is colored with it (a color blend keeps
+   * the art's light and shade, takes the result's hue). Never the only
+   * signal — the row also has its letter badge and result bar.
+   */
+  tint?: 'win' | 'loss' | 'draw';
 }) => {
   const fade = FADES[fill];
   const { width: screen } = useWindowDimensions();
@@ -227,6 +237,8 @@ export const CardBackdrop = ({
       accessible={false}
       importantForAccessibility="no-hide-descendants"
       onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+      // `isolate` keeps the tint's blend inside the box.
+      style={{ isolation: 'isolate' }}
       className="absolute bottom-0 right-0 top-0 w-[70%] overflow-hidden"
     >
       {art && (
@@ -237,6 +249,12 @@ export const CardBackdrop = ({
           transition={160}
           recyclingKey={`${printing?.code}-backdrop-${attempt}`}
           onError={() => setAttempt((a) => a + 1)}
+        />
+      )}
+      {art && tint && (
+        <View
+          style={{ mixBlendMode: 'color', opacity: 0.6 }}
+          className={`absolute inset-0 ${TINTS[tint]}`}
         />
       )}
       <LinearGradient
