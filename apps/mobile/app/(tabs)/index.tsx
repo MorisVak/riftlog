@@ -4,6 +4,7 @@ import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/authContext';
 import { useMatch } from '@/contexts/matchContext';
 import GuestBanner from '@/components/guestBanner';
@@ -17,6 +18,7 @@ import RecentMatchRow from '@/components/recentMatchRow';
 import DeckPicker from '@/components/deck/deckPicker';
 import HeroCard, { type HeroDeckState } from '@/components/home/heroCard';
 import FormStrip from '@/components/home/formStrip';
+import DeckStrip from '@/components/home/deckStrip';
 import { useProfile } from '@/contexts/profileContext';
 import { setDefaultDeck } from '@/lib/profile';
 import { fetchMyDecks, type Deck } from '@/lib/decks';
@@ -26,6 +28,8 @@ import { playIntro, useRise } from '@/hooks/useScreenIntro';
 import { useInGameScreen } from '@/hooks/useInGameScreen';
 
 const BACKGROUND = '#0D1B2A'; // for Feather icons inside accent fills
+// `background` mirrored for the gradient behind the status bar.
+const STATUS_SHADE = ['#0D1B2A', '#0D1B2A00'] as const;
 const ACCENT = '#8B93D9';
 
 const HistoryEmptyState = () => (
@@ -64,9 +68,11 @@ const Home = () => {
   const headerIntro = useSharedValue(0);
   const ctaIntro = useSharedValue(0);
   const recentIntro = useSharedValue(0);
+  const decksIntro = useSharedValue(0);
   const headerStyle = useRise(headerIntro);
   const ctaStyle = useRise(ctaIntro);
   const recentStyle = useRise(recentIntro);
+  const decksStyle = useRise(decksIntro);
 
   useFocusEffect(
     useCallback(() => {
@@ -75,7 +81,7 @@ const Home = () => {
       // Replay the intro on each focus, staggering the elements top-to-bottom
       // (header → hero → matches) so the screen assembles dynamically
       // rather than fading in all at once, matching the other tabs.
-      playIntro([headerIntro, ctaIntro, recentIntro]);
+      playIntro([headerIntro, ctaIntro, recentIntro, decksIntro]);
       // Home is the one guest-usable screen, so it must not touch the network
       // while signed out — stats read as zeroes and the recent list explains
       // itself instead.
@@ -93,7 +99,7 @@ const Home = () => {
       return () => {
         active = false;
       };
-    }, [authed, headerIntro, ctaIntro, recentIntro]),
+    }, [authed, headerIntro, ctaIntro, recentIntro, decksIntro]),
   );
 
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
@@ -226,7 +232,36 @@ const Home = () => {
             </View>
           )}
         </Animated.View>
+
+        {/* Your decks — what you play with, each with your record. Signed
+            in with at least one deck (with none, the hero offers Import). */}
+        {authed && decks !== null && decks.length > 0 && (
+          <Animated.View style={decksStyle}>
+            <View className="mb-3 mt-6 flex-row items-baseline justify-between px-0.5">
+              <Text className="font-display-bold text-[15px] text-ink-primary">Your decks</Text>
+              <Pressable onPress={() => router.navigate('/decks')}>
+                <Text className="text-[13px] font-semibold text-accent">See all</Text>
+              </Pressable>
+            </View>
+            <DeckStrip
+              decks={decks}
+              vms={vms}
+              defaultDeckId={defaultDeckId}
+              onOpen={(deck) => router.push(`/decks/${deck.id}`)}
+              onImport={() => router.push('/decks/import')}
+            />
+          </Animated.View>
+        )}
       </ScrollView>
+
+      {/* Home scrolls now: a shade behind the status bar, so the time and
+          battery never sit on top of the content. */}
+      <LinearGradient
+        colors={STATUS_SHADE}
+        locations={[0.6, 1]}
+        pointerEvents="none"
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top + 10 }}
+      />
 
       {setupOpen && <MatchSetup onClose={() => setSetupOpen(false)} />}
     </View>

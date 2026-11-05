@@ -957,9 +957,15 @@ Rules that are easy to get wrong:
   Import, a guest "Ready to play" — the same card without art. Then **Your
   matches**: the **form strip** (`components/home/formStrip.tsx`: the last
   ten results as W/L/D tiles, oldest left, plus record and win rate) above
-  the three newest rows, with "See all". No profile button: Profile is a
-  tab. (A flat purple CTA, a separate deck field and a three-number stats
-  box were merged into the hero and the strip.)
+  the three newest rows, with "See all"; then **Your decks**
+  (`components/home/deckStrip.tsx`): a sideways row of deck tiles — legend
+  face, name, your record with that deck (own matches only), "Default"
+  tag — most recently played first, up to eight, ending in an Import tile;
+  "See all" opens Decks. So Home reads: play → how it's going → what you
+  play with. Home scrolls, so a shade sits behind the status bar. No
+  profile button: Profile is a tab. (A flat purple CTA, a separate deck
+  field and a three-number stats box were merged into the hero and the
+  strip.)
 - **The default deck can be set in three places**: Home's hero (Change),
   the deck screen's top bar (**Make default** / **Default** pill beside
   Edit list, `components/deck/defaultDeckToggle.tsx`; tap again to remove;
