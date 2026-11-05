@@ -503,12 +503,15 @@ game counter, nothing taking board space from either player:
   stay mirror images, clear of the notch. Layout reads `useWindowDimensions`
   (`width > height`), not the orientation API.
 - **Game-start intro** (`components/gameStartIntro.tsx`, over `PlayField`):
-  the design's "VS" transition — cards slide in (the **first letter of each
-  player's name** in the card, the full name under it — never the legend's), VS pops, "Match start" /
-  "Game 2" / "Game 3" — ~2s, tap to skip. Laid out a quarter turn (-90°,
+  a versus animation — both **legends** slide in from the sides (yours from
+  the left) and meet at a slanted cut, like the match detail's banner; "VS"
+  pops at the cut; each side's champion and player name settle in its
+  bottom corner, and "Match start" / "Game 2" / "Game 3" plus the format sit
+  at the top. A player with no legend gets their initial, large and faint.
+  ~2.2s, tap to skip. Laid out a quarter turn (-90°,
   like the board clock) at the screen's landscape size (no turn when the phone
   is already landscape), so both players read
-  it from the side and your card sits at your end. It plays once per game id and
+  it from the side and your side sits at your end. It plays once per game id and
   only for a game that *just* started (no events, `startedAt` < 3s ago), so a
   restored match never replays it.
 - History stores the configured limit and the total paused time; played time

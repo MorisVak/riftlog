@@ -1,11 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
   FadeOut,
@@ -17,159 +11,129 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMatch } from '@/contexts/matchContext';
 import { formatClock } from '@/lib/clock';
+import { splitCardName, type CardRef } from '@riftlog/core';
+import { LegendPortrait } from '@/components/deck/cardArt';
 
 /**
- * The "VS" transition at the start of a game — from the Claude Design file
- * (Riftlog.dc.html, "MATCH-START ANIMATION"): your card slides in from the
- * left and the opponent's from the right, "VS" pops in between, then the label
- * and the format line. ~2s, tap to skip. Plays at match start ("Match
- * start") and before each further game of a Bo3 ("Game 2", "Game 3").
+ * The "VS" transition at the start of a game: both legends slide in from the
+ * sides — yours from the left, theirs from the right — and meet at a slanted
+ * cut, like the match detail's versus banner; "VS" pops at the cut; each
+ * side's champion and player name settle in its bottom corner; the label
+ * ("Match start" / "Game 2") and the format sit at the top. A player with
+ * no legend gets their initial, large and faint. ~2s, tap to skip.
  *
  * Laid out a quarter turn (-90°), like the board clock: the phone lies flat
  * between two players at opposite ends, so sideways text reads equally for
- * both — and your card lands at your end (bottom), the opponent's at theirs.
+ * both — and your side lands at your end (bottom), the opponent's at theirs.
  *
  * Shown once per game, and only for a game that has JUST started (no points
  * yet, started under a few seconds ago) — so restoring an interrupted match,
  * or any re-render, never replays it.
  */
 
-// The design's 1.75s plus a quarter second, so both players have time to read it.
-const SHOW_MS = 2000;
+const SHOW_MS = 2200;
 /** A game older than this when the board mounts is a restore, not a start. */
 const FRESH_MS = 3000;
 
-// Card gradient colors: LinearGradient takes color props, not classes. These
-// mirror the `elevated` → `surface` tokens in tailwind.config.js.
-const CARD_GRADIENT = ['#222D47', '#18223A'] as const;
-// The design's accent glow under your card (`0 12px 30px -10px` accent @ .5),
-// as a style object per the shadow rule in apps/mobile/CLAUDE.md.
-const YOU_GLOW = {
-  shadowColor: '#8B93D9', // accent
-  shadowOffset: { width: 0, height: 16 },
-  shadowOpacity: 0.5,
-  shadowRadius: 22,
-} as const;
-
-// cubic-bezier(.2,.8,.2,1) — the design's card slide easing.
+// cubic-bezier(.2,.8,.2,1) — the slide easing.
 const SLIDE_EASE = Easing.bezierFn(0.2, 0.8, 0.2, 1);
+/** The slant of the cut between the two sides (as on the match detail). */
+const CUT = 11;
+
+// `background` (tailwind.config.js) mirrored for gradient stops: the shades
+// behind the top label and the bottom names.
+const SHADE_TOP = ['#0D1B2AE6', '#0D1B2A00'] as const;
+const SHADE_BOTTOM = ['#0D1B2A00', '#0D1B2AF2'] as const;
 
 const initialOf = (s: string | undefined | null): string =>
   (s ?? '').trim().charAt(0).toUpperCase() || '?';
 
-/** One side's card: the design's vsL (left) / vsR (right). */
-const SideCard = ({
-  side,
-  initial,
-  name,
-}: {
-  side: 'left' | 'right';
-  initial: string;
-  name: string;
-}) => {
-  const t = useSharedValue(0);
-  useEffect(() => {
-    t.value = withTiming(1, { duration: 500, easing: Easing.linear });
-  }, [t]);
-
-  const dir = side === 'left' ? -1 : 1;
-  const style = useAnimatedStyle(() => {
-    const p = SLIDE_EASE(t.value);
-    return {
-      // Fully visible by 60% of the slide, like the keyframe.
-      opacity: interpolate(t.value, [0, 0.6, 1], [0, 1, 1]),
-      transform: [
-        { translateX: dir * 110 * (1 - p) },
-        { rotate: `${dir * 8 * (1 - p)}deg` },
-      ],
-    };
-  });
-
-  const you = side === 'left';
-  return (
-    <Animated.View style={style} className="items-center gap-3.5">
-      <View style={you ? YOU_GLOW : undefined} className="rounded-[20px]">
-        {/* Size, radius and border live on a plain View: NativeWind doesn't
-            map classNames onto third-party native components (see the
-            BlurView note in CLAUDE.md), so the gradient just fills it. */}
-        <View
-          className={`h-[162px] w-[120px] items-center justify-center overflow-hidden rounded-[20px] border-2 ${
-            you ? 'border-accent' : 'border-border'
-          }`}
-        >
-          <LinearGradient
-            colors={CARD_GRADIENT}
-            start={{ x: 0.25, y: 0 }}
-            end={{ x: 0.75, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-          <Text
-            className={`font-display-bold text-[46px] ${
-              you ? 'text-accent' : 'text-ink-primary'
-            }`}
-          >
-            {initial}
-          </Text>
-        </View>
-      </View>
-      <Text
-        className="max-w-[180px] font-display text-[17px] text-ink-secondary"
-        numberOfLines={1}
-      >
-        {name}
-      </Text>
-    </Animated.View>
+/** A side's art: the legend (face crop), or the player's initial, faint. */
+const SideArt = ({ legend, initial }: { legend: CardRef | null; initial: string }) =>
+  legend ? (
+    <LegendPortrait card={legend} />
+  ) : (
+    <View className="absolute inset-0 items-center justify-center bg-elevated">
+      <Text className="font-display-bold text-[120px] text-border">{initial}</Text>
+    </View>
   );
-};
+
+/** A side's names in its bottom corner: the champion, then the player. */
+const SideName = ({
+  legend,
+  name,
+  align,
+}: {
+  legend: CardRef | null;
+  name: string;
+  align: 'left' | 'right';
+}) => (
+  <View className={`flex-1 ${align === 'right' ? 'items-end' : ''}`}>
+    {legend && (
+      <Text className="font-display-bold text-[28px] text-ink-primary" numberOfLines={1}>
+        {splitCardName(legend.name).head}
+      </Text>
+    )}
+    <Text
+      className={legend ? 'text-[17px] text-ink-secondary' : 'font-display-bold text-[24px] text-ink-primary'}
+      numberOfLines={1}
+    >
+      {name}
+    </Text>
+  </View>
+);
 
 const IntroOverlay = ({
-  youInitial,
-  youName,
-  oppInitial,
-  oppName,
+  you,
+  opponent,
   label,
   format,
   onSkip,
 }: {
-  youInitial: string;
-  youName: string;
-  oppInitial: string;
-  oppName: string;
+  you: { name: string; legend: CardRef | null };
+  opponent: { name: string; legend: CardRef | null };
   label: string;
   format: string;
   onSkip: () => void;
 }) => {
-  const fade = useSharedValue(0); // fadeIn .2s
-  const vs = useSharedValue(0); // vsPop 1.1s
-  const lbl = useSharedValue(0); // startLabel 1.3s
-  const fmt = useSharedValue(0); // fadeIn 1.4s
+  const fade = useSharedValue(0);
+  const slide = useSharedValue(0);
+  const vs = useSharedValue(0);
+  const text = useSharedValue(0);
 
   useEffect(() => {
-    fade.value = withTiming(1, { duration: 200 });
-    vs.value = withTiming(1, { duration: 1100, easing: Easing.linear });
-    lbl.value = withTiming(1, { duration: 1300, easing: Easing.linear });
-    fmt.value = withTiming(1, { duration: 1400, easing: Easing.ease });
-  }, [fade, vs, lbl, fmt]);
+    fade.value = withTiming(1, { duration: 150 });
+    slide.value = withTiming(1, { duration: 600, easing: Easing.linear });
+    vs.value = withTiming(1, { duration: 1000, easing: Easing.linear });
+    text.value = withTiming(1, { duration: 1300, easing: Easing.linear });
+  }, [fade, slide, vs, text]);
 
-  const overlayStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
-  // Hidden until 55%, overshoots to 1.15 at 75%, settles at 1.
-  const vsStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(vs.value, [0, 0.55, 0.75, 1], [0, 0, 1, 1]),
-    transform: [
-      { scale: interpolate(vs.value, [0, 0.55, 0.75, 1], [0.4, 0.4, 1.15, 1]) },
-    ],
-  }));
-  // Hidden until 70%; rises 8px and tightens .5em → .28em (at 24px).
-  const labelStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(lbl.value, [0, 0.7, 1], [0, 0, 1]),
-    transform: [{ translateY: interpolate(lbl.value, [0, 1], [8, 0]) }],
-    letterSpacing: interpolate(lbl.value, [0, 1], [12, 6.7]),
-  }));
-  const formatStyle = useAnimatedStyle(() => ({ opacity: fmt.value }));
   // Rotation is paint-only, so the content is laid out at the screen's
   // landscape size (long side as width) before it's turned. A phone already
   // held in landscape needs no turn.
   const { width, height } = useWindowDimensions();
+  const W = Math.max(width, height);
+
+  const overlayStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
+  const leftStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: -W * 0.6 * (1 - SLIDE_EASE(slide.value)) }],
+  }));
+  const rightStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: W * 0.6 * (1 - SLIDE_EASE(slide.value)) },
+      { skewX: `-${CUT}deg` },
+    ],
+  }));
+  // Hidden until the sides meet, overshoots to 1.2, settles at 1.
+  const vsStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(vs.value, [0, 0.5, 0.7, 1], [0, 0, 1, 1]),
+    transform: [{ scale: interpolate(vs.value, [0, 0.5, 0.7, 1], [0.4, 0.4, 1.2, 1]) }],
+  }));
+  // The names, label and format fade in and rise once the sides are in.
+  const textStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(text.value, [0, 0.55, 0.85], [0, 0, 1]),
+    transform: [{ translateY: interpolate(text.value, [0, 0.55, 0.85], [10, 10, 0], 'clamp') }],
+  }));
 
   return (
     <Animated.View
@@ -179,7 +143,7 @@ const IntroOverlay = ({
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${label}. ${youName} versus ${oppName}. Tap to skip`}
+        accessibilityLabel={`${label}. ${you.name} versus ${opponent.name}. Tap to skip`}
         onPress={onSkip}
         className="flex-1 items-center justify-center bg-background"
       >
@@ -187,37 +151,66 @@ const IntroOverlay = ({
           style={
             width > height
               ? { width, height }
-              : {
-                  width: height,
-                  height: width,
-                  transform: [{ rotate: '-90deg' }],
-                }
+              : { width: height, height: width, transform: [{ rotate: '-90deg' }] }
           }
-          className="items-center justify-center"
+          className="overflow-hidden"
         >
-          <View className="mb-[44px] flex-row items-center gap-[34px]">
-            <SideCard side="left" initial={youInitial} name={youName} />
+          {/* Yours: the left side, running under theirs at the cut. */}
+          <Animated.View style={leftStyle} className="absolute bottom-0 left-0 top-0 w-[58%]">
+            <SideArt legend={you.legend} initial={initialOf(you.name)} />
+          </Animated.View>
+
+          {/* Theirs: a skewed box (the slanted cut), art skewed back upright. */}
+          <Animated.View
+            style={rightStyle}
+            className="absolute bottom-0 left-[48%] right-[-15%] top-0 overflow-hidden border-l-4 border-background"
+          >
+            <View
+              style={{ transform: [{ skewX: `${CUT}deg` }] }}
+              className="absolute bottom-0 left-[-10%] right-[6%] top-0"
+            >
+              <SideArt legend={opponent.legend} initial={initialOf(opponent.name)} />
+            </View>
+          </Animated.View>
+
+          <LinearGradient
+            colors={SHADE_TOP}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '32%' }}
+          />
+          <LinearGradient
+            colors={SHADE_BOTTOM}
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%' }}
+          />
+
+          {/* VS at the cut. */}
+          <View className="absolute inset-0 items-center justify-center">
             <Animated.Text
               style={vsStyle}
-              className="font-mono text-[40px] text-ink-secondary"
+              className="font-display-bold text-[64px] text-ink-primary"
             >
               VS
             </Animated.Text>
-            <SideCard side="right" initial={oppInitial} name={oppName} />
           </View>
-          <Animated.Text
-            style={labelStyle}
-            className="font-display-bold text-[24px] uppercase text-ink-primary"
-            numberOfLines={1}
+
+          {/* The label and the format, top centre. */}
+          <Animated.View style={textStyle} className="absolute left-0 right-0 top-6 items-center">
+            <Text
+              className="font-display-bold text-[22px] uppercase tracking-[6px] text-ink-primary"
+              numberOfLines={1}
+            >
+              {label}
+            </Text>
+            <Text className="mt-1 text-[15px] text-ink-secondary">{format}</Text>
+          </Animated.View>
+
+          {/* The names in the bottom corners. */}
+          <Animated.View
+            style={textStyle}
+            className="absolute bottom-0 left-0 right-0 flex-row items-end gap-6 px-10 pb-6"
           >
-            {label}
-          </Animated.Text>
-          <Animated.Text
-            style={formatStyle}
-            className="mt-3 text-[16px] text-ink-secondary"
-          >
-            {format}
-          </Animated.Text>
+            <SideName legend={you.legend} name={you.name} align="left" />
+            <SideName legend={opponent.legend} name={opponent.name} align="right" />
+          </Animated.View>
         </View>
       </Pressable>
     </Animated.View>
@@ -260,10 +253,8 @@ const GameStartIntro = () => {
 
   return (
     <IntroOverlay
-      youInitial={initialOf(p1?.name)}
-      youName={p1?.name ?? 'You'}
-      oppInitial={initialOf(p2?.name)}
-      oppName={p2?.name ?? 'Opponent'}
+      you={{ name: p1?.name ?? 'You', legend: p1?.legend ?? null }}
+      opponent={{ name: p2?.name ?? 'Opponent', legend: p2?.legend ?? null }}
       label={n === 1 ? 'Match start' : `Game ${n}`}
       format={format}
       onSkip={() => setShowingFor(null)}
