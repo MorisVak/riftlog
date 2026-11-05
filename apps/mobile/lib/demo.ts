@@ -70,6 +70,23 @@ const OPPONENTS = [
   'Ben',
 ];
 
+/**
+ * The ten newest matches, newest first: deck (0 = the real deck, then the
+ * generated ones in DECKS order), your games (w / l), Bo1 = one game.
+ */
+const RECENT: { deck: number; won: boolean; games: ('w' | 'l')[]; timed?: boolean }[] = [
+  { deck: 0, won: true, games: ['w', 'l', 'w'], timed: true },
+  { deck: 1, won: false, games: ['l'] },
+  { deck: 2, won: true, games: ['w', 'w'] },
+  { deck: 3, won: true, games: ['w'] },
+  { deck: 0, won: false, games: ['l', 'w', 'l'] },
+  { deck: 4, won: true, games: ['w'], timed: true },
+  { deck: 1, won: true, games: ['w', 'l', 'w'] },
+  { deck: 2, won: false, games: ['l'] },
+  { deck: 0, won: true, games: ['w'] },
+  { deck: 3, won: true, games: ['w', 'w'] },
+];
+
 const NOTES = [
   'Mulliganed too greedy, ran out of gas.',
   'Held the battlefield the whole game. Great matchup.',
@@ -194,18 +211,27 @@ function generate(index: CatalogIndex, real: Deck | null): DemoData {
   const weighted = decks.flatMap((d, i) => Array(weights[i] ?? 1).fill(d) as Deck[]);
   const matches: MatchWithGames[] = [];
   let at = now - 2 * 3_600_000;
+  let lastDeckId = '';
   for (let m = 0; m < 30; m++) {
-    const deck = pick(weighted);
+    // The ten newest matches are set by hand (what Home shows: a believable
+    // 7–3 across all five decks); older ones are random, never the same deck
+    // twice in a row.
+    const set = RECENT[m];
+    let deck = set ? (decks[set.deck] ?? decks[0]!) : pick(weighted);
+    while (!set && deck.id === lastDeckId && decks.length > 1) deck = pick(weighted);
+    lastDeckId = deck.id;
     const theirs = pick(legends.filter((l) => l.name !== deck.list.legend?.name));
-    const bestOf = r() < 0.45 ? 3 : 1;
-    const won = r() < 0.62;
-    const timed = r() < 0.3;
+    const won = set ? set.won : r() < 0.6;
+    const bestOf = set ? (set.games.length === 1 ? 1 : 3) : r() < 0.45 ? 3 : 1;
+    const timed = set ? !!set.timed : r() < 0.3;
     // The games, from your side: W / L sequence for a Bo3, one game for a Bo1.
-    const sequence: ('p1' | 'p2')[] =
-      bestOf === 1
+    const sequence: ('p1' | 'p2')[] = set
+      ? set.games.map((g) => (g === 'w' ? 'p1' : 'p2'))
+      : bestOf === 1
         ? [won ? 'p1' : 'p2']
         : (
             pick([
+              ['w', 'w'],
               ['w', 'w'],
               ['w', 'l', 'w'],
               ['l', 'w', 'w'],
