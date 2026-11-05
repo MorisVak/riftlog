@@ -359,16 +359,17 @@ and `p2` the opponent (see the p1-perspective rule below).
   `players[0].deck`. On save only its `versionId` is written
   (`matches.deck_version_id`); History reads it back through `matches →
   deck_versions → decks` (current name, archived flag). With a deck chosen,
-  your portrait shows its legend ("From Rivon") and tapping it opens the deck
-  picker (`DeckPicker`'s `ref` → `open()`).
+  your portrait shows its legend ("From Rivon"); "Clear" beside the label
+  drops the deck.
 - **Their legend (required — under internal testing):** the opponent
   portrait opens `LegendSheet` (`components/match/legendPicker.tsx`: every
   catalog legend as a searchable art grid, one tap picks). Start stays off —
   "Choose their legend first" — until one is picked, except with no catalog
   to pick from (first launch offline), so a match can always start.
-- **Your legend** without a deck (one not uploaded yet, or a guest): your
-  portrait opens the same sheet with `optional` ("Clear"). A chosen deck's
-  legend wins.
+- **Your legend:** your portrait always opens the same sheet, with
+  `optional` ("Clear") — for a deck not uploaded yet, or a guest. Picking a
+  legend other than your deck's drops the deck, so what's saved is what you
+  picked; with a deck and no other pick, the deck's legend is used.
 - Both are stored as `Player.legend` (a `CardRef`) inside `matches.players`
   — no migration; older matches simply have none.
 - Start uses `CTA_GLOW`, not `shadow-accent-btn`: the button enables
@@ -379,18 +380,22 @@ Still deferred: the track-turns control. See the match flow before extending
 it.
 
 **Match rows show the matchup.** History and Home's recent matches draw both
-legends as the row backdrop — `MatchBackdrop` in `cardArt.tsx`: yours left,
-theirs right, split by a slanted seam, each half cropped by **height**
-(`scaleBy="height"`) so faces keep the full backdrop's size and the card
-frame stays out — **tinted with the result** (`tint`: a
-`mixBlendMode: 'color'` layer of `bg-win` / `bg-loss` / `bg-draw` at 35%, so
-a loss reads red while the art's own colors still come through — never
-alone: the letter badge and result bar stay). With one legend known it's
-that one alone (`CardBackdrop`). Score and date sit on a dark pill; a press
+legends across the whole row — `MatchBackdrop` in `cardArt.tsx`: yours on
+the left, theirs on the right, **crossfading** in the middle (36–64% of the
+row). There's no mask in the app (that's a native module), so the fade is
+their art drawn again in `FADE_STEPS` (32) thin strips of rising opacity
+over yours; strip edges and the image's position are snapped to whole
+device pixels, or the strips show as lines. Each art is cropped by height
+on its face and zoomed past the card frame and the domain-icon column
+(`artRect` with `ICON_COLUMN`, `coverInside`). **Tinted with the result**
+(`tint`: a `mixBlendMode: 'color'` layer of `bg-win` / `bg-loss` / `bg-draw`
+at 35% — never alone: the letter badge and result bar stay), under a scrim
+that's darkest behind the text on the left and at the right edge (score
+pill, chevron). With one legend known it's that one across the row. A press
 lays the overlay. With no name typed the row reads "vs Kennen" (a typed
-name: "vs Alex · Kennen"; a blank name is stored as the default "Opponent",
-which counts as none). Only your own matches are ever read back — never
-aggregated across users (Riot policy).
+name: "vs Alex · Kennen"; a blank name is stored as the default
+"Opponent", which counts as none). Only your own matches are ever read
+back — never aggregated across users (Riot policy).
 
 ### Timed mode
 

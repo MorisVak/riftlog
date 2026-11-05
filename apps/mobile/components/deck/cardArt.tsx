@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Text, View, useWindowDimensions } from 'react-native';
+import { PixelRatio, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { splitCardName, type CardRef, type CatalogPrinting } from '@riftlog/core';
@@ -196,61 +196,97 @@ const BACKDROP_ASPECT = 2.6;
 /** The printed card frame's width at each edge, as a share of the image. */
 const FRAME_X = 0.07;
 const FRAME_Y = 0.035;
+/** The left margin that also skips the domain-icon column (top-left). */
+const ICON_COLUMN = 0.2;
 
 /**
  * Where the art's edge goes (its `left` / `top`): `wanted`, but kept inside
  * the illustration so the card frame never shows at the box's edges — and,
  * when the box is too big for that, at least inside the image.
  */
-function clampInside(wanted: number, boxSize: number, artSize: number, frame: number): number {
+function clampInside(
+  wanted: number,
+  boxSize: number,
+  artSize: number,
+  frame: number,
+  frameEnd = frame,
+): number {
   const max = -frame * artSize; // the frame's inner edge at the box's start
-  const min = boxSize - (1 - frame) * artSize; // …and at its end
+  const min = boxSize - (1 - frameEnd) * artSize; // …and at its end
   if (min <= max) return Math.min(max, Math.max(min, wanted));
   return Math.min(0, Math.max(boxSize - artSize, wanted));
 }
 
+type Rect = { width: number; height: number; left: number; top: number };
+
 /**
- * One printing's art filling its parent box, cropped on its `LEGEND_FOCUS`
- * point: the focus sits `focusAt` across the box and halfway down, scaled so
- * the crop spans the box's width, clamped so the art covers the box and the
- * card frame stays out of it (`clampInside`).
+ * Where a printing's art goes to fill a `boxW` × `boxH` box, cropped on its
+ * `LEGEND_FOCUS` point: the focus sits `focusAt` across the box and halfway
+ * down; the art always covers the box, and the card frame stays out of it
+ * where it can (`clampInside`).
+ *
+ * `scaleBy`: `width` — the crop spans the box's width (wide boxes);
+ * `height` — the crop's height as on a full-width backdrop spans the box's
+ * height, so a face keeps that size in narrow or very wide boxes (match rows).
  */
+function artRect(
+  code: string,
+  boxW: number,
+  boxH: number,
+  focusAt: number,
+  scaleBy: 'width' | 'height',
+  /** The image's left margin to keep out — wider to skip the domain icons. */
+  frameLeft = FRAME_X,
+  /** Zoom in as far as needed to keep the frame out entirely (match rows). */
+  coverInside = false,
+): Rect {
+  const focus = backdropFocus(code);
+  // The crop is BACKDROP_ASPECT wide for its height (legend-focus.swift).
+  const scaled = scaleBy === 'width' ? boxW / focus.w : (boxH * BACKDROP_ASPECT) / focus.w;
+  const width = coverInside
+    ? Math.max(scaled, boxW / (1 - frameLeft - FRAME_X), boxH / ((1 - 2 * FRAME_Y) * PORTRAIT))
+    : Math.max(scaled, boxW, boxH / PORTRAIT);
+  const height = width * PORTRAIT;
+  return {
+    width,
+    height,
+    left: clampInside(boxW * focusAt - focus.x * width, boxW, width, frameLeft, FRAME_X),
+    top: clampInside(boxH / 2 - focus.y * height, boxH, height, FRAME_Y),
+  };
+}
+
+/** A printing's image URL at `widthPt`, moving to the next source on error. */
+function useArtUri(printing: CatalogPrinting | null, widthPt: number) {
+  const [attempt, setAttempt] = useState(0);
+  const urls = printing ? cardImageUrls(printing, widthPt) : [];
+  return {
+    uri: urls[attempt] ?? null,
+    key: `${printing?.code}-backdrop-${attempt}`,
+    onError: () => setAttempt((a) => a + 1),
+  };
+}
+
+/** One printing's art filling its parent box, placed by `artRect`. */
 const FocusedArt = ({
   printing,
   focusAt,
   scaleBy = 'width',
+  skipFrame = false,
 }: {
   printing: CatalogPrinting;
   focusAt: number;
-  /**
-   * `width`: the crop spans the box's width (wide boxes). `height`: the crop's
-   * height as on a full-width backdrop spans the box's height — for narrow
-   * boxes (a match row's halves), so the face keeps its size and the box
-   * shows a slice around it instead of the card's frame.
-   */
   scaleBy?: 'width' | 'height';
+  /** Zoom past the card frame and its domain-icon column entirely. */
+  skipFrame?: boolean;
 }) => {
   const { width: screen } = useWindowDimensions();
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
-  const focus = backdropFocus(printing.code);
-  // The art is drawn wider than the box (only the crop shows): size the URL for that.
-  const urls = cardImageUrls(printing, (box?.w ?? screen * 0.7) / focus.w);
-  const [attempt, setAttempt] = useState(0);
-  const uri = urls[attempt] ?? null;
-
-  let art: { width: number; height: number; left: number; top: number } | null = null;
-  if (box) {
-    // The crop is BACKDROP_ASPECT wide for its height (legend-focus.swift).
-    const width =
-      scaleBy === 'width' ? box.w / focus.w : (box.h * BACKDROP_ASPECT) / focus.w;
-    const height = width * PORTRAIT;
-    art = {
-      width,
-      height,
-      left: clampInside(box.w * focusAt - focus.x * width, box.w, width, FRAME_X),
-      top: clampInside(box.h / 2 - focus.y * height, box.h, height, FRAME_Y),
-    };
-  }
+  const art = box
+    ? skipFrame
+      ? artRect(printing.code, box.w, box.h, focusAt, scaleBy, ICON_COLUMN, true)
+      : artRect(printing.code, box.w, box.h, focusAt, scaleBy)
+    : null;
+  const { uri, key, onError } = useArtUri(printing, art?.width ?? screen);
   return (
     <View
       className="absolute inset-0 overflow-hidden"
@@ -262,8 +298,8 @@ const FocusedArt = ({
           style={{ position: 'absolute', ...art, opacity: 0.85 }}
           contentFit="cover"
           transition={160}
-          recyclingKey={`${printing.code}-backdrop-${attempt}`}
-          onError={() => setAttempt((a) => a + 1)}
+          recyclingKey={key}
+          onError={onError}
         />
       )}
     </View>
@@ -285,7 +321,7 @@ export const LegendPortrait = ({ card }: { card: CardRef }) => {
       importantForAccessibility="no-hide-descendants"
       className="absolute inset-0"
     >
-      <FocusedArt printing={printing} focusAt={0.5} />
+      <FocusedArt printing={printing} focusAt={0.5} skipFrame />
     </View>
   );
 };
@@ -367,11 +403,23 @@ export const CardBackdrop = ({
   );
 };
 
+/** The crossfade zone of a match row, as shares of its width. */
+const FADE_FROM = 0.36;
+const FADE_TO = 0.64;
+/** Strips the crossfade is drawn in (each a step up in opacity). */
+const FADE_STEPS = 32;
+
 /**
- * A match row's backdrop: both legends face off on the right — yours on the
- * left (you're p1), theirs on the right, split by a slanted seam — tinted
- * with the result. With only one legend known (older matches, no deck) it's
- * that legend alone, as `CardBackdrop`.
+ * A match row's backdrop: both legends across the whole row — yours on the
+ * left (you're p1), theirs on the right — crossfading into each other in the
+ * middle, tinted with the result, under a scrim that's darkest behind the
+ * text on the left, so it stays readable. With one legend known it's that
+ * one alone, across the row. The parent must be `relative` +
+ * `overflow-hidden`; decorative, hidden from screen readers.
+ *
+ * There's no mask in the app (that would be a native module), so the fade is
+ * the right legend drawn again in FADE_STEPS thin strips of rising opacity
+ * over the left one. The strips share one image and one measured layout.
  */
 export const MatchBackdrop = ({
   you,
@@ -386,30 +434,118 @@ export const MatchBackdrop = ({
 }) => {
   const mine = useArtPrinting(you);
   const theirs = useArtPrinting(them);
-  if (!mine || !theirs) {
-    const only = them && theirs ? them : you && mine ? you : null;
-    return only ? <CardBackdrop card={only} fill={fill} tint={tint} /> : null;
-  }
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  const both = mine !== null && theirs !== null;
+  const W = box?.w ?? 0;
+  const H = box?.h ?? 0;
+  // Each legend gets a region; with both they overlap in the fade zone.
+  const leftW = both ? W * FADE_TO : W;
+  const rightX = both ? W * FADE_FROM : 0;
+  const rightW = W - rightX;
+  const left =
+    mine && box ? artRect(mine.code, leftW, H, both ? 0.58 : 0.62, 'height', ICON_COLUMN, true) : null;
+  const right =
+    theirs && box
+      ? artRect(theirs.code, rightW, H, both ? 0.6 : 0.62, 'height', ICON_COLUMN, true)
+      : null;
+  const leftUri = useArtUri(both || !theirs ? mine : null, left?.width ?? 300);
+  const rightUri = useArtUri(theirs, right?.width ?? 300);
+  if (!mine && !theirs) return null;
+
+  const fade = FADES[fill];
+  const img = (src: { uri: string | null; key: string; onError: () => void }, rect: Rect, dx: number) =>
+    src.uri ? (
+      <Image
+        source={{ uri: src.uri }}
+        style={{ position: 'absolute', ...rect, left: rect.left + dx }}
+        contentFit="cover"
+        transition={160}
+        recyclingKey={src.key}
+        onError={src.onError}
+      />
+    ) : null;
+  // Strip edges on whole device pixels, abutting exactly: fractional or
+  // overlapping edges show as lines across the fade.
+  const edge = (i: number) =>
+    PixelRatio.roundToNearestPixel(rightX + (i * W * (FADE_TO - FADE_FROM)) / FADE_STEPS);
+  const solidX = edge(FADE_STEPS);
+  // Their art's left edge in row coordinates, snapped once, so every strip
+  // draws the image at exactly the same pixel position (no seams).
+  const rightArtX = right ? PixelRatio.roundToNearestPixel(rightX + right.left) : 0;
+
   return (
     <View
       pointerEvents="none"
       accessible={false}
       importantForAccessibility="no-hide-descendants"
+      onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+      // `isolate` keeps the tint's blend inside the row.
       style={{ isolation: 'isolate' }}
-      className={`${BACKDROP_BOX} w-[78%] flex-row`}
+      className="absolute inset-0 overflow-hidden"
     >
-      <View className="relative flex-1">
-        <FocusedArt printing={mine} focusAt={0.55} scaleBy="height" />
-      </View>
-      <View className="relative flex-1">
-        <FocusedArt printing={theirs} focusAt={0.5} scaleBy="height" />
-      </View>
-      {/* The seam: a slanted stripe of the card's fill between the two. */}
-      <View
-        style={{ transform: [{ skewX: '-14deg' }], backgroundColor: FADES[fill].solid }}
-        className="absolute bottom-[-8px] left-1/2 top-[-8px] -ml-[2px] w-[4px]"
+      {box && (
+        <>
+          {/* Yours (or the only one): its region, from the left. */}
+          {left && (both || !theirs) && (
+            <View style={{ position: 'absolute', left: 0, top: 0, width: leftW, height: H, overflow: 'hidden' }}>
+              {img(leftUri, left, 0)}
+            </View>
+          )}
+          {/* Theirs: solid past the fade zone… */}
+          {right && (
+            <View
+              style={{
+                position: 'absolute',
+                left: both ? solidX : 0,
+                top: 0,
+                right: 0,
+                height: H,
+                overflow: 'hidden',
+              }}
+            >
+              {img(rightUri, right, both ? rightArtX - right.left - solidX : 0)}
+            </View>
+          )}
+          {/* …and fading in across it, strip by strip, over yours. */}
+          {right &&
+            both &&
+            Array.from({ length: FADE_STEPS }, (_, i) => {
+              const x = edge(i);
+              return (
+                <View
+                  key={i}
+                  style={{
+                    position: 'absolute',
+                    left: x,
+                    top: 0,
+                    width: edge(i + 1) - x,
+                    height: H,
+                    overflow: 'hidden',
+                    opacity: (i + 0.5) / FADE_STEPS,
+                  }}
+                >
+                  {img(rightUri, right, rightArtX - right.left - x)}
+                </View>
+              );
+            })}
+        </>
+      )}
+      {tint && (
+        <View
+          style={{ mixBlendMode: 'color', opacity: 0.35 }}
+          className={`absolute inset-0 ${TINTS[tint]}`}
+        />
+      )}
+      {/* Readability: darkest behind the text on the left, light over the
+          art in the middle and right, a little darker again at the edge for
+          the score pill and chevron. */}
+      <LinearGradient
+        colors={[`${fade.solid}EB`, `${fade.solid}B3`, `${fade.solid}4D`, `${fade.solid}40`, `${fade.solid}C7`]}
+        locations={[0, 0.3, 0.55, 0.78, 1]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
-      <BackdropOverlays fill={fill} tint={tint} />
     </View>
   );
 };
