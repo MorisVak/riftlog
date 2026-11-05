@@ -612,7 +612,11 @@ Conventions:
 - **Scoring is a manual tally — no auto-end.** Score can't drop below 0;
   there's no upper bound and no win-at-target logic. Games and the match end
   only via explicit user action (with a confirm prompt), so stray or accidental
-  taps never close anything.
+  taps never close anything. END's prompt (`components/endGamePrompt.tsx`,
+  "Who won game N?") shows both players as **legend tiles** side by side —
+  face crop, champion + name, the score they're on — and you tap the
+  winner; its frame is green on your side and red on theirs (the result the
+  tap records for you). Below: Draw, and "Keep playing" (or tap outside).
 - **"{name} wins" goes through `winsLabel`** (`lib/playerText.ts`). A blank
   name falls back to "You", and "You wins" isn't English — it returns
   "You win". Use it for any new winner text.
