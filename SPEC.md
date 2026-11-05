@@ -130,8 +130,8 @@ games and the match themselves.
    — say one not uploaded yet — they can pick their own legend instead
    (optional). History and
    Home show your legend as the match row's backdrop, tinted with the
-   result, and, with no opponent name, the opponent's legend as their
-   label ("vs Kennen"). The setup sheet is built around the matchup: two
+   result; the opponent's legend is stored for later (match detail,
+   matchups) but not shown in the row. The setup sheet is built around the matchup: two
    legend portraits side by side (you left), names under them, then deck,
    format and clock, with Start at the bottom; it's as tall as its
    content and grows when the custom clock opens. Built: format, names, deck, the

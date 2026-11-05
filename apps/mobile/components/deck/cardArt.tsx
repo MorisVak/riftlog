@@ -196,6 +196,9 @@ const BACKDROP_ASPECT = 2.6;
 /** The printed card frame's width at each edge, as a share of the image. */
 const FRAME_X = 0.07;
 const FRAME_Y = 0.035;
+/** How far a zoomed-out art fades in from its covered edge, in points. */
+const EDGE_FADE_W = 56;
+
 /** The left margin that also skips the domain-icon column (top-left). */
 const ICON_COLUMN = 0.2;
 
@@ -214,7 +217,10 @@ function clampInside(
   const max = -frame * artSize; // the frame's inner edge at the box's start
   const min = boxSize - (1 - frameEnd) * artSize; // …and at its end
   if (min <= max) return Math.min(max, Math.max(min, wanted));
-  return Math.min(0, Math.max(boxSize - artSize, wanted));
+  // The illustration is narrower than the box (a zoomed-out crop): keep the
+  // focus where it was asked for, but never short of the box's end (no gap
+  // there); the start is left to the caller's edge fade.
+  return Math.max(min, wanted);
 }
 
 type Rect = { width: number; height: number; left: number; top: number };
@@ -243,9 +249,12 @@ function artRect(
   const focus = backdropFocus(code);
   // The crop is BACKDROP_ASPECT wide for its height (legend-focus.swift).
   const scaled = scaleBy === 'width' ? boxW / focus.w : (boxH * BACKDROP_ASPECT) / focus.w;
+  // Without `coverInside` a crop may be wider than the art (a legend whose
+  // face fills its card, e.g. Vex): the art then comes out narrower than the
+  // box, at its end, and `FocusedArt`'s `edgeFade` hides its start.
   const width = coverInside
     ? Math.max(scaled, boxW / (1 - frameLeft - FRAME_X), boxH / ((1 - 2 * FRAME_Y) * PORTRAIT))
-    : Math.max(scaled, boxW, boxH / PORTRAIT);
+    : Math.max(scaled, boxH / ((1 - 2 * FRAME_Y) * PORTRAIT));
   const height = width * PORTRAIT;
   return {
     width,
@@ -272,12 +281,18 @@ const FocusedArt = ({
   focusAt,
   scaleBy = 'width',
   skipFrame = false,
+  edgeFade,
 }: {
   printing: CatalogPrinting;
   focusAt: number;
   scaleBy?: 'width' | 'height';
   /** Zoom past the card frame and its domain-icon column entirely. */
   skipFrame?: boolean;
+  /**
+   * The box's fill: when the art starts inside the box (narrower than it),
+   * cover its frame edge with this and fade into the art.
+   */
+  edgeFade?: { solid: string; clear: string };
 }) => {
   const { width: screen } = useWindowDimensions();
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
@@ -301,6 +316,32 @@ const FocusedArt = ({
           recyclingKey={key}
           onError={onError}
         />
+      )}
+      {art && edgeFade && art.left + FRAME_X * art.width > 0 && (
+        <>
+          <View
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: art.left + FRAME_X * art.width,
+              backgroundColor: edgeFade.solid,
+            }}
+          />
+          <LinearGradient
+            colors={[edgeFade.solid, edgeFade.clear]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={{
+              position: 'absolute',
+              left: art.left + FRAME_X * art.width,
+              top: 0,
+              bottom: 0,
+              width: EDGE_FADE_W,
+            }}
+          />
+        </>
       )}
     </View>
   );
@@ -397,71 +438,11 @@ export const CardBackdrop = ({
       style={{ isolation: 'isolate' }}
       className={`${BACKDROP_BOX} w-[70%]`}
     >
-      <FocusedArt printing={printing} focusAt={FOCUS_AT} />
+      <FocusedArt printing={printing} focusAt={FOCUS_AT} edgeFade={FADES[fill]} />
       <BackdropOverlays fill={fill} tint={tint} />
     </View>
   );
 };
 
-/**
- * A match row's backdrop: your legend (your deck's, or the one picked in
- * setup) across the whole row, cropped on its face and zoomed past the card
- * frame, tinted with the result, under a scrim that's darkest behind the
- * text on the left and at the right edge (score pill, chevron) so the row
- * stays readable. The parent must be `relative` + `overflow-hidden`;
- * decorative, hidden from screen readers.
- */
-export const MatchBackdrop = ({
-  legend,
-  fill = 'surface',
-  tint,
-}: {
-  legend: CardRef | null;
-  fill?: Fill;
-  tint?: Tint;
-}) => {
-  const printing = useArtPrinting(legend);
-  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
-  const rect =
-    printing && box ? artRect(printing.code, box.w, box.h, 0.62, 'height', ICON_COLUMN, true) : null;
-  const { uri, key, onError } = useArtUri(printing, rect?.width ?? 300);
-  if (!printing) return null;
-  const fade = FADES[fill];
-  return (
-    <View
-      pointerEvents="none"
-      accessible={false}
-      importantForAccessibility="no-hide-descendants"
-      onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
-      // `isolate` keeps the tint's blend inside the row.
-      style={{ isolation: 'isolate' }}
-      className="absolute inset-0 overflow-hidden"
-    >
-      {rect && uri && (
-        <Image
-          source={{ uri }}
-          style={{ position: 'absolute', ...rect }}
-          contentFit="cover"
-          transition={160}
-          recyclingKey={key}
-          onError={onError}
-        />
-      )}
-      {tint && (
-        <View
-          style={{ mixBlendMode: 'color', opacity: 0.35 }}
-          className={`absolute inset-0 ${TINTS[tint]}`}
-        />
-      )}
-      <LinearGradient
-        colors={[`${fade.solid}EB`, `${fade.solid}B3`, `${fade.solid}4D`, `${fade.solid}40`, `${fade.solid}C7`]}
-        locations={[0, 0.3, 0.55, 0.78, 1]}
-        start={{ x: 0, y: 0.5 }}
-        end={{ x: 1, y: 0.5 }}
-        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
-      />
-    </View>
-  );
-};
 
 export default CardArt;

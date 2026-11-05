@@ -390,25 +390,24 @@ Still deferred: the track-turns control. See the match flow before extending
 it.
 
 **Match rows show your legend.** History and Home's recent matches draw your
-legend (stored on p1 with the match; for matches saved before that, the
-legend of the deck version played — `fetchMatchHistory` selects just
-`list->legend` from it, no backfill — and shown in the **printing the deck
-uses now** when it's the same card: older versions from text import name
-only the card, so they'd show the standard art instead of the deck's; see
-`yourLegendFor` in `lib/historyView.ts`) across the whole row —
-`MatchBackdrop` in `cardArt.tsx`, cropped by height on the face and zoomed
-past the card frame and the domain-icon column (`artRect` with
-`ICON_COLUMN`, `coverInside`) — **tinted with the result** (`tint`: a
-`mixBlendMode: 'color'` layer of `bg-win` / `bg-loss` / `bg-draw` at 35% —
-never alone: the letter badge and result bar stay), under a scrim that's
-darkest behind the text on the left and at the right edge (score pill,
-chevron), plus a soft dark pill hugging the title and meta line. (Both
-legends crossfading was tried and dropped as too busy; the opponent's
-legend shows in the title instead.) A press lays the overlay. With no name
-typed the row reads "vs Kennen" (a typed name: "vs Alex · Kennen"; a blank
-name is stored as the default "Opponent", which counts as none). Only your
-own matches are ever read back — never aggregated across users (Riot
-policy).
+legend as the row's backdrop — the same `CardBackdrop` as the deck cards, so
+every legend's face comes out the same size — tinted with the result
+(`tint`: a `mixBlendMode: 'color'` layer of `bg-win` / `bg-loss` / `bg-draw`
+at 35% — never alone: the letter badge and result bar stay), with the title +
+meta line and the score on soft dark pills. The legend is the one stored on
+p1 with the match; for matches saved before that, the deck version played
+(`fetchMatchHistory` selects just `list->legend`, no backfill), shown in the
+**printing the deck uses now** when it's the same card (`yourLegendFor` in
+`lib/historyView.ts` — older versions from text import name only the card).
+The opponent's legend is stored but not shown in the row; the title is just
+their name ("vs Opponent" when blank). Only your own matches are ever read
+back — never aggregated across users (Riot policy).
+
+**Legends whose face fills their card** (Vex - Gloomist, Kennen): a crop in
+`lib/legendArtFocus.manual.json` may be wider than the art (`w` > 1) to bring
+the face down to the usual size. The art then comes out narrower than the
+backdrop, at its end, and `FocusedArt`'s `edgeFade` covers its frame edge in
+the card's fill and fades in.
 
 ### Timed mode
 
