@@ -942,7 +942,7 @@ Rules that are easy to get wrong:
   fields stored the literal `"Player 1"` / `"Player 2"`; those render as
   `You` / `Opponent` rather than being shown as if they were real names.
 - **Home** (`app/(tabs)/index.tsx`), top to bottom: the brand, **Start a
-  match**, **Your deck** — the deck a match starts with: your default deck,
+  match**, **Default deck** — the deck a match starts with: your default deck,
   as a `DeckPicker` field (choosing sets the default, as on Profile; no
   decks yet → an "Import a deck" card; a guest gets a stand-in) — and **Your
   matches**: the record (wins · losses · win rate, sentence case) right

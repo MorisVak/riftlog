@@ -81,7 +81,7 @@ const GuestRecentState = () => (
   </View>
 );
 
-/** Guest stand-in for "Your deck": decks need an account. */
+/** Guest stand-in for "Default deck": decks need an account. */
 const GuestDeckState = () => (
   <View className="rounded-2xl border border-border bg-surface px-6 py-8">
     <Text className="text-center font-display text-base text-ink-primary">
@@ -143,7 +143,7 @@ const Home = () => {
   const recent = useMemo(() => vms.slice(0, 3), [vms]);
   const stats = useMemo(() => deriveStats(vms), [vms]);
 
-  // "Your deck": the deck a new match starts with — your default deck (the
+  // "Default deck": the deck a new match starts with — your default deck (the
   // setup sheet preselects it). Choosing one here sets the default, as on
   // Profile. Your decks are read for it on focus; none yet → an import card.
   const { profile, refresh: refreshProfile } = useProfile();
@@ -236,12 +236,12 @@ const Home = () => {
           </Pressable>
         </Animated.View>
 
-        {/* Your deck — the one a new match starts with. A guest gets a
+        {/* Default deck — the one a new match starts with. A guest gets a
             stand-in (decks need an account). */}
         {status !== 'loading' && (
           <Animated.View style={deckStyle}>
             <Text className="mb-2 mt-6 px-0.5 font-display-bold text-[15px] text-ink-primary">
-              Your deck
+              Default deck
             </Text>
             {status === 'guest' ? (
               <GuestDeckState />
@@ -267,7 +267,7 @@ const Home = () => {
                   value={defaultDeck}
                   onChange={chooseDefault}
                   noneLabel="No default deck"
-                  title="Your deck"
+                  title="Default deck"
                   defaultDeckId={defaultDeckId}
                 />
                 <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
