@@ -32,7 +32,9 @@ describe _how_ the project works; `SPEC.md` describes _what_ is being built.
 Offline-tolerant cloud persistence. **Postgres is the single source of truth**;
 the device keeps only (a) the in-progress match and (b) a small outbox of
 completed-but-unsynced matches that flushes on reconnect. Match **history is
-never mirrored locally** — it's read from Postgres on demand. Local footprint
+never mirrored locally** — it's read from Postgres on demand (kept in
+memory for the session only, never on the device; see "Session cache" in
+`apps/mobile/CLAUDE.md`). Local footprint
 stays bounded and self-clearing. (Separately, the public **card catalog** is
 cached as one replaceable file — reference data, not match data; see
 `apps/mobile/CLAUDE.md`.)
@@ -162,20 +164,19 @@ Open items for a public launch, written up at the top of the `SPEC.md`
 roadmap; raise them whenever release prep, the App Store, auth or email comes
 up:
 
-- **History lags when a match row expands (hard todo, owner: "we REALLY
-  need a fix").** Still noticeable on the simulator after the first fixes
-  (no blend-mode tint, a smaller `FlatList` window, `HistoryRow` memoized,
-  row content built outside the `Pressable` callback). Measure first: a
-  release build on a device (`preview` profile) and the perf monitor, to
-  split simulator / dev-mode cost from real cost. Then the likely suspects:
-  the expand animates `height` (a layout prop), so every frame re-lays out
-  the whole list — animate a transform / clip instead, or expand without
-  moving the rows below until it ends; each row decodes the full 744 px card
-  image (a smaller copy sized for the row would do); gestures recreated per
-  render. (The inline expansion is gone, the per-row `FadeInDown` entrance
-  is gone, and History now builds every row up front, so scrolling never
-  mounts rows.) Details
-  in `apps/mobile/CLAUDE.md` ("Match rows show your legend").
+- **Smoothness — "buttery", the owner's goal (hard todo, was "History
+  lags").** Done so far: the inline row expansion and per-row entrance
+  animations are gone; History builds its rows up front; card art stays
+  decoded in memory (`cachePolicy="memory-disk"`); the history query skips
+  each game's recorded points (half the payload); matches and decks are
+  kept in memory for the session, shown at once and refreshed quietly, and
+  only changed rows redraw. **Next: measure on a release build on a device**
+  (`preview` profile + the perf monitor) — the simulator runs a dev build,
+  several times slower. Then, if still needed: batch the in-progress
+  match's storage write (it runs on every score tap; a ~300 ms window
+  would be lost if the app is killed), pass known box sizes to `FocusedArt`
+  so art doesn't wait a layout pass, and cap History's up-front rows for
+  very long histories.
 - **In-app account deletion** — not built; Apple Guideline 5.1.1(v)
   requires it. Until then `/privacy` promises deletion by email within 30 days.
 - **Refine the card screen and the look of the card surfaces** — hard
