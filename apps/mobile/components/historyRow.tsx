@@ -237,8 +237,7 @@ const HistoryRow = ({
                 {({ pressed }) => (
                   <>
                     <MatchBackdrop
-                      you={vm.yourLegend}
-                      them={vm.opponentLegend}
+                      legend={vm.yourLegend}
                       fill={selected ? 'elevated' : 'surface'}
                       tint={vm.result}
                     />
@@ -255,7 +254,7 @@ const HistoryRow = ({
                       {/* A soft dark pill hugging the text over the legend art. */}
                       <View
                         className={
-                          vm.opponentLegend || vm.yourLegend
+                          vm.yourLegend
                             ? '-ml-2 max-w-full self-start rounded-lg bg-background/55 px-2 py-1'
                             : ''
                         }
@@ -282,7 +281,7 @@ const HistoryRow = ({
                     {/* On a dark pill over the legend art, so it reads on any art. */}
                     <View
                       className={`items-end ${
-                        vm.opponentLegend || vm.yourLegend
+                        vm.yourLegend
                         ? 'my-3 rounded-md bg-background/70 px-1.5 py-0.5'
                         : 'py-3'
                       }`}

@@ -26,9 +26,8 @@ type Props = {
  * (format, plus the clock for a timed match) — minus the swipe-to-delete and the
  * expandable per-game detail. Tapping opens the History tab with this match
  * already expanded. Score color always rides alongside the letter badge and
- * left bar. Both legends face off as the row's backdrop (`MatchBackdrop`:
- * yours left, theirs right, tinted with the result); score and date sit on a
- * dark pill over it.
+ * left bar. Your legend is the row's backdrop (`MatchBackdrop`, tinted with
+ * the result); the text and the score sit on dark pills over it.
  */
 const RecentMatchRow = ({ vm, onPress }: Props) => {
   const r = RESULT[vm.result];
@@ -40,7 +39,7 @@ const RecentMatchRow = ({ vm, onPress }: Props) => {
     >
       {({ pressed }) => (
         <>
-          <MatchBackdrop you={vm.yourLegend} them={vm.opponentLegend} tint={vm.result} />
+          <MatchBackdrop legend={vm.yourLegend} tint={vm.result} />
           <View className={`w-1 self-stretch ${r.bar}`} />
           <View className="min-h-[64px] flex-1 flex-row items-center px-3 py-2">
             <View
@@ -55,7 +54,7 @@ const RecentMatchRow = ({ vm, onPress }: Props) => {
               {/* A soft dark pill hugging the text over the legend art. */}
               <View
                 className={
-                  vm.opponentLegend || vm.yourLegend
+                  vm.yourLegend
                     ? 'max-w-full self-start rounded-lg bg-background/55 px-2 py-1'
                     : ''
                 }
@@ -80,7 +79,7 @@ const RecentMatchRow = ({ vm, onPress }: Props) => {
 
             <View
               className={`items-end ${
-                vm.opponentLegend || vm.yourLegend
+                vm.yourLegend
                   ? 'rounded-md bg-background/70 px-1.5 py-0.5'
                   : ''
               }`}

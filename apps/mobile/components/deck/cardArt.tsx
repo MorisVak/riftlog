@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PixelRatio, Text, View, useWindowDimensions } from 'react-native';
+import { Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { splitCardName, type CardRef, type CatalogPrinting } from '@riftlog/core';
@@ -403,76 +403,30 @@ export const CardBackdrop = ({
   );
 };
 
-/** The crossfade zone of a match row, as shares of its width. */
-const FADE_FROM = 0.36;
-const FADE_TO = 0.64;
-/** Strips the crossfade is drawn in (each a step up in opacity). */
-const FADE_STEPS = 32;
-
 /**
- * A match row's backdrop: both legends across the whole row — yours on the
- * left (you're p1), theirs on the right — crossfading into each other in the
- * middle, tinted with the result, under a scrim that's darkest behind the
- * text on the left, so it stays readable. With one legend known it's that
- * one alone, across the row. The parent must be `relative` +
- * `overflow-hidden`; decorative, hidden from screen readers.
- *
- * There's no mask in the app (that would be a native module), so the fade is
- * the right legend drawn again in FADE_STEPS thin strips of rising opacity
- * over the left one. The strips share one image and one measured layout.
+ * A match row's backdrop: your legend (your deck's, or the one picked in
+ * setup) across the whole row, cropped on its face and zoomed past the card
+ * frame, tinted with the result, under a scrim that's darkest behind the
+ * text on the left and at the right edge (score pill, chevron) so the row
+ * stays readable. The parent must be `relative` + `overflow-hidden`;
+ * decorative, hidden from screen readers.
  */
 export const MatchBackdrop = ({
-  you,
-  them,
+  legend,
   fill = 'surface',
   tint,
 }: {
-  you: CardRef | null;
-  them: CardRef | null;
+  legend: CardRef | null;
   fill?: Fill;
   tint?: Tint;
 }) => {
-  const mine = useArtPrinting(you);
-  const theirs = useArtPrinting(them);
+  const printing = useArtPrinting(legend);
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
-  const both = mine !== null && theirs !== null;
-  const W = box?.w ?? 0;
-  const H = box?.h ?? 0;
-  // Each legend gets a region; with both they overlap in the fade zone.
-  const leftW = both ? W * FADE_TO : W;
-  const rightX = both ? W * FADE_FROM : 0;
-  const rightW = W - rightX;
-  const left =
-    mine && box ? artRect(mine.code, leftW, H, both ? 0.58 : 0.62, 'height', ICON_COLUMN, true) : null;
-  const right =
-    theirs && box
-      ? artRect(theirs.code, rightW, H, both ? 0.6 : 0.62, 'height', ICON_COLUMN, true)
-      : null;
-  const leftUri = useArtUri(both || !theirs ? mine : null, left?.width ?? 300);
-  const rightUri = useArtUri(theirs, right?.width ?? 300);
-  if (!mine && !theirs) return null;
-
+  const rect =
+    printing && box ? artRect(printing.code, box.w, box.h, 0.62, 'height', ICON_COLUMN, true) : null;
+  const { uri, key, onError } = useArtUri(printing, rect?.width ?? 300);
+  if (!printing) return null;
   const fade = FADES[fill];
-  const img = (src: { uri: string | null; key: string; onError: () => void }, rect: Rect, dx: number) =>
-    src.uri ? (
-      <Image
-        source={{ uri: src.uri }}
-        style={{ position: 'absolute', ...rect, left: rect.left + dx }}
-        contentFit="cover"
-        transition={160}
-        recyclingKey={src.key}
-        onError={src.onError}
-      />
-    ) : null;
-  // Strip edges on whole device pixels, abutting exactly: fractional or
-  // overlapping edges show as lines across the fade.
-  const edge = (i: number) =>
-    PixelRatio.roundToNearestPixel(rightX + (i * W * (FADE_TO - FADE_FROM)) / FADE_STEPS);
-  const solidX = edge(FADE_STEPS);
-  // Their art's left edge in row coordinates, snapped once, so every strip
-  // draws the image at exactly the same pixel position (no seams).
-  const rightArtX = right ? PixelRatio.roundToNearestPixel(rightX + right.left) : 0;
-
   return (
     <View
       pointerEvents="none"
@@ -483,52 +437,15 @@ export const MatchBackdrop = ({
       style={{ isolation: 'isolate' }}
       className="absolute inset-0 overflow-hidden"
     >
-      {box && (
-        <>
-          {/* Yours (or the only one): its region, from the left. */}
-          {left && (both || !theirs) && (
-            <View style={{ position: 'absolute', left: 0, top: 0, width: leftW, height: H, overflow: 'hidden' }}>
-              {img(leftUri, left, 0)}
-            </View>
-          )}
-          {/* Theirs: solid past the fade zone… */}
-          {right && (
-            <View
-              style={{
-                position: 'absolute',
-                left: both ? solidX : 0,
-                top: 0,
-                right: 0,
-                height: H,
-                overflow: 'hidden',
-              }}
-            >
-              {img(rightUri, right, both ? rightArtX - right.left - solidX : 0)}
-            </View>
-          )}
-          {/* …and fading in across it, strip by strip, over yours. */}
-          {right &&
-            both &&
-            Array.from({ length: FADE_STEPS }, (_, i) => {
-              const x = edge(i);
-              return (
-                <View
-                  key={i}
-                  style={{
-                    position: 'absolute',
-                    left: x,
-                    top: 0,
-                    width: edge(i + 1) - x,
-                    height: H,
-                    overflow: 'hidden',
-                    opacity: (i + 0.5) / FADE_STEPS,
-                  }}
-                >
-                  {img(rightUri, right, rightArtX - right.left - x)}
-                </View>
-              );
-            })}
-        </>
+      {rect && uri && (
+        <Image
+          source={{ uri }}
+          style={{ position: 'absolute', ...rect }}
+          contentFit="cover"
+          transition={160}
+          recyclingKey={key}
+          onError={onError}
+        />
       )}
       {tint && (
         <View
@@ -536,9 +453,6 @@ export const MatchBackdrop = ({
           className={`absolute inset-0 ${TINTS[tint]}`}
         />
       )}
-      {/* Readability: darkest behind the text on the left, light over the
-          art in the middle and right, a little darker again at the edge for
-          the score pill and chevron. */}
       <LinearGradient
         colors={[`${fade.solid}EB`, `${fade.solid}B3`, `${fade.solid}4D`, `${fade.solid}40`, `${fade.solid}C7`]}
         locations={[0, 0.3, 0.55, 0.78, 1]}
