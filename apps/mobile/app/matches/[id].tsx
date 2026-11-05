@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,12 +9,14 @@ import {
   updateGameNote,
   updateMatchNote,
 } from '@/lib/matchPersistence';
+import { splitCardName, type CardRef } from '@riftlog/core';
 import { toMatchDetailVM, type MatchDetailVM } from '@/lib/matchDetailView';
 import { deckHref, type HistoryDeckVM, type Result } from '@/lib/historyView';
 import GameCard from '@/components/match/gameCard';
 import NoteEditor from '@/components/match/noteEditor';
 import NoteRow from '@/components/match/noteRow';
 import Icon from '@/components/icon';
+import { CardBackdrop, LegendPortrait } from '@/components/deck/cardArt';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 /** Which note the editor is open on. */
@@ -242,40 +245,88 @@ const MatchDetail = () => {
   );
 };
 
-/** Result, opponent and format, the series/game score, date and clock. */
+// `background` (tailwind.config.js), clear → nearly opaque: the shade under a
+// portrait's names. Gradient stops can't take a class.
+const SHADE = ['#0D1B2A00', '#0D1B2AF2'] as const;
+const PORTRAIT_H = 176;
+
+/** One side of the matchup: the legend's art (face crop) with its names. */
+const MatchupSide = ({ name, legend, side }: { name: string; legend: CardRef | null; side: string }) => {
+  const legendName = legend ? splitCardName(legend.name) : null;
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${side}: ${name}, ${legend ? legend.name : 'no legend'}`}
+      style={{ height: PORTRAIT_H }}
+      className="relative flex-1 overflow-hidden rounded-xl border border-border bg-elevated"
+    >
+      {legend ? (
+        <>
+          <LegendPortrait card={legend} />
+          <LinearGradient
+            colors={SHADE}
+            locations={[0.4, 1]}
+            style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+          />
+        </>
+      ) : (
+        <View className="absolute inset-0 items-center justify-center">
+          <Icon name="user" size={28} className="text-ink-tertiary" />
+        </View>
+      )}
+      <View className="absolute left-2 top-2 rounded-full bg-background/70 px-2.5 py-1">
+        <Text className="font-display text-[11px] text-ink-primary">{side}</Text>
+      </View>
+      <View className="absolute bottom-0 left-0 right-0 px-3 pb-2.5">
+        <Text className="font-display-bold text-[17px] text-ink-primary" numberOfLines={1}>
+          {legendName ? legendName.head : 'No legend'}
+        </Text>
+        <Text className="text-[12px] text-ink-secondary" numberOfLines={1}>
+          {name}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+/**
+ * The header: the result (title in its color, letter badge), then the
+ * matchup — your legend vs theirs, you left — with the final score between
+ * them, then the date and the clock.
+ */
 const ResultCard = ({ vm }: { vm: MatchDetailVM }) => {
   const r = RESULT[vm.result];
   return (
     <View className="flex-row overflow-hidden rounded-2xl border border-border bg-surface">
       <View className={`w-1 ${r.bar}`} />
-      <View className="flex-1 p-4">
-        <View className="flex-row items-center gap-3.5">
-          <View
-            className={`h-14 w-14 items-center justify-center rounded-xl ${r.badge}`}
-          >
-            <Text className={`font-display-bold text-2xl ${r.text}`}>
-              {vm.letter}
-            </Text>
+      <View className="flex-1 p-3.5">
+        <View className="mb-3 flex-row items-center gap-3 px-0.5">
+          <View className={`h-10 w-10 items-center justify-center rounded-xl ${r.badge}`}>
+            <Text className={`font-display-bold text-lg ${r.text}`}>{vm.letter}</Text>
           </View>
           <View className="flex-1">
-            <Text className={`font-display-bold text-[26px] ${r.text}`}>
-              {vm.title}
-            </Text>
-            <Text className="text-[13px] text-ink-secondary" numberOfLines={1}>
-              vs {vm.opponent} · {vm.formatLong}
-            </Text>
+            <Text className={`font-display-bold text-[24px] leading-7 ${r.text}`}>{vm.title}</Text>
+            <Text className="text-[13px] text-ink-secondary">{vm.formatLong}</Text>
           </View>
-          <Text className="font-mono text-[34px] text-ink-primary">
-            {vm.score}
-          </Text>
         </View>
 
-        <View className="mt-3.5 flex-row flex-wrap items-center gap-x-2 gap-y-1">
+        {/* The matchup, with the score (you – them) between the portraits. */}
+        <View className="relative flex-row gap-2.5">
+          <MatchupSide side="You" name={vm.you} legend={vm.yourLegend} />
+          <MatchupSide side="Opponent" name={vm.opponent} legend={vm.opponentLegend} />
+          <View
+            pointerEvents="none"
+            style={{ top: PORTRAIT_H / 2 - 22, left: '50%', transform: [{ translateX: -44 }] }}
+            className="absolute h-11 w-[88px] items-center justify-center rounded-full border border-border bg-background"
+          >
+            <Text className="font-mono text-[22px] text-ink-primary">{vm.score}</Text>
+          </View>
+        </View>
+
+        <View className="mt-3 flex-row flex-wrap items-center gap-x-2 gap-y-1 px-0.5">
           <View className="flex-row items-center gap-1.5">
             <Icon name="calendar" size={13} className="text-ink-secondary" />
-            <Text className="text-[13px] text-ink-secondary">
-              {vm.dateLong}
-            </Text>
+            <Text className="text-[13px] text-ink-secondary">{vm.dateLong}</Text>
           </View>
           {vm.timer && (
             <>
@@ -318,38 +369,39 @@ const DeckCard = ({
     );
   }
   const deck = vm.deck;
+  // The whole card opens the list as played; deleted since: named, not linked.
   return (
-    <View className="flex-row items-center gap-3.5 rounded-2xl border border-border bg-surface px-4 py-3.5">
-      <View className="h-11 w-11 items-center justify-center rounded-xl bg-elevated">
-        <Text className="font-display-bold text-[17px] text-ink-primary">
-          {deck.name.trim().charAt(0).toUpperCase() || '?'}
-        </Text>
-      </View>
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={`Open decklist ${deck.name}`}
+      disabled={deck.deleted}
+      onPress={() => onOpen(deck)}
+      className="relative min-h-[64px] flex-row items-center gap-3 overflow-hidden rounded-2xl border border-border bg-surface px-4 py-3 active:opacity-80"
+    >
+      {vm.yourLegend && <CardBackdrop card={vm.yourLegend} />}
       <View className="flex-1">
         <Text className="font-display text-[12px] text-accent">
           {deck.edited ? 'You played an earlier version' : 'You played'}
         </Text>
-        <Text
-          className="mt-0.5 font-display-bold text-[16px] text-ink-primary"
-          numberOfLines={1}
-        >
+        <Text className="mt-0.5 font-display-bold text-[17px] text-ink-primary" numberOfLines={1}>
           {deck.name}
         </Text>
+        {vm.yourLegend && (
+          <Text className="text-[13px] text-ink-secondary" numberOfLines={1}>
+            {vm.yourLegend.name}
+          </Text>
+        )}
       </View>
       {deck.deleted ? (
-        <Text className="text-[13px] text-ink-tertiary">Deleted</Text>
+        <View className="rounded-md bg-background/70 px-2 py-1">
+          <Text className="text-[12px] text-ink-tertiary">Deleted</Text>
+        </View>
       ) : (
-        <TouchableOpacity
-          accessibilityRole="link"
-          accessibilityLabel={`Open decklist ${deck.name}`}
-          onPress={() => onOpen(deck)}
-          className="h-11 flex-row items-center gap-1 pl-2"
-        >
-          <Text className="font-display text-[14px] text-accent">Decklist</Text>
-          <Icon name="chevron-right" size={15} className="text-accent" />
-        </TouchableOpacity>
+        <View className="h-8 w-8 items-center justify-center rounded-full bg-background/70">
+          <Icon name="chevron-right" size={16} className="text-ink-primary" />
+        </View>
       )}
-    </View>
+    </Pressable>
   );
 };
 

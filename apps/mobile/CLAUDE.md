@@ -543,7 +543,11 @@ Conventions:
   `matchContext`). A take-back at 0 records nothing. `setScore` jumps a score
   without events and isn't used by the board — don't wire it to UI.
 - **Match detail** (`app/matches/[id].tsx`, `fetchMatch` →
-  `lib/matchDetailView.ts` → `components/match/gameCard.tsx`): result card,
+  `lib/matchDetailView.ts` → `components/match/gameCard.tsx`): a header with
+  the result (title in its color, letter badge, format), the **matchup** —
+  your legend vs theirs as two face portraits, you left, with the final
+  score between them — and the date / clock; the deck is a tappable card
+  with your legend's art (opens the list as played). Then
   per-game bars (fill = your share of points, `pointShare` in core) that
   expand into a score graph (`components/match/scoreGraph.tsx`, step lines
   drawn from plain Views — no SVG dependency), and your deck. The graph uses
