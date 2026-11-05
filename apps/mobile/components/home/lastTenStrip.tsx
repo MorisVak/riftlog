@@ -18,7 +18,16 @@ const LAST_N = 10;
  * own matches only (Riot policy). Empty slots stay as outlines until there
  * are ten.
  */
-const LastTenStrip = ({ vms, onOpen }: { vms: HistoryRowVM[]; onOpen: (id: string) => void }) => {
+const LastTenStrip = ({
+  vms,
+  onOpen,
+  bare = false,
+}: {
+  vms: HistoryRowVM[];
+  onOpen: (id: string) => void;
+  /** Inside a card that brings its own border (Home's matches card). */
+  bare?: boolean;
+}) => {
   const recent = vms.slice(0, LAST_N);
   // The record of these ten — what the tiles show. (All-time stats belong to
   // the stats section that comes later.)
@@ -28,7 +37,7 @@ const LastTenStrip = ({ vms, onOpen }: { vms: HistoryRowVM[]; onOpen: (id: strin
   const pad = Math.max(0, LAST_N - recent.length);
 
   return (
-    <View className="rounded-2xl border border-border bg-surface px-4 py-3">
+    <View className={bare ? 'px-4 py-3' : 'rounded-2xl border border-border bg-surface px-4 py-3'}>
       <View
         accessible
         accessibilityLabel={`Last ${recent.length}: ${wins} wins, ${losses} losses${

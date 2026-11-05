@@ -28,10 +28,9 @@ import { playIntro, useRise } from '@/hooks/useScreenIntro';
 import { useInGameScreen } from '@/hooks/useInGameScreen';
 
 const BACKGROUND = '#0D1B2A'; // for Feather icons inside accent fills
-// A recent match row's height (`recentMatchRow.tsx`: 64pt + its border) and
-// the gap between rows — for how many fit.
-const ROW_H = 66;
-const ROW_GAP = 8;
+// A grouped recent match row's height (`recentMatchRow.tsx`: 64pt + its
+// hairline) — for how many fit in Home's matches card.
+const ROW_H = 65;
 // `background` mirrored for the gradient behind the status bar.
 const STATUS_SHADE = ['#0D1B2A', '#0D1B2A00'] as const;
 const ACCENT = '#8B93D9';
@@ -109,8 +108,10 @@ const Home = () => {
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
   const last = vms[0] ?? null;
   // How many match rows fit the space Home has left (measured).
-  const [rowsH, setRowsH] = useState(0);
-  const rowsFit = Math.max(1, Math.floor((rowsH + ROW_GAP) / (ROW_H + ROW_GAP)));
+  const [matchesH, setMatchesH] = useState(0);
+  const [stripH, setStripH] = useState(0);
+  // The card's two borders (2pt) and the strip come first; then whole rows.
+  const rowsFit = Math.max(1, Math.floor((matchesH - stripH - 2) / ROW_H));
 
   // "Default deck": the deck a new match starts with — your default deck (the
   // setup sheet preselects it). Choosing one here sets the default, as on
@@ -222,25 +223,24 @@ const Home = () => {
           ) : !last ? (
             <HistoryEmptyState />
           ) : (
-            // The last ten at a glance, then as many of the newest matches
-            // as fit the space left — so Home fills the screen on any phone
-            // without scrolling, and nothing is stretched to do it.
-            <View className="flex-1 gap-2">
-              <LastTenStrip vms={vms} onOpen={(id) => router.push(`/matches/${id}`)} />
-              <View
-                className="flex-1 overflow-hidden"
-                style={{ minHeight: ROW_H }}
-                onLayout={(e) => setRowsH(e.nativeEvent.layout.height)}
-              >
-                <View className="gap-2">
-                  {vms.slice(0, rowsFit).map((vm) => (
-                    <RecentMatchRow
-                      key={vm.id}
-                      vm={vm}
-                      onPress={() => router.push(`/matches/${vm.id}`)}
-                    />
-                  ))}
+            // One card: the last ten at a glance on top, then as many of
+            // the newest matches as fit the space left, as lines below it —
+            // so Home fills the screen on any phone without scrolling, and
+            // nothing is stretched to do it (the card is as tall as its rows;
+            // the space around it is only measured).
+            <View className="flex-1" onLayout={(e) => setMatchesH(e.nativeEvent.layout.height)}>
+              <View className="overflow-hidden rounded-2xl border border-border bg-surface">
+                <View onLayout={(e) => setStripH(e.nativeEvent.layout.height)}>
+                  <LastTenStrip bare vms={vms} onOpen={(id) => router.push(`/matches/${id}`)} />
                 </View>
+                {vms.slice(0, rowsFit).map((vm) => (
+                  <RecentMatchRow
+                    key={vm.id}
+                    grouped
+                    vm={vm}
+                    onPress={() => router.push(`/matches/${vm.id}`)}
+                  />
+                ))}
               </View>
             </View>
           )}

@@ -959,10 +959,12 @@ Rules that are easy to get wrong:
   results as W/L/D tiles, **newest on the left** — read left to right like
   the match list, no "newest first" label needed — each opening its match,
   plus the record of those ten, e.g. "6–4"; all-time stats wait for the
-  stats section) and then **as many recent match rows as fit**
-  (`components/recentMatchRow.tsx`, the History row without swipe; the
-  section is `flex-1`, measures its height and shows `floor` of what fits —
-  2 on a small phone, 3–4 on a big one), with
+  stats section) and then **as many recent match rows as fit** — **one
+  card**: the strip on top (`bare`), the rows as lines below it
+  (`components/recentMatchRow.tsx` `grouped`: no own border, a hairline
+  above), since they're the same matches. A `flex-1` wrapper around the
+  card only measures the space; the card itself is as tall as its rows
+  (`floor` of what fits — 2 on a small phone, 3–4 on a big one), with
   "See all"; then **Your decks**
   (`components/home/deckStrip.tsx`): a sideways row of deck tiles — legend
   face, name, your record with that deck (own matches only), "Default"

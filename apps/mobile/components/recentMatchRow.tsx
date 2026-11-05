@@ -18,6 +18,8 @@ const RESULT: Record<Result, { bar: string; badge: string; text: string }> = {
 type Props = {
   vm: HistoryRowVM;
   onPress: () => void;
+  /** A line in a grouped card (Home's matches): no own border, a hairline above. */
+  grouped?: boolean;
 };
 
 /**
@@ -29,7 +31,7 @@ type Props = {
  * left bar. Your legend is the row's backdrop (`CardBackdrop`, as on the deck
  * cards); the text and the score sit on dark pills.
  */
-const RecentMatchRow = ({ vm, onPress }: Props) => {
+const RecentMatchRow = ({ vm, onPress, grouped = false }: Props) => {
   const r = RESULT[vm.result];
   // Built once, outside the press callback: a press then redraws only
   // the overlay, not the art and text (that made taps lag).
@@ -77,7 +79,9 @@ const RecentMatchRow = ({ vm, onPress }: Props) => {
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      className="relative flex-row overflow-hidden rounded-xl border border-border bg-surface"
+      className={`relative flex-row overflow-hidden bg-surface ${
+        grouped ? 'border-t border-border/60' : 'rounded-xl border border-border'
+      }`}
     >
       {({ pressed }) => (
         <>
