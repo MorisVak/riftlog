@@ -1,4 +1,12 @@
-import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
@@ -12,8 +20,7 @@ import { useMatch } from '@/contexts/matchContext';
 import { useAuth } from '@/contexts/authContext';
 import { winsLabel } from '@/lib/playerText';
 import MatchClock from './matchClock';
-import NoteEditor from './match/noteEditor';
-import Icon from './icon';
+import InlineNote from './match/inlineNote';
 import { badgePop } from './transitions';
 import React, { useEffect, useState } from 'react';
 
@@ -87,7 +94,6 @@ const BetweenGamesScreen = () => {
   const { match, advanceGame, concludeMatch, setGameNote } = useMatch();
   const { status } = useAuth();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [noteOpen, setNoteOpen] = useState(false);
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   // Sideways the column is too tall for the screen, so the result and the
@@ -189,32 +195,19 @@ const BetweenGamesScreen = () => {
       {/* Note the game while it's fresh. Signed-in only: a guest's match is
           never saved, so a note would go nowhere. */}
       {status === 'authed' && (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setNoteOpen(true);
-          }}
-          className={`max-w-full flex-row items-center gap-2 rounded-full border border-border bg-surface px-4 py-2.5 active:bg-elevated ${
+        // Written in place, like on the match detail: tap, type, tap away.
+        <View
+          className={`w-full max-w-[360px] overflow-hidden rounded-2xl border border-border bg-surface ${
             landscape ? '' : 'mt-6'
           }`}
         >
-          <Icon
-            name={lastGame?.notes ? 'file-text' : 'edit-3'}
-            size={15}
-            className={lastGame?.notes ? 'text-ink-secondary' : 'text-accent'}
+          <InlineNote
+            label={`Game ${lastGameNumber} note`}
+            note={lastGame?.notes ?? null}
+            placeholder="Mulligans, key turns, misplays…"
+            onSave={async (text) => setGameNote(match.currentGameIndex, text)}
           />
-          <Text
-            className={`flex-shrink font-display text-[14px] ${
-              lastGame?.notes ? 'text-ink-primary' : 'text-accent'
-            }`}
-            numberOfLines={1}
-          >
-            {lastGame?.notes
-              ? lastGame.notes
-              : `Add a note for game ${lastGameNumber}`}
-          </Text>
-        </Pressable>
+        </View>
       )}
 
       {/* The glow sits on the wrapper, not the Pressable: an iOS shadow is cast
@@ -252,61 +245,62 @@ const BetweenGamesScreen = () => {
   const side = Math.max(insets.left, insets.right) + 20;
 
   return (
-    <View
-      className={`flex-1 items-center justify-center bg-background ${
-        landscape ? 'flex-row gap-20' : 'px-8'
-      }`}
+    // The note field sits mid-screen: shift up for the keyboard, and a tap on
+    // empty space ends editing (which saves the note).
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      className="flex-1 bg-background"
     >
-      {/* The clock does not stop for the break — sideboarding is played on the
-          same countdown — so it stays on screen here. Twice over: the rotated
-          copy reads right-way-up for the player across the table, the other
-          for the player holding the phone. In landscape they move to opposite
-          corners so they don't sit over the result. Both render nothing when
-          the match is untimed. */}
-      {landscape ? (
-        <>
-          <MatchClock
-            variant="screen"
-            className="absolute top-4 rotate-180"
-            style={{ right: side }}
-          />
-          <MatchClock
-            variant="screen"
-            className="absolute bottom-4"
-            style={{ left: side }}
-          />
-        </>
-      ) : (
-        <>
-          <MatchClock
-            variant="screen"
-            className="absolute inset-x-0 top-16 rotate-180"
-          />
-          <MatchClock variant="screen" className="absolute inset-x-0 bottom-10" />
-        </>
-      )}
+      <Pressable
+        accessible={false}
+        onPress={Keyboard.dismiss}
+        className={`flex-1 items-center justify-center bg-background ${
+          landscape ? 'flex-row gap-20' : 'px-8'
+        }`}
+      >
+        {/* The clock does not stop for the break — sideboarding is played on the
+            same countdown — so it stays on screen here. Twice over: the rotated
+            copy reads right-way-up for the player across the table, the other
+            for the player holding the phone. In landscape they move to opposite
+            corners so they don't sit over the result. Both render nothing when
+            the match is untimed. */}
+        {landscape ? (
+          <>
+            <MatchClock
+              variant="screen"
+              className="absolute top-4 rotate-180"
+              style={{ right: side }}
+            />
+            <MatchClock
+              variant="screen"
+              className="absolute bottom-4"
+              style={{ left: side }}
+            />
+          </>
+        ) : (
+          <>
+            <MatchClock
+              variant="screen"
+              className="absolute inset-x-0 top-16 rotate-180"
+            />
+            <MatchClock variant="screen" className="absolute inset-x-0 bottom-10" />
+          </>
+        )}
 
-      {result}
-      {actions}
+        {result}
+        {actions}
 
-      <NoteEditor
-        visible={noteOpen}
-        initial={lastGame?.notes ?? null}
-        title={`Game ${lastGameNumber} note`}
-        placeholder="What happened this game? Mulligans, key turns, misplays…"
-        onSave={(text) => setGameNote(match.currentGameIndex, text)}
-        onClose={() => setNoteOpen(false)}
-      />
 
-      {confirmOpen && (
-        <EndRoundConfirm
-          outcomeLabel={endOutcomeLabel}
-          seriesLabel={seriesLabel}
-          onCancel={() => setConfirmOpen(false)}
-          onConfirm={onConfirmEnd}
-        />
-      )}
-    </View>
+        {confirmOpen && (
+          <EndRoundConfirm
+            outcomeLabel={endOutcomeLabel}
+            seriesLabel={seriesLabel}
+            onCancel={() => setConfirmOpen(false)}
+            onConfirm={onConfirmEnd}
+          />
+        )}
+      </Pressable>
+    </KeyboardAvoidingView>
   );
 };
 
