@@ -41,6 +41,8 @@ export type HistoryRowVM = {
   opponentChampion: string | null;
   /** The opponent's legend (picked in setup); null on older matches. */
   opponentLegend: CardRef | null;
+  /** Your legend (your deck's, or picked in setup); null if unknown. */
+  yourLegend: CardRef | null;
   format: 'BO1' | 'BO3';
   score: string;
   date: string;
@@ -175,6 +177,7 @@ export function toHistoryRowVM(m: MatchWithGames): HistoryRowVM {
     opponent: typedName || champion || 'Opponent',
     opponentChampion: typedName && champion ? champion : null,
     opponentLegend,
+    yourLegend: p1?.legend ?? null,
     format: isBo1 ? 'BO1' : 'BO3',
     score,
     date: new Date(m.ended_at).toLocaleDateString(undefined, {

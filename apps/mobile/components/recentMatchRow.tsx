@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import type { HistoryRowVM, Result } from '@/lib/historyView';
 import MatchMeta from './matchMeta';
-import { CardBackdrop } from './deck/cardArt';
+import { MatchBackdrop } from './deck/cardArt';
 import PressOverlay from './pressOverlay';
 
 // Result tokens, paired with a letter + left bar so color is never the only
@@ -26,8 +26,9 @@ type Props = {
  * (format, plus the clock for a timed match) — minus the swipe-to-delete and the
  * expandable per-game detail. Tapping opens the History tab with this match
  * already expanded. Score color always rides alongside the letter badge and
- * left bar. The opponent's legend (picked in setup) is the row's backdrop,
- * as on the deck cards; score and date sit on a dark pill over it.
+ * left bar. Both legends face off as the row's backdrop (`MatchBackdrop`:
+ * yours left, theirs right, tinted with the result); score and date sit on a
+ * dark pill over it.
  */
 const RecentMatchRow = ({ vm, onPress }: Props) => {
   const r = RESULT[vm.result];
@@ -39,9 +40,7 @@ const RecentMatchRow = ({ vm, onPress }: Props) => {
     >
       {({ pressed }) => (
         <>
-          {vm.opponentLegend && (
-            <CardBackdrop card={vm.opponentLegend} tint={vm.result} />
-          )}
+          <MatchBackdrop you={vm.yourLegend} them={vm.opponentLegend} tint={vm.result} />
           <View className={`w-1 self-stretch ${r.bar}`} />
           <View className="min-h-[64px] flex-1 flex-row items-center px-3 py-2">
             <View
@@ -72,7 +71,9 @@ const RecentMatchRow = ({ vm, onPress }: Props) => {
 
             <View
               className={`items-end ${
-                vm.opponentLegend ? 'rounded-md bg-background/70 px-1.5 py-0.5' : ''
+                vm.opponentLegend || vm.yourLegend
+                  ? 'rounded-md bg-background/70 px-1.5 py-0.5'
+                  : ''
               }`}
             >
               <Text className="font-mono text-[14px] text-ink-primary">

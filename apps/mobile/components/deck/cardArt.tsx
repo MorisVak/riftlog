@@ -182,78 +182,130 @@ const DEFAULT_FOCUS: Focus = { x: 0.5, y: 0.3, w: 0.8 };
 const FOCUS_AT = 0.62;
 const backdropFocus = (code: string): Focus => LEGEND_FOCUS[code] ?? DEFAULT_FOCUS;
 
+/** The art printing for a card, or null with the flag off / not in the catalog. */
+const useArtPrinting = (card: CardRef | null): CatalogPrinting | null => {
+  const { match } = useCardMatch(card ?? { name: '', code: null });
+  if (!card || !CARD_ART || !match || match.kind === 'unknown') return null;
+  const p = match.printing;
+  return p && (p.image_url || p.storage_path) ? p : null;
+};
+
+/** The width : height of the crops in `LEGEND_FOCUS` (`boxAspect` in legend-focus.swift). */
+const BACKDROP_ASPECT = 2.6;
+
+/** The printed card frame's width at each edge, as a share of the image. */
+const FRAME_X = 0.07;
+const FRAME_Y = 0.035;
+
 /**
- * A card's art as the backdrop of a deck card (Home's "Recently played deck",
- * "My decks"): the art, cropped by `LEGEND_FOCUS`, fills the right of the parent, which must
- * be `relative` + `overflow-hidden`, and fades into `bg-surface` toward the
- * left so the text there stays readable. Nothing with the flag off or no art.
- * Decorative: hidden from screen readers.
+ * Where the art's edge goes (its `left` / `top`): `wanted`, but kept inside
+ * the illustration so the card frame never shows at the box's edges — and,
+ * when the box is too big for that, at least inside the image.
  */
-export const CardBackdrop = ({
-  card,
-  fill = 'surface',
-  tint,
+function clampInside(wanted: number, boxSize: number, artSize: number, frame: number): number {
+  const max = -frame * artSize; // the frame's inner edge at the box's start
+  const min = boxSize - (1 - frame) * artSize; // …and at its end
+  if (min <= max) return Math.min(max, Math.max(min, wanted));
+  return Math.min(0, Math.max(boxSize - artSize, wanted));
+}
+
+/**
+ * One printing's art filling its parent box, cropped on its `LEGEND_FOCUS`
+ * point: the focus sits `focusAt` across the box and halfway down, scaled so
+ * the crop spans the box's width, clamped so the art covers the box and the
+ * card frame stays out of it (`clampInside`).
+ */
+const FocusedArt = ({
+  printing,
+  focusAt,
+  scaleBy = 'width',
 }: {
-  card: CardRef;
-  /** The card's background, so the fade meets it seamlessly. */
-  fill?: keyof typeof FADES;
+  printing: CatalogPrinting;
+  focusAt: number;
   /**
-   * A match row's result: the art is colored with it (a color blend keeps
-   * the art's light and shade, takes the result's hue). Never the only
-   * signal — the row also has its letter badge and result bar.
+   * `width`: the crop spans the box's width (wide boxes). `height`: the crop's
+   * height as on a full-width backdrop spans the box's height — for narrow
+   * boxes (a match row's halves), so the face keeps its size and the box
+   * shows a slice around it instead of the card's frame.
    */
-  tint?: 'win' | 'loss' | 'draw';
+  scaleBy?: 'width' | 'height';
 }) => {
-  const fade = FADES[fill];
   const { width: screen } = useWindowDimensions();
-  const { match } = useCardMatch(card);
-  const printing = CARD_ART && match && match.kind !== 'unknown' ? match.printing : null;
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
-  const focus = printing ? backdropFocus(printing.code) : DEFAULT_FOCUS;
+  const focus = backdropFocus(printing.code);
   // The art is drawn wider than the box (only the crop shows): size the URL for that.
-  const urls = printing ? cardImageUrls(printing, (box?.w ?? screen * 0.7) / focus.w) : [];
+  const urls = cardImageUrls(printing, (box?.w ?? screen * 0.7) / focus.w);
   const [attempt, setAttempt] = useState(0);
   const uri = urls[attempt] ?? null;
-  if (!uri) return null;
 
-  // Place the art so its focus point sits FOCUS_AT across the box (the left
-  // is faded) and halfway down, scaled so
-  // the crop spans the box's width; clamped so the art always covers the box.
   let art: { width: number; height: number; left: number; top: number } | null = null;
   if (box) {
-    const width = box.w / focus.w;
+    // The crop is BACKDROP_ASPECT wide for its height (legend-focus.swift).
+    const width =
+      scaleBy === 'width' ? box.w / focus.w : (box.h * BACKDROP_ASPECT) / focus.w;
     const height = width * PORTRAIT;
     art = {
       width,
       height,
-      left: Math.min(0, Math.max(box.w - width, box.w * FOCUS_AT - focus.x * width)),
-      top: Math.min(0, Math.max(box.h - height, box.h / 2 - focus.y * height)),
+      left: clampInside(box.w * focusAt - focus.x * width, box.w, width, FRAME_X),
+      top: clampInside(box.h / 2 - focus.y * height, box.h, height, FRAME_Y),
     };
   }
-
   return (
     <View
-      pointerEvents="none"
-      accessible={false}
-      importantForAccessibility="no-hide-descendants"
+      className="absolute inset-0 overflow-hidden"
       onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
-      // `isolate` keeps the tint's blend inside the box.
-      style={{ isolation: 'isolate' }}
-      className="absolute bottom-0 right-0 top-0 w-[70%] overflow-hidden"
     >
-      {art && (
+      {art && uri && (
         <Image
           source={{ uri }}
           style={{ position: 'absolute', ...art, opacity: 0.85 }}
           contentFit="cover"
           transition={160}
-          recyclingKey={`${printing?.code}-backdrop-${attempt}`}
+          recyclingKey={`${printing.code}-backdrop-${attempt}`}
           onError={() => setAttempt((a) => a + 1)}
         />
       )}
-      {art && tint && (
+    </View>
+  );
+};
+
+/**
+ * A legend's art filling its parent box (which must be `relative`), cropped
+ * on its face like the backdrops — for match setup's portraits. Nothing with
+ * the flag off or no art; decorative.
+ */
+export const LegendPortrait = ({ card }: { card: CardRef }) => {
+  const printing = useArtPrinting(card);
+  if (!printing) return null;
+  return (
+    <View
+      pointerEvents="none"
+      accessible={false}
+      importantForAccessibility="no-hide-descendants"
+      className="absolute inset-0"
+    >
+      <FocusedArt printing={printing} focusAt={0.5} />
+    </View>
+  );
+};
+
+type Fill = keyof typeof FADES;
+type Tint = 'win' | 'loss' | 'draw';
+
+/**
+ * The layers over backdrop art: the result tint, the fade into the card's
+ * fill on the left, and a shade on the right edge for the date and chevron.
+ */
+const BackdropOverlays = ({ fill, tint }: { fill: Fill; tint?: Tint }) => {
+  const fade = FADES[fill];
+  return (
+    <>
+      {tint && (
+        // A color blend keeps the art's light and shade and takes the
+        // result's hue; at 35% the art's own colors still come through.
         <View
-          style={{ mixBlendMode: 'color', opacity: 0.6 }}
+          style={{ mixBlendMode: 'color', opacity: 0.35 }}
           className={`absolute inset-0 ${TINTS[tint]}`}
         />
       )}
@@ -264,13 +316,100 @@ export const CardBackdrop = ({
         end={{ x: 1, y: 0.5 }}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
-      {/* A light shade on the right edge for the date and chevron. */}
       <LinearGradient
         colors={[fade.clear, fade.shade]}
         start={{ x: 0.6, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
+    </>
+  );
+};
+
+const BACKDROP_BOX = 'absolute bottom-0 right-0 top-0 overflow-hidden';
+
+/**
+ * A card's art as the backdrop of a deck card (Home's "Recently played deck",
+ * "My decks", the deck picker field, a match row): the art, cropped by
+ * `LEGEND_FOCUS`, fills the right ~70% of the parent, which must be
+ * `relative` + `overflow-hidden`, and fades into the card's fill toward the
+ * left so the text there stays readable. Nothing with the flag off or no art.
+ * Decorative: hidden from screen readers.
+ */
+export const CardBackdrop = ({
+  card,
+  fill = 'surface',
+  tint,
+}: {
+  card: CardRef;
+  /** The card's background, so the fade meets it seamlessly. */
+  fill?: Fill;
+  /**
+   * A match row's result: the art is colored with it. Never the only
+   * signal — the row also has its letter badge and result bar.
+   */
+  tint?: Tint;
+}) => {
+  const printing = useArtPrinting(card);
+  if (!printing) return null;
+  return (
+    <View
+      pointerEvents="none"
+      accessible={false}
+      importantForAccessibility="no-hide-descendants"
+      // `isolate` keeps the tint's blend inside the box.
+      style={{ isolation: 'isolate' }}
+      className={`${BACKDROP_BOX} w-[70%]`}
+    >
+      <FocusedArt printing={printing} focusAt={FOCUS_AT} />
+      <BackdropOverlays fill={fill} tint={tint} />
+    </View>
+  );
+};
+
+/**
+ * A match row's backdrop: both legends face off on the right — yours on the
+ * left (you're p1), theirs on the right, split by a slanted seam — tinted
+ * with the result. With only one legend known (older matches, no deck) it's
+ * that legend alone, as `CardBackdrop`.
+ */
+export const MatchBackdrop = ({
+  you,
+  them,
+  fill = 'surface',
+  tint,
+}: {
+  you: CardRef | null;
+  them: CardRef | null;
+  fill?: Fill;
+  tint?: Tint;
+}) => {
+  const mine = useArtPrinting(you);
+  const theirs = useArtPrinting(them);
+  if (!mine || !theirs) {
+    const only = them && theirs ? them : you && mine ? you : null;
+    return only ? <CardBackdrop card={only} fill={fill} tint={tint} /> : null;
+  }
+  return (
+    <View
+      pointerEvents="none"
+      accessible={false}
+      importantForAccessibility="no-hide-descendants"
+      style={{ isolation: 'isolate' }}
+      className={`${BACKDROP_BOX} w-[78%] flex-row`}
+    >
+      <View className="relative flex-1">
+        <FocusedArt printing={mine} focusAt={0.55} scaleBy="height" />
+      </View>
+      <View className="relative flex-1">
+        <FocusedArt printing={theirs} focusAt={0.5} scaleBy="height" />
+      </View>
+      {/* The seam: a slanted stripe of the card's fill between the two. */}
+      <View
+        style={{ transform: [{ skewX: '-14deg' }], backgroundColor: FADES[fill].solid }}
+        className="absolute bottom-[-8px] left-1/2 top-[-8px] -ml-[2px] w-[4px]"
+      />
+      <BackdropOverlays fill={fill} tint={tint} />
     </View>
   );
 };

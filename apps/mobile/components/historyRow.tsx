@@ -14,7 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { deckHref, type HistoryRowVM, type Result } from '@/lib/historyView';
 import MatchMeta from './matchMeta';
-import { CardBackdrop } from './deck/cardArt';
+import { MatchBackdrop } from './deck/cardArt';
 import PressOverlay from './pressOverlay';
 import { SelectionGutter } from './selectCheck';
 
@@ -236,13 +236,12 @@ const HistoryRow = ({
               >
                 {({ pressed }) => (
                   <>
-                    {vm.opponentLegend && (
-                      <CardBackdrop
-                        card={vm.opponentLegend}
-                        fill={selected ? 'elevated' : 'surface'}
-                        tint={vm.result}
-                      />
-                    )}
+                    <MatchBackdrop
+                      you={vm.yourLegend}
+                      them={vm.opponentLegend}
+                      fill={selected ? 'elevated' : 'surface'}
+                      tint={vm.result}
+                    />
 
                     <View
                       className={`m-3 h-8 w-8 items-center justify-center rounded-lg ${r.badge}`}
@@ -274,7 +273,9 @@ const HistoryRow = ({
                     {/* On a dark pill over the legend art, so it reads on any art. */}
                     <View
                       className={`items-end ${
-                        vm.opponentLegend ? 'my-3 rounded-md bg-background/70 px-1.5 py-0.5' : 'py-3'
+                        vm.opponentLegend || vm.yourLegend
+                        ? 'my-3 rounded-md bg-background/70 px-1.5 py-0.5'
+                        : 'py-3'
                       }`}
                     >
                       <Text className={`font-mono text-[15px] ${r.text}`}>{vm.score}</Text>
