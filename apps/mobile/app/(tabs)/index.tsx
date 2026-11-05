@@ -31,6 +31,8 @@ const BACKGROUND = '#0D1B2A'; // for Feather icons inside accent fills
 // The matches container's own height around its content: padding (2 × 12),
 // the gap between Last 10 and the panel (12), and both borders (2 × 2).
 const CARD_CHROME = 40;
+/** Home's match lines, at most. */
+const MAX_LINES = 4;
 // `background` mirrored for the gradient behind the status bar.
 const STATUS_SHADE = ['#0D1B2A', '#0D1B2A00'] as const;
 const ACCENT = '#8B93D9';
@@ -113,9 +115,10 @@ const Home = () => {
   const [matchesH, setMatchesH] = useState(0);
   const [headH, setHeadH] = useState(0);
   const [stripH, setStripH] = useState(0);
-  const linesFit = Math.max(
-    1,
-    Math.floor((matchesH - headH - stripH - CARD_CHROME) / MATCH_LINE_H),
+  // At most MAX_LINES: Last 10 covers more, History has the rest.
+  const linesFit = Math.min(
+    MAX_LINES,
+    Math.max(1, Math.floor((matchesH - headH - stripH - CARD_CHROME) / MATCH_LINE_H)),
   );
 
   // "Default deck": the deck a new match starts with — your default deck (the
@@ -161,7 +164,8 @@ const Home = () => {
           flexGrow: 1,
           paddingTop: insets.top + 6,
           paddingHorizontal: 14,
-          paddingBottom: 12,
+          // A clear gap above the tab bar, so the decks don't read as part of it.
+          paddingBottom: 24,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -218,7 +222,7 @@ const Home = () => {
         >
           <View
             onLayout={(e) => setHeadH(e.nativeEvent.layout.height)}
-            className="flex-row items-baseline justify-between px-0.5 pb-2.5 pt-5"
+            className="flex-row items-baseline justify-between px-0.5 pb-2.5 pt-4"
           >
             <Text className="font-display-bold text-[15px] text-ink-primary">Your matches</Text>
             <Pressable onPress={() => router.navigate('/history')}>
@@ -263,7 +267,7 @@ const Home = () => {
             in with at least one deck (with none, the hero offers Import). */}
         {authed && decks !== null && decks.length > 0 && (
           <Animated.View style={decksStyle}>
-            <View className="mb-2.5 mt-5 flex-row items-baseline justify-between px-0.5">
+            <View className="mb-2.5 mt-3 flex-row items-baseline justify-between px-0.5">
               <Text className="font-display-bold text-[15px] text-ink-primary">Your decks</Text>
               <Pressable onPress={() => router.navigate('/decks')}>
                 <Text className="text-[13px] font-semibold text-accent">See all</Text>

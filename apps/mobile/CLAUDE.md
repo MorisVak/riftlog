@@ -968,8 +968,9 @@ Rules that are easy to get wrong:
   format · deck, score in the result color, date. **No backdrop art**: art
   rows repeated your legend and looked busy. The section is `flex-1` and
   measures itself (heading + strip + `CARD_CHROME`, then `floor` of whole
-  lines — 4 on a 6.7" phone); the leftover (under one line) is shared above
-  and below it (`justify-center`), so it reads as
+  lines, **at most four** (`MAX_LINES`) — Last 10 covers more, History the
+  rest); the leftover is shared above and below it (`justify-center`), so
+  it reads as
   even spacing, never a gap at the bottom. With
   "See all"; then **Your decks**
   (`components/home/deckStrip.tsx`): a sideways row of deck tiles — legend
@@ -979,7 +980,8 @@ Rules that are easy to get wrong:
   play with. **Home fills exactly one screen**: no scrolling on a 6.1"
   iPhone (852pt) and no empty space at the bottom — the slack goes to
   *content* (more match lines, the rest as even section spacing), never to
-  stretching a card (a hero that grew
+  stretching a card. Home ends 24pt above the tab bar, so the deck row
+  doesn't read as part of the bar (a hero that grew
   to fill the space was rejected outright). Hero 176pt, deck art 72pt,
   tight section spacing; the ScrollView's content has `flexGrow: 1`.
   Smaller phones may scroll
