@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -20,7 +20,7 @@ import { useMatch } from '@/contexts/matchContext';
 import { useAuth } from '@/contexts/authContext';
 import { useProfile } from '@/contexts/profileContext';
 import { toDeckSnapshot, type Deck } from '@/lib/decks';
-import DeckPicker, { type DeckPickerHandle } from './deck/deckPicker';
+import DeckPicker from './deck/deckPicker';
 import { LegendPortrait } from './deck/cardArt';
 import { LegendSheet, useLegends } from './match/legendPicker';
 import DurationPicker from './durationPicker';
@@ -164,10 +164,30 @@ const Segmented = <T extends string | number>({
   </View>
 );
 
-const Label = ({ children, hint }: { children: string; hint?: string }) => (
+const Label = ({
+  children,
+  hint,
+  action,
+}: {
+  children: string;
+  hint?: string;
+  /** A small text button on the right instead of the hint, e.g. "Clear". */
+  action?: { label: string; a11y: string; onPress: () => void };
+}) => (
   <View className="mb-2 flex-row items-baseline justify-between">
     <Text className="font-display text-base text-ink-secondary">{children}</Text>
-    {hint && <Text className="text-xs text-ink-tertiary">{hint}</Text>}
+    {action ? (
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={action.a11y}
+        onPress={action.onPress}
+        hitSlop={10}
+      >
+        <Text className="font-display text-[13px] text-accent">{action.label}</Text>
+      </TouchableOpacity>
+    ) : (
+      hint && <Text className="text-xs text-ink-tertiary">{hint}</Text>
+    )}
   </View>
 );
 
@@ -175,8 +195,8 @@ const Label = ({ children, hint }: { children: string; hint?: string }) => (
  * Pre-match setup: a native page sheet over Home, built around the matchup —
  * your legend and theirs side by side (you left: you're p1), each a portrait
  * you tap to choose, with the names under them. Then your deck (signed in,
- * optional; a deck supplies your legend, and your portrait then opens the
- * deck picker), the format and the clock. Start is pinned at the bottom and
+ * optional, with "Clear"; a deck supplies your legend — picking a different
+ * legend on your portrait drops the deck), the format and the clock. Start is pinned at the bottom and
  * says what's missing: their legend is required whenever the catalog is
  * loaded (so History can show it); a custom clock can't be 00:00.
  *
@@ -205,7 +225,6 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
   // chosen deck's legend wins.
   const [yourLegend, setYourLegend] = useState<CardRef | null>(null);
   const [sheet, setSheet] = useState<'you' | 'them' | null>(null);
-  const deckPicker = useRef<DeckPickerHandle>(null);
 
   const deckChosen = signedIn && deck !== null;
   const shownYourLegend = deckChosen ? (deck?.list.legend ?? null) : yourLegend;
@@ -286,7 +305,7 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
                   caption={deckChosen && deck ? `From ${deck.name}` : undefined}
                   emptyLabel="Your legend"
                   emptyHint={signedIn ? 'Optional · or pick a deck' : 'Optional'}
-                  onPress={() => (deckChosen ? deckPicker.current?.open() : setSheet('you'))}
+                  onPress={() => setSheet('you')}
                 />
                 <TextInput
                   value={p1Name}
@@ -331,9 +350,24 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
 
             {signedIn && (
               <View className="mt-6">
-                <Label hint="Optional">Your deck</Label>
+                <Label
+                  hint="Optional"
+                  action={
+                    deck
+                      ? {
+                          label: 'Clear',
+                          a11y: 'Clear your deck',
+                          onPress: () => {
+                            Haptics.selectionAsync();
+                            setDeck(null);
+                          },
+                        }
+                      : undefined
+                  }
+                >
+                  Your deck
+                </Label>
                 <DeckPicker
-                  ref={deckPicker}
                   value={deck}
                   onChange={setDeck}
                   defaultDeckId={profile?.defaultDeckId ?? null}
@@ -425,8 +459,13 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
         <LegendSheet
           visible={sheet === 'you'}
           onClose={() => setSheet(null)}
-          value={yourLegend}
-          onChange={setYourLegend}
+          value={shownYourLegend}
+          onChange={(legend) => {
+            // A different legend than the deck's means you're not playing
+            // that deck: drop it, so the pick is what gets saved.
+            if (deckChosen && legend?.name !== deck?.list.legend?.name) setDeck(null);
+            setYourLegend(legend);
+          }}
           title="Your legend"
           optional
         />

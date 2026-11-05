@@ -1,4 +1,4 @@
-import React, { useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -48,9 +48,6 @@ type LoadState =
  * picker also chooses it once the decks load — unless the user has already
  * picked something — which is how the setup sheet starts on your default.
  */
-/** Opens the sheet from elsewhere (e.g. match setup's portrait). */
-export type DeckPickerHandle = { open: () => void };
-
 const DeckPicker = ({
   value,
   onChange,
@@ -58,9 +55,7 @@ const DeckPicker = ({
   title = 'Choose your deck',
   defaultDeckId = null,
   preselect = false,
-  ref,
 }: {
-  ref?: React.Ref<DeckPickerHandle>;
   value: Deck | null;
   onChange: (deck: Deck | null) => void;
   /** The "nothing chosen" option, e.g. "No default deck". */
@@ -143,8 +138,6 @@ const DeckPicker = ({
     setMenuOpen(false);
     setOpen(true);
   };
-
-  useImperativeHandle(ref, () => ({ open: openSheet }));
 
   const pickLegend = (name: string | null) => {
     Haptics.selectionAsync();
