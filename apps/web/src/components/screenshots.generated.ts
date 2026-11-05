@@ -2,6 +2,14 @@
 // Re-run: pnpm --filter @riftlog/web screenshots
 
 export const SCREENSHOTS = {
+  "home": {
+    "width": 390,
+    "height": 796
+  },
+  "setup": {
+    "width": 390,
+    "height": 796
+  },
   "board": {
     "width": 390,
     "height": 796
@@ -10,11 +18,19 @@ export const SCREENSHOTS = {
     "width": 796,
     "height": 390
   },
+  "who-won": {
+    "width": 390,
+    "height": 796
+  },
   "between-games": {
     "width": 390,
     "height": 800
   },
-  "setup": {
+  "between-games-landscape": {
+    "width": 796,
+    "height": 390
+  },
+  "match-complete": {
     "width": 390,
     "height": 796
   },
@@ -22,7 +38,15 @@ export const SCREENSHOTS = {
     "width": 390,
     "height": 796
   },
+  "history-filters": {
+    "width": 390,
+    "height": 796
+  },
   "match-detail": {
+    "width": 390,
+    "height": 796
+  },
+  "decks": {
     "width": 390,
     "height": 796
   },
@@ -30,11 +54,15 @@ export const SCREENSHOTS = {
     "width": 390,
     "height": 796
   },
-  "deck-changes": {
+  "deck-gallery": {
     "width": 390,
     "height": 796
   },
-  "my-decks": {
+  "card-sheet": {
+    "width": 390,
+    "height": 796
+  },
+  "legend-art": {
     "width": 390,
     "height": 796
   }

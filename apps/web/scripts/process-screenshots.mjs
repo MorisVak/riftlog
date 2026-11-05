@@ -31,6 +31,10 @@ const OUT_WIDTH = 390;
 const OUT_WIDTH_LANDSCAPE = 796;
 const QUALITY = 80;
 
+// Shots are taken in the app's demo mode (apps/mobile/lib/demo.ts):
+// fictional opponents, so nothing needs blurring — `blur` stays for a shot
+// that shows real people's names.
+//
 // iOS status bar height in points on Dynamic Island iPhones. Raw pixels are
 // points × the device scale, which is derived from the screenshot width.
 const STATUS_BAR_PT = 54;
@@ -45,24 +49,26 @@ const STATUS_BAR_PT = 54;
  * @type {Record<string, { cropTopPt?: number, blur?: Box[], rotate?: number }>}
  */
 const SHOTS = {
+  home: {},
+  setup: {},
   board: {},
-  // The board held sideways (cmd+→ in the Simulator: island on the right).
-  "board-landscape": { rotate: 90 },
+  // The board held sideways. Captured with cmd+← in the Simulator, so the
+  // island is at the top of the raw file and the content turns upright
+  // counter-clockwise (270°); a cmd+→ capture would need 90.
+  "board-landscape": { rotate: 270 },
+  "who-won": {},
   // The opponent's upside-down clock sits right under the status bar.
   "between-games": { cropTopPt: 50 },
-  setup: {},
-  // Opponent names that may be real people ("Dome", "Joeli", "Sam").
-  history: {
-    blur: [
-      { left: 258, top: 1514, width: 200, height: 58 },
-      { left: 258, top: 1732, width: 200, height: 58 },
-      { left: 258, top: 2391, width: 200, height: 58 },
-    ],
-  },
+  "between-games-landscape": { rotate: 270 },
+  "match-complete": {},
+  history: {},
+  "history-filters": {},
   "match-detail": {},
+  decks: {},
   deck: {},
-  "deck-changes": {},
-  "my-decks": {},
+  "deck-gallery": {},
+  "card-sheet": {},
+  "legend-art": {},
 };
 
 /** Returns the image with each box blurred beyond reading, as a PNG buffer. */
