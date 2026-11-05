@@ -16,13 +16,39 @@ const ON_ACCENT = '#0D1B2A';
 // art, darker toward the divider and the outer edge where text sits.
 const VIGNETTE = ['#0D1B2AD9', '#0D1B2A66', '#0D1B2AD9'] as const;
 
+// Landscape: the art fades out toward the score (clear → the background).
+const SIDE_FADE = ['#0D1B2A00', '#0D1B2A33', '#0D1B2AF5'] as const;
+
 /**
  * The player's legend behind their half: dimmed and vignetted, so the score,
  * the buttons and the name stay the focus. Turns with the half, so it faces
  * its player too. Nothing when the player has no legend (or no art).
+ *
+ * Sideways each half is a wide, short strip: art covering all of it was
+ * zoomed far past the image's resolution (blurry, the face cut off). There
+ * it's a panel on the player's own side, behind their name, fading toward
+ * the score — about portrait-shaped, so the face fits and stays sharp.
  */
-const LegendBackground = ({ player }: { player: { legend?: CardRef } }) =>
-  player.legend ? (
+const LegendBackground = ({
+  player,
+  landscape,
+}: {
+  player: { legend?: CardRef };
+  landscape: boolean;
+}) =>
+  !player.legend ? null : landscape ? (
+    <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 w-[44%]">
+      <LegendPortrait card={player.legend} />
+      <View className="absolute inset-0 bg-background/30" />
+      <LinearGradient
+        colors={SIDE_FADE}
+        locations={[0, 0.5, 1]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+      />
+    </View>
+  ) : (
     <View pointerEvents="none" className="absolute inset-0">
       <LegendPortrait card={player.legend} />
       <View className="absolute inset-0 bg-background/45" />
@@ -31,7 +57,7 @@ const LegendBackground = ({ player }: { player: { legend?: CardRef } }) =>
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
     </View>
-  ) : null;
+  );
 
 type TrackingFieldProps = {
   playerId: PlayerId;
@@ -55,7 +81,7 @@ const TrackingField = ({
   // Behind everything on the half: the legend.
   const backdrop = (
     <>
-      <LegendBackground player={player} />
+      <LegendBackground player={player} landscape={landscape} />
     </>
   );
   // The player's name, larger, on a soft pill so it reads over the art.

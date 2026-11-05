@@ -550,8 +550,11 @@ game counter, nothing taking board space from either player:
 - **Each half shows its player's legend** behind it (`LegendBackground` in
   `components/trackingField.tsx`): the face crop under a 45% `background`
   layer and a vignette, turning with the half so it faces its player; the
-  score and buttons stay the focus. The player's name is larger and bold on
-  a soft pill. **A take-back is quiet on purpose** — it's usually fixing a
+  score and buttons stay the focus. **Sideways** each half is a wide, short
+  strip, and art covering all of it was zoomed far past the image (blurry,
+  face cut off): there the art is a panel on the player's own side (44% of
+  the width, behind their name) fading toward the score. The player's name
+  is larger and bold on a soft pill. **A take-back is quiet on purpose** — it's usually fixing a
   mis-tap: the numeral dips a little and tints toward `loss-text` for a
   moment (`scoringComponent.tsx`), with a soft haptic. (A red flash over
   the half plus a shake was tried and was too much.) At 0 a tap does
