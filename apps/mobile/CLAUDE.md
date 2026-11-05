@@ -493,8 +493,8 @@ game counter, nothing taking board space from either player:
   is portrait everywhere (`initialOrientation` in app.json) except those two
   match screens, which unlock rotation (`expo-screen-orientation`); it re-locks
   once the match is over. Never unlock it for menus. The between-games screen
-  puts the result and the actions side by side in landscape, with its two
-  clocks in opposite corners. In landscape the players sit at the long sides: each half keeps the
+  puts the banner left and the rest right in landscape, with its two clocks
+  in opposite corners. In landscape the players sit at the long sides: each half keeps the
   numeral over its buttons (the numeral shrinks to 80px to fit), the name sits
   in one corner and **each player gets their own clock** in the other corner
   (END under yours) — a single clock on the divider only faces one of them, so
@@ -540,9 +540,21 @@ Conventions:
   same update as the score so they can't drift (`changeScore` in
   `matchContext`). A take-back at 0 records nothing. `setScore` jumps a score
   without events and isn't used by the board — don't wire it to UI.
+- **Between games** (`components/betweenGamesScreen.tsx`, a Bo3's break)
+  is built from the match detail's pieces, so the break already looks like
+  the record it becomes: the **versus banner** for the game just played (its
+  loser dimmed, "Game 1 · Won" over that game's score; about a third of the
+  screen tall), a **series tracker** (one slot per game: the W/L/D letter on
+  its result tint — the game just played pops in — the next game outlined in
+  the accent with a play mark, a game not reached yet a dashed outline; the
+  standing beside them), the game's in-place note (signed in), then the
+  glowing "Start game N" low in thumb reach and "End round" (with a
+  confirm). In portrait both clocks sit in the flow — the rotated one above
+  the banner, yours at the bottom — so nothing floats over the content.
 - **Match detail** (`app/matches/[id].tsx`, `fetchMatch` →
   `lib/matchDetailView.ts` → `components/match/gameCard.tsx`): a **versus
-  banner**, edge to edge — your legend on the left, theirs on the right,
+  banner** (`components/match/versusBanner.tsx`, shared with between games),
+  edge to edge — your legend on the left, theirs on the right,
   meeting at a slanted cut (the right box is `skewX`-ed to clip, the art
   inside skewed back upright — no mask needed); the side that lost is
   darkened (a draw darkens neither), and the result word, the score and
