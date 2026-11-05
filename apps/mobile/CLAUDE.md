@@ -959,26 +959,28 @@ Rules that are easy to get wrong:
   results as W/L/D tiles, **newest on the left** — read left to right like
   the match list, no "newest first" label needed — each opening its match,
   plus the record of those ten, e.g. "6–4"; all-time stats wait for the
-  stats section) and the **last match** as a versus card
-  (`components/home/lastMatchCard.tsx`: `VersusBanner` at 108pt, the loser
-  dimmed, "Last match · date · format" in the corner, tap to open), with
+  stats section) and then **as many recent match rows as fit**
+  (`components/recentMatchRow.tsx`, the History row without swipe; the
+  section is `flex-1`, measures its height and shows `floor` of what fits —
+  2 on a small phone, 3–4 on a big one), with
   "See all"; then **Your decks**
   (`components/home/deckStrip.tsx`): a sideways row of deck tiles — legend
   face, name, your record with that deck (own matches only), "Default"
   tag — most recently played first, up to eight, ending in an Import tile;
   "See all" opens Decks. So Home reads: play → how it's going → what you
   play with. **Home fills exactly one screen**: no scrolling on a 6.1"
-  iPhone (852pt) and no empty space at the bottom either — the hero takes
-  whatever height is left (`flex-1` down through `DeckPicker`'s
-  `className`, min 176pt, max 320pt; the ScrollView's content has
-  `flexGrow: 1`). Check the fixed parts when adding to Home (last match
-  108pt, deck art 72pt, tight section spacing). Smaller phones may scroll
+  iPhone (852pt) and no empty space at the bottom — the slack goes to
+  *content* (more match rows), never to stretching a card (a hero that grew
+  to fill the space was rejected outright). Hero 176pt, deck art 72pt,
+  tight section spacing; the ScrollView's content has `flexGrow: 1`.
+  Smaller phones may scroll
   a little, so a shade sits behind the status bar. No
   profile button: Profile is a tab. (A flat purple CTA, a separate deck
   field and a three-number stats box were merged into the hero and the
-  strip; recent match rows gave way to Last 10 + the last match card — two
-  rows looked too little, three made Home scroll. "Form" was renamed: it
-  read as misleading.)
+  strip. A fixed two rows looked too little and three made Home scroll —
+  hence rows that fit. A "last match" versus card was tried there and
+  dropped: the first row already is the last match. "Form" was renamed:
+  it read as misleading.)
 - **The default deck can be set in three places**: Home's hero (Change),
   the deck screen's top bar (**Make default** / **Default** pill beside
   Edit list, `components/deck/defaultDeckToggle.tsx`; tap again to remove;

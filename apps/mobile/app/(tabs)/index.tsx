@@ -17,7 +17,7 @@ import MatchSetup from '@/components/matchSetup';
 import DeckPicker from '@/components/deck/deckPicker';
 import HeroCard, { type HeroDeckState } from '@/components/home/heroCard';
 import LastTenStrip from '@/components/home/lastTenStrip';
-import LastMatchCard from '@/components/home/lastMatchCard';
+import RecentMatchRow from '@/components/recentMatchRow';
 import DeckStrip from '@/components/home/deckStrip';
 import { useProfile } from '@/contexts/profileContext';
 import { setDefaultDeck } from '@/lib/profile';
@@ -28,6 +28,10 @@ import { playIntro, useRise } from '@/hooks/useScreenIntro';
 import { useInGameScreen } from '@/hooks/useInGameScreen';
 
 const BACKGROUND = '#0D1B2A'; // for Feather icons inside accent fills
+// A recent match row's height (`recentMatchRow.tsx`: 64pt + its border) and
+// the gap between rows — for how many fit.
+const ROW_H = 66;
+const ROW_GAP = 8;
 // `background` mirrored for the gradient behind the status bar.
 const STATUS_SHADE = ['#0D1B2A', '#0D1B2A00'] as const;
 const ACCENT = '#8B93D9';
@@ -104,6 +108,9 @@ const Home = () => {
 
   const vms = useMemo(() => (rows ?? []).map(toHistoryRowVM), [rows]);
   const last = vms[0] ?? null;
+  // How many match rows fit the space Home has left (measured).
+  const [rowsH, setRowsH] = useState(0);
+  const rowsFit = Math.max(1, Math.floor((rowsH + ROW_GAP) / (ROW_H + ROW_GAP)));
 
   // "Default deck": the deck a new match starts with — your default deck (the
   // setup sheet preselects it). Choosing one here sets the default, as on
@@ -175,11 +182,8 @@ const Home = () => {
 
         {/* The hero: Start a match on your default deck's legend, with the
             deck named in its corner and Change beside it. */}
-        {/* flex-1: the hero takes whatever height is left, so Home always
-            fills the screen without scrolling (within its min / max). */}
-        <Animated.View style={ctaStyle} className="flex-1">
+        <Animated.View style={ctaStyle}>
           <DeckPicker
-            className="flex-1"
             value={defaultDeck}
             onChange={chooseDefault}
             noneLabel="No default deck"
@@ -196,8 +200,8 @@ const Home = () => {
           />
         </Animated.View>
 
-        {/* Recent matches */}
-        <Animated.View style={recentStyle}>
+        {/* Your matches — grows into the height left over (rows fill it). */}
+        <Animated.View style={recentStyle} className="flex-1">
           <View className="mb-2.5 mt-5 flex-row items-baseline justify-between px-0.5">
             <Text className="font-display-bold text-[15px] text-ink-primary">Your matches</Text>
             <Pressable onPress={() => router.navigate('/history')}>
@@ -218,11 +222,26 @@ const Home = () => {
           ) : !last ? (
             <HistoryEmptyState />
           ) : (
-            // The last ten at a glance (each opens its match), then the
-            // latest one as a versus card.
-            <View className="gap-2">
+            // The last ten at a glance, then as many of the newest matches
+            // as fit the space left — so Home fills the screen on any phone
+            // without scrolling, and nothing is stretched to do it.
+            <View className="flex-1 gap-2">
               <LastTenStrip vms={vms} onOpen={(id) => router.push(`/matches/${id}`)} />
-              <LastMatchCard vm={last} onOpen={() => router.push(`/matches/${last.id}`)} />
+              <View
+                className="flex-1 overflow-hidden"
+                style={{ minHeight: ROW_H }}
+                onLayout={(e) => setRowsH(e.nativeEvent.layout.height)}
+              >
+                <View className="gap-2">
+                  {vms.slice(0, rowsFit).map((vm) => (
+                    <RecentMatchRow
+                      key={vm.id}
+                      vm={vm}
+                      onPress={() => router.push(`/matches/${vm.id}`)}
+                    />
+                  ))}
+                </View>
+              </View>
             </View>
           )}
         </Animated.View>

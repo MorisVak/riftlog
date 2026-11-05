@@ -11,9 +11,7 @@ import Icon from '@/components/icon';
 // button, so it sits on calm ground whatever the art.
 const BOTTOM_SHADE = ['#18223A00', '#18223ACC'] as const;
 
-/** The hero's least height; on taller screens it grows to fill Home. */
-const HERO_MIN_H = 176;
-const HERO_MAX_H = 320;
+const HERO_H = 176;
 
 /** What the top-left of the card says, and the action beside it. */
 export type HeroDeckState =
@@ -54,8 +52,8 @@ const HeroCard = ({
 
   return (
     <View
-      style={{ minHeight: HERO_MIN_H, maxHeight: HERO_MAX_H }}
-      className="relative flex-1 overflow-hidden rounded-[22px] border border-border bg-surface"
+      style={{ height: HERO_H }}
+      className="relative overflow-hidden rounded-[22px] border border-border bg-surface"
     >
       {legend && <CardBackdrop card={legend} />}
       <LinearGradient
