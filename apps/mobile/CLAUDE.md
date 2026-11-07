@@ -602,10 +602,13 @@ Conventions:
   player's **whole half is the button**: anything left of the middle takes a
   point back, anything right of it scores one (`SimpleBoard`, an absolute
   fill of the tracking field; name, END and the clock are drawn after it so
-  they keep their taps). Round − and + marks either side of the numeral
-  (− · score · +) are hints only; a held side tints faintly. The numeral holds
-  two digits' width so the marks don't shift at 10. (A − and a wide + under
-  the numeral was tried first and looked odd.) The mode is fixed on the
+  they keep their taps). A large − and + icon either side of the numeral
+  (no button shapes — the whole side is the target) say which side does
+  what; a held side tints faintly, and the "+1" rises from the spot touched
+  (`locationX/Y` of the press). The numeral holds
+  two digits' width so the marks don't shift at 10. (Tried first and dropped:
+  a − and a wide + under the numeral looked odd; round − / + buttons beside
+  it were redundant once the halves became the target.) The mode is fixed on the
   match when it starts (`MatchConfig.scoringMode` → `Match.scoringMode`,
   absent = detailed), so a profile that loads late can't swap the buttons
   mid-game; it isn't saved to Postgres. Simple points are recorded as

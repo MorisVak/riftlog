@@ -26,8 +26,8 @@ type ScoringComponentProps = {
  *   point is scored by saying HOW, which reads off the board at a glance and
  *   is recorded with the point (the match detail's graph colors by it).
  * - **Simple** — a plain counter, like most score apps: the left half of the
- *   field takes a point back, the right half scores one, with − · score · +
- *   drawn across the middle. Points are recorded without an action.
+ *   field takes a point back, the right half scores one, with a large − and +
+ *   either side of the numeral. Points are recorded without an action.
  *
  * On the detailed board, tapping the numeral takes a point back.
  */
@@ -166,45 +166,21 @@ const ActionButton = ({
   );
 };
 
-/**
- * The − / + mark either side of the numeral on the simple board. Only a hint:
- * the tap target is the whole half of the field it sits in (`SimpleBoard`).
- * Round, like a counter's; + is the accent, − stays quiet. Dims while its
- * side is held down.
- */
-const CounterMark = ({
-  kind,
-  size,
-  pressed,
-}: {
-  kind: 'minus' | 'plus';
-  size: number;
-  pressed: boolean;
-}) => {
-  const plus = kind === 'plus';
-  return (
-    <View
-      style={{ width: size, height: size }}
-      className={`items-center justify-center rounded-full border-2 ${
-        plus ? 'border-accent bg-accent/15' : 'border-border bg-surface'
-      } ${pressed ? 'opacity-70' : ''}`}
-    >
-      <Feather
-        name={kind}
-        size={Math.round(size * 0.4)}
-        color={plus ? ACCENT_SOFT : INK_SECONDARY}
-      />
-    </View>
-  );
-};
+/** The floating "+1" box on the simple board, centred on the touch. */
+const TOUCH_FLOAT_W = 64;
+const TOUCH_FLOAT_H = 32;
 
 /**
  * The simple board: the player's whole half is the button. Anything left of
  * the middle takes a point back, anything right of it scores one — easy to
- * hit without looking. The numeral and the − / + marks sit on top and let
- * taps through. Covers the half (absolute fill of the tracking field); the
- * name, END and the clock are drawn after it, so they stay on top and keep
- * their own taps. Turned with the half, so it's left / right for each player.
+ * hit without looking. A large − and + either side of the numeral say which
+ * side does what (icons only — the whole side is the target, so no button
+ * shapes), and dim while their side is held. The "+1" rises from the spot
+ * that was touched.
+ *
+ * Covers the half (absolute fill of the tracking field); the name, END and the
+ * clock are drawn after it, so they stay on top and keep their own taps.
+ * Turned with the half, so it's left / right for each player.
  */
 const SimpleBoard = ({
   name,
@@ -221,7 +197,8 @@ const SimpleBoard = ({
 }) => {
   const float = useFloat();
   const [held, setHeld] = React.useState<'minus' | 'plus' | null>(null);
-  const size = landscape ? 60 : 76;
+  const [touch, setTouch] = React.useState({ x: 0, y: 0 });
+  const icon = landscape ? 40 : 52;
 
   return (
     <View className="absolute inset-0 flex-row">
@@ -234,7 +211,9 @@ const SimpleBoard = ({
         className={`flex-1 ${held === 'minus' ? 'bg-ink-primary/5' : ''}`}
       />
       <Pressable
-        onPress={() => {
+        onPress={(e) => {
+          // Relative to this half of the field (its children let taps through).
+          setTouch({ x: e.nativeEvent.locationX, y: e.nativeEvent.locationY });
           onScore();
           float.play();
         }}
@@ -243,21 +222,37 @@ const SimpleBoard = ({
         accessibilityRole="button"
         accessibilityLabel={`Add a point for ${name}`}
         className={`flex-1 ${held === 'plus' ? 'bg-accent/10' : ''}`}
-      />
+      >
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            float.style,
+            {
+              position: 'absolute',
+              left: touch.x - TOUCH_FLOAT_W / 2,
+              top: touch.y - TOUCH_FLOAT_H,
+              width: TOUCH_FLOAT_W,
+              height: TOUCH_FLOAT_H,
+            },
+          ]}
+          className="items-center justify-center"
+        >
+          <Text className="font-mono text-2xl text-accent-soft">+1</Text>
+        </Animated.View>
+      </Pressable>
 
       <View
         pointerEvents="none"
         className={`absolute inset-0 flex-row items-center justify-center ${
-          landscape ? 'gap-4' : 'gap-3'
+          landscape ? 'gap-6' : 'gap-5'
         }`}
       >
-        <CounterMark kind="minus" size={size} pressed={held === 'minus'} />
+        <View className={held === 'minus' ? 'opacity-50' : ''}>
+          <Feather name="minus" size={icon} color={INK_SECONDARY} />
+        </View>
         {numeral}
-        <View>
-          <Animated.View style={float.style} className="absolute inset-x-0 -top-7 items-center">
-            <Text className="font-mono text-xl text-accent-soft">+1</Text>
-          </Animated.View>
-          <CounterMark kind="plus" size={size} pressed={held === 'plus'} />
+        <View className={held === 'plus' ? 'opacity-50' : ''}>
+          <Feather name="plus" size={icon} color={ACCENT_SOFT} />
         </View>
       </View>
     </View>
@@ -316,7 +311,7 @@ const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
     <Animated.Text
       style={numeralStyle}
       // On the simple board the numeral holds two digits' width, so the
-      // marks beside it don't shift when the score reaches 10.
+      // icons beside it don't shift when the score reaches 10.
       className={`text-center font-mono leading-none ${
         landscape ? 'text-[80px]' : 'text-[150px]'
       } ${simple ? (landscape ? 'min-w-[100px]' : 'min-w-[184px]') : ''}`}
