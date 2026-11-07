@@ -16,7 +16,6 @@ import { useCatalog } from '@/contexts/catalogContext';
 import { useProfile } from '@/contexts/profileContext';
 import { cardImageUrls } from '@/lib/cardImage';
 import legendArtFocus from '@/lib/legendArtFocus.json';
-import { CARD_ART } from '@/lib/featureFlags';
 
 type CardArtProps = {
   card: CardRef;
@@ -49,10 +48,9 @@ const PORTRAIT = 88 / 63;
  * The ONE place card art is decided. Every deck surface renders cards through
  * `CardRow` / `CardGrid` / the deck header / the card sheet → here.
  *
- * Art shows only with the CARD_ART flag on (dev and preview builds, see
- * lib/featureFlags.ts) and when the card matches the catalog: by code, else by
- * name to the card's base printing. Otherwise it's the placeholder it always
- * was — `thumb` renders nothing, so rows stay text-only.
+ * Art shows when the card matches the catalog: by code, else by name to the
+ * card's base printing. Otherwise it's the named placeholder — `thumb`
+ * renders nothing, so rows stay text-only.
  */
 const CardArt = ({
   card,
@@ -227,7 +225,7 @@ const usePrinting = (card: CardRef | null, applyPref: boolean): CatalogPrinting 
   const { match } = useCardMatch(card ?? { name: '', code: null });
   const { index } = useCatalog();
   const { profile } = useProfile();
-  if (!card || !CARD_ART || !match || match.kind === 'unknown') return null;
+  if (!card || !match || match.kind === 'unknown') return null;
   if (!applyPref || !index) return match.printing;
   return legendArtPrinting(match.card, match.printing, profile?.legendArt ?? NO_LEGEND_ART, index);
 };

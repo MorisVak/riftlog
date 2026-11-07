@@ -799,14 +799,14 @@ and card art and text (Features 4 and 6) are built.
 
 > **URGENT TODO — approved Riot API key before a public release.** A public
 > App Store / Google Play release requires an approved Riot API key (or a
-> written license), per Riot's Legal Jibber Jabber. The card art flag (off in
-> production builds) doesn't change that. The production key application is
-> still pending.
+> written license), per Riot's Legal Jibber Jabber — and card art ships in
+> every build, store builds included (since 2026-11-07). The production key
+> application is still pending.
 
 > **Riot's statements in the app.** The fan-made disclaimer and the Legal
 > Jibber Jabber statement appear once, at the bottom of the profile page,
-> small but visible without tapping anything ("clear and easy to find"), and
-> always, whatever the card art flag says. Not repeated on other screens.
+> small but visible without tapping anything ("clear and easy to find").
+> Not repeated on other screens.
 
 Each step should be a working, committed slice before the next begins —
 matching the incremental philosophy in `CLAUDE.md`.

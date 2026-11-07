@@ -109,14 +109,10 @@ Internal imports use the scoped name: `import { Match } from '@riftlog/core'`.
 These are committed. Don't reconfigure EAS, don't run `eas init`, don't change
 identifiers without a deliberate reason.
 
-**EAS profiles and card art (store safety).** Card art is behind a build flag
-(`EXPO_PUBLIC_CARD_ART`, read in `apps/mobile/lib/featureFlags.ts`): on in
-`development`, `preview` and **`testflight`**, off in **`production`**.
-TestFlight and the App Store ship the *same* binary, so **only a
-`production`-profile build may ever be submitted for App Store review** —
-never a `testflight` one. A non-dev build with art on shows a small "Card art
-preview" label at the bottom of the profile page, so such a build is
-recognizable.
+**EAS profiles and card art.** Card art ships in every build, the App Store
+and Google Play ones included (owner, 2026-11-07; it used to be behind a
+build flag, off in `production`). Profiles: `development`, `preview`,
+`production`; store and TestFlight builds come from `production`.
 
 ## Riot Games policy (binding)
 
@@ -139,7 +135,7 @@ digital tools policy that we must comply with:
 - **In the app, the Legal Jibber Jabber statement appears once, at the bottom
   of the profile page** — together with the fan-made disclaimer above, both
   verbatim, small but visible without tapping anything open ("clear and easy
-  to find"), whatever the card art flag says. Not repeated on other screens.
+  to find"). Not repeated on other screens.
 
 Source: https://developer.riotgames.com/docs/riftbound
 
@@ -209,8 +205,8 @@ up:
   Discord / Google / Apple work.
 - **Approved Riot API key before a public release.** A public App Store /
   Google Play release requires an approved Riot API key (or a written
-  license), per Riot's Legal Jibber Jabber. The card art flag doesn't change
-  that. The production key application is still pending.
+  license), per Riot's Legal Jibber Jabber — and card art now ships in
+  store builds. The production key application is still pending.
 
 ## Card catalog
 

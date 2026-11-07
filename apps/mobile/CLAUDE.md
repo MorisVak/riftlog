@@ -278,15 +278,14 @@ bracket).
   and back (Reanimated, 3 s each way; still with Reduce Motion). No new
   dependency: blend modes are built into RN 0.81's New Architecture, and the
   card frame sets `isolation: 'isolate'` so the blend stays inside the card.
-- **Art is behind `CARD_ART`** (`lib/featureFlags.ts`): always on in dev,
-  `EXPO_PUBLIC_CARD_ART=1` in the `preview` / `testflight` EAS profiles, off
-  in `production`. With it off, rows stay text-only and tiles / the sheet show
-  the named placeholder; types, text and flags still show.
+- **Art ships in every build**, store builds included (owner, 2026-11-07;
+  the `CARD_ART` build flag that kept it out of `production` is gone). A
+  card the catalog can't match still gets the named placeholder (rows stay
+  text-only); types, text and flags always show.
 - **The Legal Jibber Jabber statement appears once, at the bottom of the
   profile page** (`components/riotDisclaimer.tsx`: the fan-made disclaimer
   and the Legal Jibber Jabber statement, verbatim). Small and unobtrusive, but
-  visible without opening anything, and always shown whatever the card art
-  flag says. Nowhere else in the app — not on deck screens, the card sheet or
+  visible without opening anything, and always shown. Nowhere else in the app — not on deck screens, the card sheet or
   the import preview.
 - **Flags, never color alone:** a card not in the catalog, a code that's a
   different card than its name, or a card of the wrong type for its section
@@ -828,10 +827,9 @@ The project is configured for EAS Build:
 - Apple credentials provisioned for `com.m-mecke.riftlog`
 - One iPhone UDID is registered
 
-Profiles: `development` (dev client), `preview` (internal), **`testflight`**
-(store distribution, card art on) and **`production`** (card art off). Only a
-`production` build may be submitted for App Store review — see "EAS profiles
-and card art" in the root `CLAUDE.md`.
+Profiles: `development` (dev client), `preview` (internal) and
+`production` (store: TestFlight, the App Store, Google Play). All carry card
+art. Ship with `eas build --platform ios --profile production --auto-submit`.
 
 Don't run `eas init`, `eas build:configure`, or change identifiers without
 deliberate intent. The project on Expo's servers is `@m_mecke/riftlog`.

@@ -11,7 +11,6 @@ import AuthGate from '@/components/authGate';
 import Avatar from '@/components/avatar';
 import Icon from '@/components/icon';
 import RiotDisclaimer from '@/components/riotDisclaimer';
-import { CARD_ART, CARD_ART_PREVIEW } from '@/lib/featureFlags';
 import DeckPicker from '@/components/deck/deckPicker';
 import {
   deleteMyAccount,
@@ -348,24 +347,22 @@ const Profile = () => {
           </Animated.View>
         )}
 
-        {/* Which art legends are drawn with — only where art is shown at all. */}
-        {CARD_ART && (
-          <Animated.View style={decksStyle} className="mt-8">
-            <Text className="mb-2 font-display text-base text-ink-secondary">Appearance</Text>
-            <View className="overflow-hidden rounded-2xl border border-border bg-surface">
-              <TouchableOpacity
-                accessibilityRole="button"
-                onPress={() => router.push('/legend-art')}
-                className="min-h-[52px] flex-row items-center gap-3 px-4 active:bg-elevated"
-              >
-                <Icon name="image" size={17} className="text-accent" />
-                <Text className="flex-1 font-display text-[15px] text-ink-primary">Legend art</Text>
-                <Text className="text-[13px] text-ink-tertiary">{legendArtSummary}</Text>
-                <Icon name="chevron-right" size={16} className="text-ink-tertiary" />
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        )}
+        {/* Which art legends are drawn with. */}
+        <Animated.View style={decksStyle} className="mt-8">
+          <Text className="mb-2 font-display text-base text-ink-secondary">Appearance</Text>
+          <View className="overflow-hidden rounded-2xl border border-border bg-surface">
+            <TouchableOpacity
+              accessibilityRole="button"
+              onPress={() => router.push('/legend-art')}
+              className="min-h-[52px] flex-row items-center gap-3 px-4 active:bg-elevated"
+            >
+              <Icon name="image" size={17} className="text-accent" />
+              <Text className="flex-1 font-display text-[15px] text-ink-primary">Legend art</Text>
+              <Text className="text-[13px] text-ink-tertiary">{legendArtSummary}</Text>
+              <Icon name="chevron-right" size={16} className="text-ink-tertiary" />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
 
         <Animated.View style={decksStyle} className="mt-8">
           <Text className="mb-2 font-display text-base text-ink-secondary">Feedback</Text>
@@ -468,16 +465,6 @@ const Profile = () => {
           at the bottom of the page — small, but not behind a tap. */}
         <Animated.View style={decksStyle} className="mt-10 gap-3 px-1">
           <RiotDisclaimer />
-          {/* A non-dev build with card art on (preview / testflight profile):
-            must never be the one submitted to the App Store. */}
-          {CARD_ART_PREVIEW && (
-            <View className="flex-row items-center gap-1.5">
-              <Icon name="image" size={12} className="text-ink-tertiary" />
-              <Text className="font-mono-medium text-[11px] text-ink-tertiary">
-                Card art preview
-              </Text>
-            </View>
-          )}
         </Animated.View>
 
         <FeedbackSheet

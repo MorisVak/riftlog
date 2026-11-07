@@ -6,23 +6,10 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_CARD_ART": "1"
-      }
+      "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_CARD_ART": "1"
-      }
-    },
-    "testflight": {
-      "distribution": "store",
-      "autoIncrement": true,
-      "env": {
-        "EXPO_PUBLIC_CARD_ART": "1"
-      }
+      "distribution": "internal"
     },
     "production": {
       "distribution": "store",
