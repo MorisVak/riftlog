@@ -598,9 +598,10 @@ Conventions:
 
 - **Two scoring modes** (Profile → Scoring, `profiles.scoring_mode`, core
   `ScoringMode`): **Detailed** (the default, and what guests get) is the
-  conquer / hold / special board below; **Simple** is a plain counter — a −
-  and a wide + under the numeral, the same footprint as the three action
-  buttons, so the half's layout doesn't change. The mode is fixed on the
+  conquer / hold / special board below; **Simple** is a plain counter — round
+  − and + buttons either side of the numeral (− · score · +); the numeral
+  holds two digits' width so the buttons don't shift at 10. (A − and a wide +
+  under the numeral was tried first and looked odd.) The mode is fixed on the
   match when it starts (`MatchConfig.scoringMode` → `Match.scoringMode`,
   absent = detailed), so a profile that loads late can't swap the buttons
   mid-game; it isn't saved to Postgres. Simple points are recorded as

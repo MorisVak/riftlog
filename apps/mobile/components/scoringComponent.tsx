@@ -25,8 +25,8 @@ type ScoringComponentProps = {
  * - **Detailed** — the three ways a point is taken: conquer, hold, special. A
  *   point is scored by saying HOW, which reads off the board at a glance and
  *   is recorded with the point (the match detail's graph colors by it).
- * - **Simple** — a plain counter: − and a wide +, like most score apps. Points
- *   are recorded without an action.
+ * - **Simple** — a plain counter: − · score · +, side by side, like most score
+ *   apps. Points are recorded without an action.
  *
  * Either way, tapping the numeral takes a point back, so the habit carries
  * over between modes.
@@ -167,53 +167,54 @@ const ActionButton = ({
 };
 
 /**
- * The simple board's two buttons: − takes a point back, + scores one. Same
- * height and overall width as the three action buttons, so the half keeps its
- * layout; + is the wide one, since it's what you tap all game.
+ * One of the simple board's two buttons, either side of the numeral: − takes
+ * a point back, + scores one (with the same floating "+1" as the action
+ * buttons). Round, like a counter's; + is the accent, − stays quiet.
  */
-const SimpleButtons = ({
+const CounterButton = ({
+  kind,
   name,
-  onScore,
-  onUndo,
+  size,
+  onPress,
 }: {
+  kind: 'minus' | 'plus';
   name: string;
-  onScore: () => void;
-  onUndo: () => void;
+  size: number;
+  onPress: () => void;
 }) => {
   const float = useFloat();
+  const plus = kind === 'plus';
 
   return (
-    <>
-      <Pressable
-        onPress={onUndo}
-        accessibilityRole="button"
-        accessibilityLabel={`Remove a point from ${name}`}
-        className="h-[67px] w-[83px] items-center justify-center rounded-2xl border-2 border-border bg-surface active:opacity-80"
-      >
-        <Feather name="minus" size={26} color={INK_SECONDARY} />
-      </Pressable>
-
-      <View>
+    <View>
+      {plus && (
         <Animated.View
           pointerEvents="none"
           style={float.style}
-          className="absolute inset-x-0 -top-6 items-center"
+          className="absolute inset-x-0 -top-7 items-center"
         >
           <Text className="font-mono text-xl text-accent-soft">+1</Text>
         </Animated.View>
-        <Pressable
-          onPress={() => {
-            onScore();
-            float.play();
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={`Add a point for ${name}`}
-          className="h-[67px] w-[178px] items-center justify-center rounded-2xl border-2 border-accent bg-accent/15 active:opacity-80"
-        >
-          <Feather name="plus" size={28} color={ACCENT_SOFT} />
-        </Pressable>
-      </View>
-    </>
+      )}
+      <Pressable
+        onPress={() => {
+          onPress();
+          if (plus) float.play();
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={plus ? `Add a point for ${name}` : `Remove a point from ${name}`}
+        style={{ width: size, height: size }}
+        className={`items-center justify-center rounded-full border-2 active:opacity-80 ${
+          plus ? 'border-accent bg-accent/15' : 'border-border bg-surface'
+        }`}
+      >
+        <Feather
+          name={kind}
+          size={Math.round(size * 0.4)}
+          color={plus ? ACCENT_SOFT : INK_SECONDARY}
+        />
+      </Pressable>
+    </View>
   );
 };
 
@@ -230,7 +231,7 @@ const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
   }));
 
   // Landscape halves are short, so the numeral shrinks to keep the buttons
-  // under it on screen.
+  // on screen.
   const { width, height } = useWindowDimensions();
   const landscape = width > height;
 
@@ -262,36 +263,52 @@ const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
     );
   };
 
+  // The numeral is the correction: the buttons add, tapping the score takes
+  // one back (the simple board also has its own −).
+  const numeral = (
+    <Pressable
+      onPress={onUndo}
+      accessibilityRole="button"
+      accessibilityLabel={`Remove a point from ${player.name}`}
+      className="active:opacity-80"
+    >
+      <Animated.Text
+        style={numeralStyle}
+        // On the simple board the numeral holds two digits' width, so the
+        // buttons beside it don't shift when the score reaches 10.
+        className={`text-center font-mono leading-none ${
+          landscape ? 'text-[80px]' : 'text-[150px]'
+        } ${simple ? (landscape ? 'min-w-[100px]' : 'min-w-[184px]') : ''}`}
+      >
+        {player.gameScore}
+      </Animated.Text>
+    </Pressable>
+  );
+
+  // Simple: − · score · +, side by side, like most score counters.
+  if (simple) {
+    const size = landscape ? 60 : 76;
+    return (
+      <View className={`flex-row items-center ${landscape ? 'gap-4' : 'gap-3'}`}>
+        <CounterButton kind="minus" name={player.name} size={size} onPress={onUndo} />
+        {numeral}
+        <CounterButton
+          kind="plus"
+          name={player.name}
+          size={size}
+          onPress={() => onScore(null)}
+        />
+      </View>
+    );
+  }
+
   return (
     <View className="items-center">
-      {/* The numeral is the correction: the buttons add, tapping the score
-          takes one back (the simple board also has its own −). */}
-      <Pressable
-        onPress={onUndo}
-        accessibilityRole="button"
-        accessibilityLabel={`Remove a point from ${player.name}`}
-        className="active:opacity-80"
-      >
-        <Animated.Text
-          style={numeralStyle}
-          className={`font-mono leading-none ${landscape ? 'text-[80px]' : 'text-[150px]'}`}
-        >
-          {player.gameScore}
-        </Animated.Text>
-      </Pressable>
-
+      {numeral}
       <View className={`flex-row gap-3 ${landscape ? 'mt-2' : 'mt-7'}`}>
-        {simple ? (
-          <SimpleButtons
-            name={player.name}
-            onScore={() => onScore(null)}
-            onUndo={onUndo}
-          />
-        ) : (
-          ACTIONS.map((action) => (
-            <ActionButton key={action.key} action={action} onScore={onScore} />
-          ))
-        )}
+        {ACTIONS.map((action) => (
+          <ActionButton key={action.key} action={action} onScore={onScore} />
+        ))}
       </View>
     </View>
   );
