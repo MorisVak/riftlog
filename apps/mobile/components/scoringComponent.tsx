@@ -25,11 +25,11 @@ type ScoringComponentProps = {
  * - **Detailed** — the three ways a point is taken: conquer, hold, special. A
  *   point is scored by saying HOW, which reads off the board at a glance and
  *   is recorded with the point (the match detail's graph colors by it).
- * - **Simple** — a plain counter: − · score · +, side by side, like most score
- *   apps. Points are recorded without an action.
+ * - **Simple** — a plain counter, like most score apps: the left half of the
+ *   field takes a point back, the right half scores one, with − · score · +
+ *   drawn across the middle. Points are recorded without an action.
  *
- * Either way, tapping the numeral takes a point back, so the habit carries
- * over between modes.
+ * On the detailed board, tapping the numeral takes a point back.
  */
 
 // Action tokens as raw values: Feather takes a color prop, not a className.
@@ -167,53 +167,99 @@ const ActionButton = ({
 };
 
 /**
- * One of the simple board's two buttons, either side of the numeral: − takes
- * a point back, + scores one (with the same floating "+1" as the action
- * buttons). Round, like a counter's; + is the accent, − stays quiet.
+ * The − / + mark either side of the numeral on the simple board. Only a hint:
+ * the tap target is the whole half of the field it sits in (`SimpleBoard`).
+ * Round, like a counter's; + is the accent, − stays quiet. Dims while its
+ * side is held down.
  */
-const CounterButton = ({
+const CounterMark = ({
   kind,
-  name,
   size,
-  onPress,
+  pressed,
 }: {
   kind: 'minus' | 'plus';
-  name: string;
   size: number;
-  onPress: () => void;
+  pressed: boolean;
+}) => {
+  const plus = kind === 'plus';
+  return (
+    <View
+      style={{ width: size, height: size }}
+      className={`items-center justify-center rounded-full border-2 ${
+        plus ? 'border-accent bg-accent/15' : 'border-border bg-surface'
+      } ${pressed ? 'opacity-70' : ''}`}
+    >
+      <Feather
+        name={kind}
+        size={Math.round(size * 0.4)}
+        color={plus ? ACCENT_SOFT : INK_SECONDARY}
+      />
+    </View>
+  );
+};
+
+/**
+ * The simple board: the player's whole half is the button. Anything left of
+ * the middle takes a point back, anything right of it scores one — easy to
+ * hit without looking. The numeral and the − / + marks sit on top and let
+ * taps through. Covers the half (absolute fill of the tracking field); the
+ * name, END and the clock are drawn after it, so they stay on top and keep
+ * their own taps. Turned with the half, so it's left / right for each player.
+ */
+const SimpleBoard = ({
+  name,
+  numeral,
+  landscape,
+  onScore,
+  onUndo,
+}: {
+  name: string;
+  numeral: React.ReactNode;
+  landscape: boolean;
+  onScore: () => void;
+  onUndo: () => void;
 }) => {
   const float = useFloat();
-  const plus = kind === 'plus';
+  const [held, setHeld] = React.useState<'minus' | 'plus' | null>(null);
+  const size = landscape ? 60 : 76;
 
   return (
-    <View>
-      {plus && (
-        <Animated.View
-          pointerEvents="none"
-          style={float.style}
-          className="absolute inset-x-0 -top-7 items-center"
-        >
-          <Text className="font-mono text-xl text-accent-soft">+1</Text>
-        </Animated.View>
-      )}
+    <View className="absolute inset-0 flex-row">
+      <Pressable
+        onPress={onUndo}
+        onPressIn={() => setHeld('minus')}
+        onPressOut={() => setHeld(null)}
+        accessibilityRole="button"
+        accessibilityLabel={`Remove a point from ${name}`}
+        className={`flex-1 ${held === 'minus' ? 'bg-ink-primary/5' : ''}`}
+      />
       <Pressable
         onPress={() => {
-          onPress();
-          if (plus) float.play();
+          onScore();
+          float.play();
         }}
+        onPressIn={() => setHeld('plus')}
+        onPressOut={() => setHeld(null)}
         accessibilityRole="button"
-        accessibilityLabel={plus ? `Add a point for ${name}` : `Remove a point from ${name}`}
-        style={{ width: size, height: size }}
-        className={`items-center justify-center rounded-full border-2 active:opacity-80 ${
-          plus ? 'border-accent bg-accent/15' : 'border-border bg-surface'
+        accessibilityLabel={`Add a point for ${name}`}
+        className={`flex-1 ${held === 'plus' ? 'bg-accent/10' : ''}`}
+      />
+
+      <View
+        pointerEvents="none"
+        className={`absolute inset-0 flex-row items-center justify-center ${
+          landscape ? 'gap-4' : 'gap-3'
         }`}
       >
-        <Feather
-          name={kind}
-          size={Math.round(size * 0.4)}
-          color={plus ? ACCENT_SOFT : INK_SECONDARY}
-        />
-      </Pressable>
+        <CounterMark kind="minus" size={size} pressed={held === 'minus'} />
+        {numeral}
+        <View>
+          <Animated.View style={float.style} className="absolute inset-x-0 -top-7 items-center">
+            <Text className="font-mono text-xl text-accent-soft">+1</Text>
+          </Animated.View>
+          <CounterMark kind="plus" size={size} pressed={held === 'plus'} />
+        </View>
+      </View>
     </View>
   );
 };
@@ -263,8 +309,34 @@ const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
     );
   };
 
-  // The numeral is the correction: the buttons add, tapping the score takes
-  // one back (the simple board also has its own −).
+  // The numeral is the correction on the detailed board: the buttons add,
+  // tapping the score takes one back. On the simple board it's only the
+  // number — the half it sits on is the button.
+  const numeralText = (
+    <Animated.Text
+      style={numeralStyle}
+      // On the simple board the numeral holds two digits' width, so the
+      // marks beside it don't shift when the score reaches 10.
+      className={`text-center font-mono leading-none ${
+        landscape ? 'text-[80px]' : 'text-[150px]'
+      } ${simple ? (landscape ? 'min-w-[100px]' : 'min-w-[184px]') : ''}`}
+    >
+      {player.gameScore}
+    </Animated.Text>
+  );
+
+  if (simple) {
+    return (
+      <SimpleBoard
+        name={player.name}
+        numeral={numeralText}
+        landscape={landscape}
+        onScore={() => onScore(null)}
+        onUndo={onUndo}
+      />
+    );
+  }
+
   const numeral = (
     <Pressable
       onPress={onUndo}
@@ -272,35 +344,9 @@ const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
       accessibilityLabel={`Remove a point from ${player.name}`}
       className="active:opacity-80"
     >
-      <Animated.Text
-        style={numeralStyle}
-        // On the simple board the numeral holds two digits' width, so the
-        // buttons beside it don't shift when the score reaches 10.
-        className={`text-center font-mono leading-none ${
-          landscape ? 'text-[80px]' : 'text-[150px]'
-        } ${simple ? (landscape ? 'min-w-[100px]' : 'min-w-[184px]') : ''}`}
-      >
-        {player.gameScore}
-      </Animated.Text>
+      {numeralText}
     </Pressable>
   );
-
-  // Simple: − · score · +, side by side, like most score counters.
-  if (simple) {
-    const size = landscape ? 60 : 76;
-    return (
-      <View className={`flex-row items-center ${landscape ? 'gap-4' : 'gap-3'}`}>
-        <CounterButton kind="minus" name={player.name} size={size} onPress={onUndo} />
-        {numeral}
-        <CounterButton
-          kind="plus"
-          name={player.name}
-          size={size}
-          onPress={() => onScore(null)}
-        />
-      </View>
-    );
-  }
 
   return (
     <View className="items-center">

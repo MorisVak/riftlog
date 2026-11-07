@@ -598,15 +598,18 @@ Conventions:
 
 - **Two scoring modes** (Profile → Scoring, `profiles.scoring_mode`, core
   `ScoringMode`): **Detailed** (the default, and what guests get) is the
-  conquer / hold / special board below; **Simple** is a plain counter — round
-  − and + buttons either side of the numeral (− · score · +); the numeral
-  holds two digits' width so the buttons don't shift at 10. (A − and a wide +
-  under the numeral was tried first and looked odd.) The mode is fixed on the
+  conquer / hold / special board below; **Simple** is a plain counter — the
+  player's **whole half is the button**: anything left of the middle takes a
+  point back, anything right of it scores one (`SimpleBoard`, an absolute
+  fill of the tracking field; name, END and the clock are drawn after it so
+  they keep their taps). Round − and + marks either side of the numeral
+  (− · score · +) are hints only; a held side tints faintly. The numeral holds
+  two digits' width so the marks don't shift at 10. (A − and a wide + under
+  the numeral was tried first and looked odd.) The mode is fixed on the
   match when it starts (`MatchConfig.scoringMode` → `Match.scoringMode`,
   absent = detailed), so a profile that loads late can't swap the buttons
   mid-game; it isn't saved to Postgres. Simple points are recorded as
-  `PointEvent`s with `action: null`, and the numeral still takes a point
-  back in both modes.
+  `PointEvent`s with `action: null`.
 - **A point is scored by saying HOW** (Detailed). Under the numeral sit three buttons —
   conquer / hold / special — and **tapping the numeral takes a point back**;
   there is no separate decrement control. Every change is **recorded** on the
