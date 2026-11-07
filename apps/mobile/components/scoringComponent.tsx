@@ -19,14 +19,17 @@ type ScoringComponentProps = {
 };
 
 /**
- * The score for one player: the numeral, and under it the three ways a point is
- * taken — conquer, hold, special. A point is scored by saying HOW it was
- * scored, which reads off the board at a glance and leaves room to record the
- * breakdown later. Tapping the numeral takes a point back, so correcting a
- * mistap needs no separate control on the half.
+ * The score for one player: the numeral, and under it the buttons. The match's
+ * scoring mode (Profile → Scoring, fixed when the match starts) picks them:
  *
- * All three actions currently add 1 and nothing more — which one was pressed
- * isn't stored yet (that would need a field on Game).
+ * - **Detailed** — the three ways a point is taken: conquer, hold, special. A
+ *   point is scored by saying HOW, which reads off the board at a glance and
+ *   is recorded with the point (the match detail's graph colors by it).
+ * - **Simple** — a plain counter: − and a wide +, like most score apps. Points
+ *   are recorded without an action.
+ *
+ * Either way, tapping the numeral takes a point back, so the habit carries
+ * over between modes.
  */
 
 // Action tokens as raw values: Feather takes a color prop, not a className.
@@ -73,6 +76,10 @@ const ACTIONS: {
 // numeral dips a little and tints toward red for a moment. Raw values mirror
 // `ink-primary` and `loss-text` (an animated color can't take a class).
 const INK_PRIMARY = '#E4E5F2';
+// The simple board's icons (Feather takes a color, not a class): mirror
+// `ink-secondary` and `accent-soft`.
+const INK_SECONDARY = '#868FB0';
+const ACCENT_SOFT = '#A6ADE6';
 const LOSS_TEXT = '#FB8181';
 const DIP_SCALE = 0.92;
 const DIP_MS = 90;
@@ -85,6 +92,26 @@ const FLOAT_PX = 36;
 const FLOAT_MS = 650;
 
 type Action = (typeof ACTIONS)[number];
+
+/** Rises out of a button and fades: the receipt for a point scored. */
+const useFloat = () => {
+  const fly = useSharedValue(0);
+  const style = useAnimatedStyle(() => ({
+    // Fades in fast, then drifts away over the rest of the travel.
+    opacity: interpolate(fly.value, [0, 0.15, 1], [0, 1, 0]),
+    transform: [{ translateY: -FLOAT_PX * fly.value }],
+  }));
+  const play = () => {
+    // Restart from zero so rapid taps each get their own lift rather than
+    // continuing a run that's already fading.
+    fly.value = 0;
+    fly.value = withTiming(1, {
+      duration: FLOAT_MS,
+      easing: Easing.out(Easing.quad),
+    });
+  };
+  return { style, play };
+};
 
 /**
  * One scoring button, with its own floating "+1". The receipt rises out of the
@@ -99,30 +126,18 @@ const ActionButton = ({
   action: Action;
   onScore: (action: Action['key']) => void;
 }) => {
-  const fly = useSharedValue(0);
-
-  const flyStyle = useAnimatedStyle(() => ({
-    // Fades in fast, then drifts away over the rest of the travel.
-    opacity: interpolate(fly.value, [0, 0.15, 1], [0, 1, 0]),
-    transform: [{ translateY: -FLOAT_PX * fly.value }],
-  }));
+  const float = useFloat();
 
   const press = () => {
     onScore(action.key);
-    // Restart from zero so rapid taps each get their own lift rather than
-    // continuing a run that's already fading.
-    fly.value = 0;
-    fly.value = withTiming(1, {
-      duration: FLOAT_MS,
-      easing: Easing.out(Easing.quad),
-    });
+    float.play();
   };
 
   return (
     <View>
       <Animated.View
         pointerEvents="none"
-        style={flyStyle}
+        style={float.style}
         className="absolute inset-x-0 -top-6 items-center"
       >
         <Text className={`font-mono text-xl ${action.textClass}`}>+1</Text>
@@ -151,6 +166,57 @@ const ActionButton = ({
   );
 };
 
+/**
+ * The simple board's two buttons: − takes a point back, + scores one. Same
+ * height and overall width as the three action buttons, so the half keeps its
+ * layout; + is the wide one, since it's what you tap all game.
+ */
+const SimpleButtons = ({
+  name,
+  onScore,
+  onUndo,
+}: {
+  name: string;
+  onScore: () => void;
+  onUndo: () => void;
+}) => {
+  const float = useFloat();
+
+  return (
+    <>
+      <Pressable
+        onPress={onUndo}
+        accessibilityRole="button"
+        accessibilityLabel={`Remove a point from ${name}`}
+        className="h-[67px] w-[83px] items-center justify-center rounded-2xl border-2 border-border bg-surface active:opacity-80"
+      >
+        <Feather name="minus" size={26} color={INK_SECONDARY} />
+      </Pressable>
+
+      <View>
+        <Animated.View
+          pointerEvents="none"
+          style={float.style}
+          className="absolute inset-x-0 -top-6 items-center"
+        >
+          <Text className="font-mono text-xl text-accent-soft">+1</Text>
+        </Animated.View>
+        <Pressable
+          onPress={() => {
+            onScore();
+            float.play();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={`Add a point for ${name}`}
+          className="h-[67px] w-[178px] items-center justify-center rounded-2xl border-2 border-accent bg-accent/15 active:opacity-80"
+        >
+          <Feather name="plus" size={28} color={ACCENT_SOFT} />
+        </Pressable>
+      </View>
+    </>
+  );
+};
+
 const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
   const { match, incrementScore, decrementScore } = useMatch();
 
@@ -173,7 +239,9 @@ const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
 
   // Which button was pressed is recorded with the point (the match detail's
   // timeline shows it).
-  const onScore = (action: Action['key']) => {
+  const simple = match?.scoringMode === 'simple';
+
+  const onScore = (action: Action['key'] | null) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     incrementScore(playerId, action);
   };
@@ -196,8 +264,8 @@ const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
 
   return (
     <View className="items-center">
-      {/* The numeral is the correction: the action buttons add, tapping the
-          score takes one back. No separate decrement control. */}
+      {/* The numeral is the correction: the buttons add, tapping the score
+          takes one back (the simple board also has its own −). */}
       <Pressable
         onPress={onUndo}
         accessibilityRole="button"
@@ -213,9 +281,17 @@ const ScoringComponent = ({ playerId }: ScoringComponentProps) => {
       </Pressable>
 
       <View className={`flex-row gap-3 ${landscape ? 'mt-2' : 'mt-7'}`}>
-        {ACTIONS.map((action) => (
-          <ActionButton key={action.key} action={action} onScore={onScore} />
-        ))}
+        {simple ? (
+          <SimpleButtons
+            name={player.name}
+            onScore={() => onScore(null)}
+            onUndo={onUndo}
+          />
+        ) : (
+          ACTIONS.map((action) => (
+            <ActionButton key={action.key} action={action} onScore={onScore} />
+          ))
+        )}
       </View>
     </View>
   );

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { PointEvent } from '../types/match';
+import { parseScoringMode } from '../types/match';
 import {
+  hasScoringActions,
   isPointEvent,
   netPoints,
   pointShare,
@@ -109,5 +111,34 @@ describe('stored events', () => {
     expect(toPointEvents([ev(1, 'p1', 1), { junk: true }])).toHaveLength(1);
     expect(toPointEvents(null)).toEqual([]);
     expect(toPointEvents({})).toEqual([]);
+  });
+});
+
+describe('hasScoringActions', () => {
+  it('is true when a point that stood says how it was scored', () => {
+    expect(hasScoringActions([ev(1, 'p2', 1, null), ev(2, 'p1', 1, 'hold')])).toBe(true);
+  });
+
+  it('is false for a simple-mode game (no action on any point)', () => {
+    expect(
+      hasScoringActions([ev(1, 'p1', 1, null), ev(2, 'p2', 1, null), ev(3, 'p1', -1)]),
+    ).toBe(false);
+  });
+
+  it('ignores actions on points that were taken back', () => {
+    expect(hasScoringActions([ev(1, 'p1', 1, 'conquer'), ev(2, 'p1', -1)])).toBe(false);
+  });
+
+  it('is false with no points', () => {
+    expect(hasScoringActions([])).toBe(false);
+  });
+});
+
+describe('parseScoringMode', () => {
+  it('reads the two modes, and anything else as detailed', () => {
+    expect(parseScoringMode('simple')).toBe('simple');
+    expect(parseScoringMode('detailed')).toBe('detailed');
+    expect(parseScoringMode(null)).toBe('detailed');
+    expect(parseScoringMode('SIMPLE')).toBe('detailed');
   });
 });

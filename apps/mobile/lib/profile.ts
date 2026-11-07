@@ -1,4 +1,10 @@
-import { parseLegendArt, type LegendArt, type Profile } from '@riftlog/core';
+import {
+  parseLegendArt,
+  parseScoringMode,
+  type LegendArt,
+  type Profile,
+  type ScoringMode,
+} from '@riftlog/core';
 import { supabase } from './supabase';
 import { DEMO, demoDefaultDeckId } from './demo';
 
@@ -15,7 +21,7 @@ export async function fetchMyProfile(): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
     .select(
-      'id, username, display_name, onboarded_at, username_changed_at, default_deck_id, legend_art, created_at, updated_at',
+      'id, username, display_name, onboarded_at, username_changed_at, default_deck_id, legend_art, scoring_mode, created_at, updated_at',
     )
     .maybeSingle();
 
@@ -31,6 +37,7 @@ export async function fetchMyProfile(): Promise<Profile | null> {
     // Demo mode (lib/demo.ts): the demo's own default deck.
     defaultDeckId: DEMO ? await demoDefaultDeckId() : data.default_deck_id,
     legendArt: parseLegendArt(data.legend_art),
+    scoringMode: parseScoringMode(data.scoring_mode),
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
@@ -63,6 +70,20 @@ export async function setLegendArt(value: LegendArt): Promise<void> {
   const uid = auth.session?.user.id;
   if (!uid) throw new Error('Not signed in');
   const { error } = await supabase.from('profiles').update({ legend_art: value }).eq('id', uid);
+  if (error) throw error;
+}
+
+/**
+ * Save how the board scores (conquer / hold / special, or a plain − / +).
+ * A plain owner-scoped update — `scoring_mode` is client-writable; the DB
+ * checks it's one of the two modes. Takes effect from the next match.
+ */
+export async function setScoringMode(mode: ScoringMode): Promise<void> {
+  if (DEMO) return;
+  const { data: auth } = await supabase.auth.getSession();
+  const uid = auth.session?.user.id;
+  if (!uid) throw new Error('Not signed in');
+  const { error } = await supabase.from('profiles').update({ scoring_mode: mode }).eq('id', uid);
   if (error) throw error;
 }
 

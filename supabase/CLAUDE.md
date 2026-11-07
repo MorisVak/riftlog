@@ -53,7 +53,9 @@ supabase/
 │   ├── 20261015163420_contact_messages.sql
 │   ├── 20261102184149_card_catalog.sql
 │   ├── 20261102191647_promo_printing_codes.sql
-│   └── 20261102193701_catalog_version_where.sql
+│   ├── 20261102193701_catalog_version_where.sql
+│   ├── …
+│   └── 20261107090000_profile_scoring_mode.sql
 └── config.toml       Supabase CLI config (linked, anon auth OFF)
 
 ## Schema
@@ -184,7 +186,7 @@ removed solely by the cascade from `auth.users`, so the client can neither mint
 nor drop a profile. Don't "fix" this by adding an insert policy.
 
 **RLS picks the row; column grants pick the columns.** `authenticated` holds
-`UPDATE (display_name, default_deck_id, legend_art)` and nothing else on `profiles` (insert / delete /
+`UPDATE (display_name, default_deck_id, legend_art, scoring_mode)` and nothing else on `profiles` (insert / delete /
 truncate revoked from `anon` and `authenticated`). Without that, the owner
 update policy would let a client rewrite its own `username` — skipping format,
 reserved, and rate-limit checks — or stamp `onboarded_at`. **Don't re-grant
@@ -202,6 +204,12 @@ is a display preference — which art legends are drawn with:
 (`decklists` missing = true), parsed
 defensively by core's `parseLegendArt`. Owner-written with a plain update;
 it never touches a deck's list or deck code.
+
+**`scoring_mode`** (text, not null, default `'detailed'`, check
+`detailed | simple`) is how the board scores — conquer / hold / special, or a
+plain − / + counter (`simple` points are stored in `games.events` with
+`"action": null`). Owner-written with a plain update; parsed by core's
+`parseScoringMode`.
 
 **`delete_my_account()`** (`security definer`, `require_account()`,
 EXECUTE for `authenticated` only) deletes the caller's own `auth.users` row;

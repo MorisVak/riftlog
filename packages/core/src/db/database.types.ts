@@ -585,6 +585,7 @@ export type Database = {
           id: string
           legend_art: Json
           onboarded_at: string | null
+          scoring_mode: string
           updated_at: string
           username: string
           username_changed_at: string | null
@@ -596,6 +597,7 @@ export type Database = {
           id: string
           legend_art?: Json
           onboarded_at?: string | null
+          scoring_mode?: string
           updated_at?: string
           username: string
           username_changed_at?: string | null
@@ -607,6 +609,7 @@ export type Database = {
           id?: string
           legend_art?: Json
           onboarded_at?: string | null
+          scoring_mode?: string
           updated_at?: string
           username?: string
           username_changed_at?: string | null

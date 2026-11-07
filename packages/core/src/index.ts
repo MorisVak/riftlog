@@ -101,8 +101,11 @@ export type {
   Match,
   PointEvent,
   ScoringAction,
+  ScoringMode,
 } from './types/match';
+export { SCORING_MODES, parseScoringMode } from './types/match';
 export {
+  hasScoringActions,
   isPointEvent,
   netPoints,
   pointShare,

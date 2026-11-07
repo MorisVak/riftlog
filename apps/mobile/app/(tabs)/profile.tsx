@@ -13,7 +13,13 @@ import Icon from '@/components/icon';
 import RiotDisclaimer from '@/components/riotDisclaimer';
 import { CARD_ART, CARD_ART_PREVIEW } from '@/lib/featureFlags';
 import DeckPicker from '@/components/deck/deckPicker';
-import { deleteMyAccount, revokeAppleSignIn, setDefaultDeck } from '@/lib/profile';
+import {
+  deleteMyAccount,
+  revokeAppleSignIn,
+  setDefaultDeck,
+  setScoringMode,
+} from '@/lib/profile';
+import type { ScoringMode } from '@riftlog/core';
 import { appleAuthorizationCode, usesAppleSignIn } from '@/lib/auth';
 import type { Deck } from '@/lib/decks';
 import { myDecksCache, useMyDecks } from '@/lib/sessionCache';
@@ -26,14 +32,21 @@ const BUY_ME_A_COFFEE_URL = 'https://buymeacoffee.com/moriscodes';
 // `background` mirrored for the gradient behind the status bar.
 const STATUS_SHADE = ['#0D1B2A', '#0D1B2A00'] as const;
 
+/** Profile → Scoring: the two boards, each with one line on what it does. */
+const SCORING_OPTIONS: { value: ScoringMode; label: string; hint: string }[] = [
+  { value: 'detailed', label: 'Detailed', hint: 'Score each point as Conquer, Hold or Special.' },
+  { value: 'simple', label: 'Simple', hint: 'A plain counter: + and −.' },
+];
+
 type DecksState = { kind: 'loading' } | { kind: 'ready'; decks: Deck[] } | { kind: 'error' };
 
 /**
  * Profile tab: you and your settings — the identity header, the default deck,
  * feedback, and Riot's statements at the bottom. Decks have their own tab.
  * The handle is claimed at onboarding; the rename UI and stats come later.
- * Sections: Default deck, Appearance (legend art), Feedback, Support (buy
- * me a coffee), Account (sign out, delete account).
+ * Sections: Default deck, Scoring (detailed or simple board), Appearance
+ * (legend art), Feedback, Support (buy me a coffee), Account (sign out,
+ * delete account).
  */
 const Profile = () => {
   const insets = useSafeAreaInsets();
@@ -102,6 +115,23 @@ const Profile = () => {
         Alert.alert('Could not save', 'Please check your connection and try again.');
       })
       .finally(() => setPendingDefault(undefined));
+  };
+
+  // How the board scores, shown optimistically while the save is in flight.
+  const [pendingScoring, setPendingScoring] = useState<ScoringMode | undefined>(undefined);
+  const scoringMode = pendingScoring ?? profile?.scoringMode ?? 'detailed';
+
+  const chooseScoring = (mode: ScoringMode) => {
+    if (mode === scoringMode) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPendingScoring(mode);
+    setScoringMode(mode)
+      .then(() => refresh())
+      .catch((e) => {
+        if (__DEV__) console.warn('[profile] scoring mode save failed:', e);
+        Alert.alert('Could not save', 'Please check your connection and try again.');
+      })
+      .finally(() => setPendingScoring(undefined));
   };
 
   const confirmSignOut = () => {
@@ -269,6 +299,51 @@ const Profile = () => {
             />
             <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
               Picked for you when you start a match. Also on Home.
+            </Text>
+          </Animated.View>
+        )}
+
+        {/* How the board scores: say HOW each point was taken, or a plain
+          counter. Read when a match starts, so a match in progress keeps its
+          board. Only once the profile is loaded, so it never shows a guess. */}
+        {profile && (
+          <Animated.View style={decksStyle} className="mt-8">
+            <Text className="mb-2 font-display text-base text-ink-secondary">Scoring</Text>
+            <View
+              accessibilityRole="radiogroup"
+              className="overflow-hidden rounded-2xl border border-border bg-surface"
+            >
+              {SCORING_OPTIONS.map((o, i) => {
+                const selected = o.value === scoringMode;
+                return (
+                  <TouchableOpacity
+                    key={o.value}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: selected }}
+                    accessibilityLabel={`${o.label}. ${o.hint}`}
+                    onPress={() => chooseScoring(o.value)}
+                    className={`min-h-[60px] flex-row items-center gap-3 px-4 py-2.5 active:bg-elevated ${
+                      i > 0 ? 'border-t border-border/60' : ''
+                    }`}
+                  >
+                    <View className="flex-1">
+                      <Text className="font-display text-[15px] text-ink-primary">{o.label}</Text>
+                      <Text className="mt-0.5 text-[13px] text-ink-tertiary">{o.hint}</Text>
+                    </View>
+                    {/* Shape + icon, not color alone. */}
+                    <View
+                      className={`h-[22px] w-[22px] items-center justify-center rounded-full ${
+                        selected ? 'bg-accent' : 'border-2 border-ink-tertiary'
+                      }`}
+                    >
+                      {selected && <Icon name="check" size={14} className="text-background" />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
+              Used from your next match. Graphs of simple games show the score only.
             </Text>
           </Animated.View>
         )}

@@ -9,6 +9,7 @@ import type {
   Player,
   PlayerId,
   ScoringAction,
+  ScoringMode,
 } from '@riftlog/core';
 
 /**
@@ -51,6 +52,11 @@ export type MatchConfig = {
    * haven't uploaded yet. A chosen deck's legend wins over it.
    */
   yourLegend: CardRef | null;
+  /**
+   * How the board scores this match — the profile's setting (`detailed` for
+   * guests). Fixed for the whole match; see `Match.scoringMode`.
+   */
+  scoringMode: ScoringMode;
 };
 
 /**
@@ -87,8 +93,11 @@ export type MatchContextType = {
   resumeClock: () => void;
 
   // Score actions (intent-named, player-oriented)
-  /** Score a point, recording HOW it was taken (the button pressed). */
-  incrementScore: (playerId: PlayerId, action: ScoringAction) => void;
+  /**
+   * Score a point, recording HOW it was taken (the button pressed) — or null
+   * on a `simple`-mode board, which doesn't ask.
+   */
+  incrementScore: (playerId: PlayerId, action: ScoringAction | null) => void;
   /** Take a point back (tap on the numeral); recorded as a correction. */
   decrementScore: (playerId: PlayerId) => void;
 
@@ -181,6 +190,7 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
       timeLimitSeconds: config.timeLimitSeconds,
       clockPausedAt: null,
       clockPausedMs: 0,
+      scoringMode: config.scoringMode,
       hostUserId: null,
       guestUserIds: [],
     };
@@ -393,7 +403,7 @@ const MatchProvider = ({ children }: { children: ReactNode }) => {
     setMatch((prev) => (prev ? { ...prev, notes: note } : prev));
   };
 
-  const incrementScore = (playerId: PlayerId, action: ScoringAction) =>
+  const incrementScore = (playerId: PlayerId, action: ScoringAction | null) =>
     changeScore(playerId, 1, action);
 
   const decrementScore = (playerId: PlayerId) => changeScore(playerId, -1, null);

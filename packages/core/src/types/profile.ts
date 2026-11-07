@@ -1,4 +1,5 @@
 import type { LegendArt } from '../catalog/legendArt';
+import type { ScoringMode } from './match';
 /**
  * A Riftlog account's profile. One row per authenticated user, seeded by a
  * Postgres trigger on first sign-in with a neutral handle (`player_<hex>`);
@@ -44,6 +45,9 @@ export type Profile = {
 
   /** Which art legends are drawn with (display only; see catalog/legendArt). */
   legendArt: LegendArt;
+
+  /** How the board scores: conquer / hold / special, or a plain − / +. */
+  scoringMode: ScoringMode;
 
   createdAt: string; // ISO-8601
   updatedAt: string; // ISO-8601

@@ -1,4 +1,5 @@
 import {
+  hasScoringActions,
   pointShare,
   scoreSeries,
   toPointEvents,
@@ -35,6 +36,12 @@ export type GameGraphVM = {
   durationLabel: string;
   /** Spoken summary for screen readers (the chart's text alternative). */
   summary: string;
+  /**
+   * The points say how they were scored (conquer / hold / special), so your
+   * line is colored by action. False for a game scored on the simple board:
+   * the graph then shows the score race only.
+   */
+  detailed: boolean;
 };
 
 export type DetailGameVM = {
@@ -116,6 +123,7 @@ export function toDetailGameVM(g: GameInput, opponent: string): DetailGameVM {
       maxScore: Math.max(youFinal, themFinal, 1),
       durationLabel,
       summary: `Score over ${durationLabel}: you reached ${youFinal}, ${opponent} ${themFinal}.`,
+      detailed: hasScoringActions(events),
     };
   }
 

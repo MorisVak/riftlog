@@ -31,6 +31,23 @@ export type Player = {
 export type ScoringAction = 'conquer' | 'hold' | 'special';
 
 /**
+ * How the board scores, a setting on the profile (`profiles.scoring_mode`):
+ *
+ * - `detailed` — say HOW each point was taken: conquer / hold / special
+ *   (the default, and what guests get).
+ * - `simple` — a plain counter, − and +, like most score apps. Points are
+ *   recorded without an action (`PointEvent.action: null`).
+ */
+export type ScoringMode = 'detailed' | 'simple';
+
+export const SCORING_MODES: readonly ScoringMode[] = ['detailed', 'simple'];
+
+/** The stored value, defensively: anything unknown reads as `detailed`. */
+export function parseScoringMode(value: unknown): ScoringMode {
+  return value === 'simple' ? 'simple' : 'detailed';
+}
+
+/**
  * One change to a player's score during a game — the raw material of the
  * match detail's score graph.
  */
@@ -40,7 +57,10 @@ export type PointEvent = {
   playerId: PlayerId;
   /** +1 for a point scored, -1 for a point taken back (tap on the numeral). */
   delta: 1 | -1;
-  /** How the point was scored; null for a correction (`delta: -1`). */
+  /**
+   * How the point was scored; null for a correction (`delta: -1`), and for
+   * every point scored in `simple` mode (no action is asked for).
+   */
   action: ScoringAction | null;
 };
 
@@ -107,6 +127,14 @@ export type Match = {
    */
   hostUserId: string | null;
   guestUserIds: string[];
+
+  /**
+   * How this match is scored on the board, fixed when it starts (from the
+   * profile's setting), so a profile that loads late can't swap the buttons
+   * mid-game. Absent on matches from before the setting = `detailed`. Not
+   * persisted to Postgres — the recorded points say how each game was scored.
+   */
+  scoringMode?: ScoringMode;
 
   notes?: string;
   tags?: string[];

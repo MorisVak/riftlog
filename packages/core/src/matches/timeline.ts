@@ -78,6 +78,15 @@ export function scoreSeries(
 }
 
 /**
+ * Whether a game's points say how they were scored — any point that stood
+ * carries a scoring action. False for games scored in `simple` mode (a plain
+ * counter), whose graph can only show the score, not the kind of point.
+ */
+export function hasScoringActions(events: readonly PointEvent[]): boolean {
+  return netPoints(events).some((e) => e.action !== null);
+}
+
+/**
  * Your share of a game's points — the fill of the score bar on the match
  * detail ("8–5" → 8/13). 0 for a 0–0 game.
  */

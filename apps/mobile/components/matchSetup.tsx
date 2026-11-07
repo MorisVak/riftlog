@@ -359,6 +359,8 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
       deck: deckChosen && deck ? toDeckSnapshot(deck) : null,
       opponentLegend,
       yourLegend: deckChosen ? null : yourLegend,
+      // Profile → Scoring. Guests (no profile) get the detailed board.
+      scoringMode: profile?.scoringMode ?? 'detailed',
     };
     startMatch(config);
     // The board replaces Home at once, so no slide-out to wait for.

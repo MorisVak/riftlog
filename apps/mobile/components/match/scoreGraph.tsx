@@ -37,6 +37,8 @@ const youColor = (step: ScoreStep): string =>
   step.action ? ACTION_BG[step.action] : BASE.you;
 const themColor = (): string => BASE.them;
 
+// A game scored on the simple board has no actions to show: your line is the
+// plain accent throughout, and the legend just names the two lines.
 const LEGEND: { label: string; color: string }[] = [
   { label: 'Conquer', color: ACTION_BG.conquer },
   { label: 'Hold', color: ACTION_BG.hold },
@@ -132,14 +134,23 @@ const ScoreGraph = ({ graph }: { graph: GameGraphVM }) => {
         className="mb-2 flex-row flex-wrap items-center gap-x-3 gap-y-1"
         importantForAccessibility="no-hide-descendants"
       >
-        <Text className="text-[12px] text-ink-secondary">You:</Text>
-        {LEGEND.map((l) => (
-          <View key={l.label} className="flex-row items-center gap-1.5">
-            <View className={`h-2 w-2 rounded-full ${l.color}`} />
-            <Text className="text-[12px] text-ink-secondary">{l.label}</Text>
+        {graph.detailed ? (
+          <>
+            <Text className="text-[12px] text-ink-secondary">You:</Text>
+            {LEGEND.map((l) => (
+              <View key={l.label} className="flex-row items-center gap-1.5">
+                <View className={`h-2 w-2 rounded-full ${l.color}`} />
+                <Text className="text-[12px] text-ink-secondary">{l.label}</Text>
+              </View>
+            ))}
+          </>
+        ) : (
+          <View className="flex-row items-center gap-1.5">
+            <View className={`h-2 w-2 rounded-full ${BASE.you}`} />
+            <Text className="text-[12px] text-ink-secondary">You</Text>
           </View>
-        ))}
-        <View className="ml-1 flex-row items-center gap-1.5">
+        )}
+        <View className={`${graph.detailed ? 'ml-1 ' : ''}flex-row items-center gap-1.5`}>
           <View className={`h-2 w-2 rounded-full ${BASE.them}`} />
           <Text className="text-[12px] text-ink-secondary">Opponent</Text>
         </View>

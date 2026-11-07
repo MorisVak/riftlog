@@ -106,7 +106,8 @@ on purpose for the features below. Don't remove them. (`Match.notes` and
 
 **Status:** built. The pre-match setup sheet (format, names, deck, timed
 match, the opponent's legend), the full-screen board with Conquer / Hold / Special scoring and
-take-backs, the end-game prompt (win / loss / draw), match resolution, the Bo3
+take-backs (or, by the Profile → Scoring setting, a simple − / + counter whose
+score graphs show the score only), the end-game prompt (win / loss / draw), match resolution, the Bo3
 between-games screen, the game-start "VS" intro, and timed mode (one clock,
 pause, overtime) are all built. Still open: track turns (Feature 10).
 

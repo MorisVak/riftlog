@@ -28,7 +28,8 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
     Import (as History's carries Select), then search + sort, rows with
     swipe / multi-select delete (account-gated)
   - `(tabs)/profile.tsx` — you and your settings: an identity card, then
-    sections (Default deck, **Appearance → Legend art** (card-art flag
+    sections (Default deck, **Scoring** (Detailed / Simple, see "A point is
+    scored" below), **Appearance → Legend art** (card-art flag
     only), Feedback, **Support → Buy me a coffee** (opens the browser),
     **Account → Sign out / Delete account** (one destructive confirm; an
     Apple account then confirms with Apple once more — `appleAuthorizationCode`
@@ -595,7 +596,17 @@ game counter, nothing taking board space from either player:
 
 Conventions:
 
-- **A point is scored by saying HOW.** Under the numeral sit three buttons —
+- **Two scoring modes** (Profile → Scoring, `profiles.scoring_mode`, core
+  `ScoringMode`): **Detailed** (the default, and what guests get) is the
+  conquer / hold / special board below; **Simple** is a plain counter — a −
+  and a wide + under the numeral, the same footprint as the three action
+  buttons, so the half's layout doesn't change. The mode is fixed on the
+  match when it starts (`MatchConfig.scoringMode` → `Match.scoringMode`,
+  absent = detailed), so a profile that loads late can't swap the buttons
+  mid-game; it isn't saved to Postgres. Simple points are recorded as
+  `PointEvent`s with `action: null`, and the numeral still takes a point
+  back in both modes.
+- **A point is scored by saying HOW** (Detailed). Under the numeral sit three buttons —
   conquer / hold / special — and **tapping the numeral takes a point back**;
   there is no separate decrement control. Every change is **recorded** on the
   current game as a `PointEvent` (`Game.events`: ms since the game started,
@@ -644,7 +655,10 @@ Conventions:
   cancels that player's latest point; neither is shown). Your line is colored
   per run by the scoring action that started it (`bg-conquer` / `bg-hold` /
   `bg-special`; `bg-accent` before your first point); the opponent's stays
-  `ink-tertiary` so the two lines never share a color. Validated for
+  `ink-tertiary` so the two lines never share a color. A game scored on the
+  Simple board (no point carries an action — core's `hasScoringActions`,
+  `GameGraphVM.detailed`) keeps the graph, but your line is the plain accent
+  and the legend reads just "You · Opponent". Validated for
   separation; the muted line is under 3:1 contrast, so both lines are always
   direct-labeled with their final score, and the legend explains the action
   colors.
