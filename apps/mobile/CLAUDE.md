@@ -604,7 +604,8 @@ Conventions:
   fill of the tracking field; name, END and the clock are drawn after it so
   they keep their taps). A large − and + icon either side of the numeral
   (no button shapes — the whole side is the target) say which side does
-  what; a held side tints faintly, and the "+1" rises from the spot touched
+  what — bright (`ink-primary` / `accent-soft`) with a soft dark halo
+  (`ICON_HALO`, a text shadow) so they hold up over any legend art; a held side tints faintly, and the "+1" rises from the spot touched
   (`locationX/Y` of the press). The numeral holds
   two digits' width so the marks don't shift at 10. (Tried first and dropped:
   a − and a wide + under the numeral looked odd; round − / + buttons beside

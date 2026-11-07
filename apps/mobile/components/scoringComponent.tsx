@@ -77,9 +77,15 @@ const ACTIONS: {
 // `ink-primary` and `loss-text` (an animated color can't take a class).
 const INK_PRIMARY = '#E4E5F2';
 // The simple board's icons (Feather takes a color, not a class): mirror
-// `ink-secondary` and `accent-soft`.
-const INK_SECONDARY = '#868FB0';
+// `ink-primary` and `accent-soft` — bright, so they hold up over any legend.
 const ACCENT_SOFT = '#A6ADE6';
+// A soft dark halo around them (and the touch "+1"), mirroring `background`:
+// keeps them readable over light, busy legend art without a button shape.
+const ICON_HALO = {
+  textShadowColor: 'rgba(13, 27, 42, 0.9)',
+  textShadowOffset: { width: 0, height: 0 },
+  textShadowRadius: 14,
+} as const;
 const LOSS_TEXT = '#FB8181';
 const DIP_SCALE = 0.92;
 const DIP_MS = 90;
@@ -198,7 +204,7 @@ const SimpleBoard = ({
   const float = useFloat();
   const [held, setHeld] = React.useState<'minus' | 'plus' | null>(null);
   const [touch, setTouch] = React.useState({ x: 0, y: 0 });
-  const icon = landscape ? 40 : 52;
+  const icon = landscape ? 46 : 60;
 
   return (
     <View className="absolute inset-0 flex-row">
@@ -237,7 +243,9 @@ const SimpleBoard = ({
           ]}
           className="items-center justify-center"
         >
-          <Text className="font-mono text-2xl text-accent-soft">+1</Text>
+          <Text style={ICON_HALO} className="font-mono text-2xl text-accent-soft">
+            +1
+          </Text>
         </Animated.View>
       </Pressable>
 
@@ -248,11 +256,11 @@ const SimpleBoard = ({
         }`}
       >
         <View className={held === 'minus' ? 'opacity-50' : ''}>
-          <Feather name="minus" size={icon} color={INK_SECONDARY} />
+          <Feather name="minus" size={icon} color={INK_PRIMARY} style={ICON_HALO} />
         </View>
         {numeral}
         <View className={held === 'plus' ? 'opacity-50' : ''}>
-          <Feather name="plus" size={icon} color={ACCENT_SOFT} />
+          <Feather name="plus" size={icon} color={ACCENT_SOFT} style={ICON_HALO} />
         </View>
       </View>
     </View>
