@@ -80,6 +80,16 @@ Rules (inherited from mobile):
 - **Colorblind-safe:** if any win/loss/draw indicator is shown, pair the color
   with a W/L/D letter badge — never color alone.
 
+### Background structure
+
+Sections carry the roadmap's background — a faint dot grid with a soft
+accent glow, fading out toward the edges (`Backdrop`; the owner likes having
+structure in the background, 2026-11-10). Its focus follows the section's
+picture: `right` / `left` behind the phones (beats alternate with them, the
+hero's sits behind its phone and keeps its own glow), `center` for the
+face-off and the roadmap, `frame` (wide) around the waitlist card. The thin
+details strip has none. Keep it faint — structure, not decoration.
+
 ### Motion
 
 Sections fade in and rise once as they scroll into view: wrap them in

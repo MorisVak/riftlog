@@ -8,6 +8,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { Backdrop } from "./Backdrop";
 import { Reveal } from "./Reveal";
 
 /**
@@ -115,14 +116,7 @@ export function ComingLater() {
       className="relative scroll-mt-20 overflow-hidden border-t border-border/60"
     >
       {/* A faint map grid with a soft glow, fading out towards the edges. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(var(--color-border)_1px,transparent_1px)] bg-size-[28px_28px] opacity-70 mask-[radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-1/2 top-1/2 h-[480px] w-[760px] max-w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/10 blur-[120px]"
-      />
+      <Backdrop />
       <div className="relative mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
         <Reveal>
           <p className="font-display text-sm font-semibold uppercase tracking-widest text-accent-soft">

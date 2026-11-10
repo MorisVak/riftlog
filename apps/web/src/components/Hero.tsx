@@ -1,3 +1,4 @@
+import { Backdrop } from "./Backdrop";
 import { HeroPhone } from "./HeroPhone";
 import { WaitlistForm } from "./WaitlistForm";
 import { Platforms } from "./Platforms";
@@ -5,6 +6,7 @@ import { Platforms } from "./Platforms";
 export function Hero() {
   return (
     <section id="top" className="relative overflow-hidden">
+      <Backdrop at="right" glow={false} />
       {/* Signature periwinkle glow blob behind the hero content. */}
       <div
         aria-hidden

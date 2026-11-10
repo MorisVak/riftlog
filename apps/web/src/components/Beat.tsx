@@ -1,3 +1,4 @@
+import { Backdrop } from "./Backdrop";
 import { PhoneFrame } from "./PhoneFrame";
 import { Reveal } from "./Reveal";
 import type { ScreenshotName } from "./screenshots.generated";
@@ -40,9 +41,14 @@ export function Beat({
   flip?: boolean;
 }) {
   return (
-    <section id={id} className="scroll-mt-20 border-t border-border/60">
+    <section
+      id={id}
+      className="relative scroll-mt-20 overflow-hidden border-t border-border/60"
+    >
+      {/* The grid behind the phones, so it alternates with them. */}
+      <Backdrop at={flip ? "left" : "right"} />
       <div
-        className={`mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 px-5 py-20 sm:px-8 lg:gap-16 lg:py-28 ${
+        className={`relative mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 px-5 py-20 sm:px-8 lg:gap-16 lg:py-28 ${
           flip ? "lg:grid-cols-[3fr_2fr]" : "lg:grid-cols-[2fr_3fr]"
         }`}
       >
