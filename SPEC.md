@@ -777,7 +777,7 @@ and card art and text (Features 4 and 6) are built.
 > **HARD TODO — website rework.** Done: new screenshots from the app's demo
 > mode (card art allowed now), the game-start face-off clip in a strip under
 > the hero, and the features as three beats of a match (before, at the
-> table, after), with a slim details strip and a short roadmap.
+> table, after) and a slim details strip; the roadmap keeps its rail.
 > **Still open — the privacy notice:** `/privacy` ("Your choices") still
 > describes account deletion by email only (within 30 days) — add the
 > in-app deletion (Profile → Delete account, immediate, Apple sign-in

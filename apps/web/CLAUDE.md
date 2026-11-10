@@ -122,11 +122,14 @@ dev client flash a blue "Refreshing…" banner — cut around it.
   stale.
 - **Page order:** hero → face-off clip → three **beats** of a match
   (`Beat`: Before the match / At the table / After the match) → a one-line
-  details strip (`HowYouPlay`) → a short roadmap (`ComingLater`: the next
-  three as cards, the rest in one line) → waitlist. Each beat is a heading,
+  details strip (`HowYouPlay`) → the roadmap (`ComingLater`, the rail of
+  cards over the dot grid — the owner likes it; a slimmed version was
+  reverted, 2026-11-10) → waitlist. Each beat is a heading,
   one sentence and **three short lines** beside **one or two phones**,
   alternating sides (`flip`); every phone is the same size (`PHONE_W`) —
-  never size phones by count. Stills only. Tried and rejected: clips and
+  never size phones by count — and **never cut off at an edge**: the phone
+  column is the wider one, and on narrow screens phones shrink to half the
+  width instead of scrolling sideways. Stills only. Tried and rejected: clips and
   mixed-size tiles in the features, a feature explorer (owner, 2026-11-05),
   and rows of four phones under bullet lists — too much at once
   (2026-11-10). Prefer cutting a feature from the page over adding a
