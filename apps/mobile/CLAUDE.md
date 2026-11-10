@@ -1222,6 +1222,16 @@ indistinguishable from the user cancelling. Hence the `__DEV__` warning on the
 non-success branch in `signInWithDiscord`: if a sign-in "cancels" itself, read
 the Metro logs. Site URL is set to the same app URL so a future misconfiguration
 at least bounces back into Riftlog.
+
+**On Android the router must ignore the redirect — `app/+native-intent.tsx`.**
+iOS's auth session swallows `riftlog://auth-callback`; Android's browser hands
+it to the app as an ordinary deep link, so Expo Router sees it too. Without
+`redirectSystemPath` dropping it (`''` = don't navigate; `/` when it's the
+launch URL), the router finds no `/auth-callback` route and replaces the whole
+root layout — providers included — with "Unmatched Route": the sign-in
+succeeds, but `SIGNED_IN` lands on unmounted listeners behind a dead screen.
+Don't add an `auth-callback` screen instead; the tokens are read off
+`openAuthSessionAsync`'s result, not by a route.
 - **Google — the same handler as Discord.** `signInWithRedirectProvider` takes
   the provider as an argument; `signInWithDiscord` / `signInWithGoogle` are thin
   wrappers over it. One browser flow, one redirect URI, two callers. Google
