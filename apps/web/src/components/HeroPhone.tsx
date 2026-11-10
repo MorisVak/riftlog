@@ -108,18 +108,12 @@ const NARROW = "(max-width: 1023.98px)";
 export function HeroPhone() {
   const [landscape, setLandscape] = useState(false);
   const [mode, setMode] = useState<ScoringMode>("detailed");
-  // The turn button hides while the phone turns and pops back in at its new
-  // corner once the phone is in place (sliding along with the turn looked
-  // like it was dragging the phone).
-  const [turning, setTurning] = useState(false);
-  const settleTimer = useRef<number | undefined>(undefined);
-  useEffect(() => () => window.clearTimeout(settleTimer.current), []);
-
   // On load, one thing after the other: the phone rises into place (the
-  // hero's `.animate-rise` around it), then the turn button pops in — timed
-  // off the real animation, starting just before its slow tail ends, when the
-  // phone already looks settled. With reduced motion there is none, so it
-  // shows at once.
+  // hero's `.animate-rise` around it), then the switch and the turn button
+  // pop in — timed off the real animation, before its slow tail ends, when
+  // the phone already looks settled. Only on load: after that the button is
+  // part of the phone. With reduced motion there's no entrance, so it shows
+  // at once.
   const wrapRef = useRef<HTMLDivElement>(null);
   const [entered, setEntered] = useState(false);
   useEffect(() => {
@@ -175,25 +169,33 @@ export function HeroPhone() {
   const toLandscape = sizes ? sizes.l.w / sizes.p.h : 1;
   const toPortrait = sizes ? sizes.p.h / sizes.l.w : 1;
 
-  // The first pop (on load) follows the switch's; after a turn, none.
-  const [turnedOnce, setTurnedOnce] = useState(false);
-
-  const turn = () => {
-    if (turning || !entered) return;
-    setTurnedOnce(true);
-    setLandscape((on) => !on);
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    // In place after the turn — and, on phones, after the resize too.
-    setTurning(true);
-    window.clearTimeout(settleTimer.current);
-    settleTimer.current = window.setTimeout(
-      () => setTurning(false),
-      TURN_MS + (narrow ? RESIZE_MS : 0) + 50,
+  /**
+   * The turn button, one per frame, in that frame's top-right corner: it
+   * turns with its phone, so it's simply part of it — the shown frame's is
+   * there at once after a turn, no waiting. It pops in once, on load.
+   */
+  const turnButton = (forLandscape: boolean) => {
+    const Icon = forLandscape ? RotateCw : RotateCcw;
+    const label = forLandscape ? "Show the board upright" : "Show the board sideways";
+    const active = forLandscape === landscape;
+    return (
+      <button
+        type="button"
+        onClick={() => setLandscape(!forLandscape)}
+        aria-label={label}
+        aria-pressed={landscape}
+        title={label}
+        // The frame turned away keeps its button out of the tab order.
+        tabIndex={active ? 0 : -1}
+        style={{ animationDelay: `${POP_STAGGER_MS}ms` }}
+        className={`absolute -right-3 -top-3 z-10 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-elevated text-accent-soft shadow-accent-btn transition-colors hover:bg-surface hover:text-ink-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+          entered ? "animate-pop" : "pointer-events-none opacity-0"
+        }`}
+      >
+        <Icon size={20} strokeWidth={2} aria-hidden />
+      </button>
     );
   };
-
-  const Icon = landscape ? RotateCw : RotateCcw;
-  const label = landscape ? "Show the board upright" : "Show the board sideways";
 
   return (
     <div ref={wrapRef} className="flex w-full max-w-[560px] flex-col items-center gap-6">
@@ -226,11 +228,12 @@ export function HeroPhone() {
                 : "none",
               ...turnTiming,
             }}
-            className={`phone-turn w-full max-w-[280px] ${
+            className={`phone-turn relative w-full max-w-[280px] ${
               landscape ? "pointer-events-none opacity-0" : "opacity-100"
             }`}
           >
             <ModeShots shots={PORTRAIT} mode={mode} hidden={landscape} priority />
+            {turnButton(false)}
           </div>
         </div>
 
@@ -244,44 +247,14 @@ export function HeroPhone() {
                 : `rotate(90deg) scale(${toPortrait})`,
               ...turnTiming,
             }}
-            className={`phone-turn w-full ${
+            className={`phone-turn relative w-full ${
               landscape ? "opacity-100" : "pointer-events-none opacity-0"
             }`}
           >
             <ModeShots shots={LANDSCAPE} mode={mode} hidden={!landscape} />
+            {turnButton(true)}
           </div>
         </div>
-
-        {/* Pinned to the top-right corner of whichever frame is showing.
-            It pops in once the phone is in place: after the hero's entrance
-            on load, and at the new corner after each turn. */}
-        <button
-          type="button"
-          onClick={turn}
-          // Not `disabled`: that would drop keyboard focus mid-turn.
-          aria-disabled={turning || !entered}
-          aria-label={label}
-          aria-pressed={landscape}
-          title={label}
-          style={
-            sizes
-              ? {
-                  top: `calc(50% - ${(landscape ? sizes.l.h : sizes.p.h) / 2}px - 12px)`,
-                  right: `calc(50% - ${(landscape ? sizes.l.w : sizes.p.w) / 2}px - 12px)`,
-                  animationDelay: turnedOnce ? "0ms" : `${POP_STAGGER_MS}ms`,
-                }
-              : undefined
-          }
-          // Hiding is instant (it moves while hidden); showing replays the
-          // `.animate-pop` keyframes each time the class comes back.
-          className={`absolute -right-3 -top-3 z-10 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-elevated text-accent-soft shadow-accent-btn hover:bg-surface hover:text-ink-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none ${
-            turning || !entered
-              ? "pointer-events-none opacity-0"
-              : "animate-pop transition-colors"
-          }`}
-        >
-          <Icon size={20} strokeWidth={2} aria-hidden />
-        </button>
       </div>
     </div>
   );
