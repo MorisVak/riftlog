@@ -195,7 +195,7 @@ up:
   deletion (Profile → Delete account, immediate; Apple sign-in revoked), and
   `/terms` points there too. Legal pages need the owner's sign-off. Details
   in `SPEC.md`.
-- **"Buy me a coffee" in the app** — built (Profile → Support, opens the
+- **"Buy me a coffee" in the app** — built (Profile → Riftlog, opens the
   browser). App Store risk: Apple can treat a tip link as a digital
   purchase outside in-app purchase (Guideline 3.1.1); be ready to hide it
   in the review build if it's flagged.

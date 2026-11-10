@@ -12,17 +12,15 @@ import Avatar from '@/components/avatar';
 import Icon from '@/components/icon';
 import RiotDisclaimer from '@/components/riotDisclaimer';
 import DeckPicker from '@/components/deck/deckPicker';
-import {
-  deleteMyAccount,
-  revokeAppleSignIn,
-  setDefaultDeck,
-  setScoringMode,
-} from '@/lib/profile';
+import { LegendPortrait } from '@/components/deck/cardArt';
+import { deleteMyAccount, revokeAppleSignIn, setDefaultDeck, setScoringMode } from '@/lib/profile';
 import type { ScoringMode } from '@riftlog/core';
 import { appleAuthorizationCode, usesAppleSignIn } from '@/lib/auth';
 import type { Deck } from '@/lib/decks';
 import { myDecksCache, useMyDecks } from '@/lib/sessionCache';
 import FeedbackSheet from '@/components/feedbackSheet';
+import ScoringSheet from '@/components/scoringSheet';
+import { SCORING_LABEL } from '@/components/scoringChoice';
 import { fetchFeedbackUnreadCount } from '@/lib/feedback';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
@@ -31,21 +29,15 @@ const BUY_ME_A_COFFEE_URL = 'https://buymeacoffee.com/moriscodes';
 // `background` mirrored for the gradient behind the status bar.
 const STATUS_SHADE = ['#0D1B2A', '#0D1B2A00'] as const;
 
-/** Profile → Scoring: the two boards, each with one line on what it does. */
-const SCORING_OPTIONS: { value: ScoringMode; label: string; hint: string }[] = [
-  { value: 'detailed', label: 'Detailed', hint: 'Score each point as Conquer, Hold or Special.' },
-  { value: 'simple', label: 'Simple', hint: 'A plain counter: + and −.' },
-];
-
 type DecksState = { kind: 'loading' } | { kind: 'ready'; decks: Deck[] } | { kind: 'error' };
 
 /**
- * Profile tab: you and your settings — the identity header, the default deck,
- * feedback, and Riot's statements at the bottom. Decks have their own tab.
- * The handle is claimed at onboarding; the rename UI and stats come later.
- * Sections: Default deck, Scoring (detailed or simple board), Appearance
- * (legend art), Feedback, Support (buy me a coffee), Account (sign out,
- * delete account).
+ * Profile tab: you and your settings. The identity card, then three
+ * sections built from the same rows — Playing (default deck, scoring,
+ * legend art), Riftlog (feedback, buy me a coffee), Account (sign out,
+ * delete account) — and Riot's statements at the bottom. Decks have their
+ * own tab. The handle is claimed at onboarding; the rename UI and stats
+ * come later.
  */
 const Profile = () => {
   const insets = useSafeAreaInsets();
@@ -120,9 +112,9 @@ const Profile = () => {
   const [pendingScoring, setPendingScoring] = useState<ScoringMode | undefined>(undefined);
   const scoringMode = pendingScoring ?? profile?.scoringMode ?? 'detailed';
 
+  const [scoringOpen, setScoringOpen] = useState(false);
   const chooseScoring = (mode: ScoringMode) => {
     if (mode === scoringMode) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setPendingScoring(mode);
     setScoringMode(mode)
       .then(() => refresh())
@@ -232,7 +224,9 @@ const Profile = () => {
       ? `${legendPicks} picked`
       : profile?.legendArt.overnumbered
         ? 'Overnumbered'
-        : 'Deck art';
+        : 'Default';
+
+  const hasDecks = decksState.kind === 'ready' && decksState.decks.length > 0;
 
   return (
     <View className="flex-1 bg-background">
@@ -251,14 +245,13 @@ const Profile = () => {
           </Text>
         </Animated.View>
 
-        {/* Who you are, as a card. Sign out lives in Account at the bottom,
-          away from the name, where a stray tap can't reach it. */}
+        {/* Who you are. Sign out lives in Account at the bottom, away from
+          the name, where a stray tap can't reach it. */}
         <Animated.View
           style={headerStyle}
           className="flex-row items-center gap-4 rounded-2xl border border-border bg-surface p-4"
         >
           <Avatar size={56} />
-
           <View className="flex-1">
             {/* Until the row loads, hold the header's shape with placeholders
               rather than a spinner, so nothing jumps when it arrives. A missing
@@ -284,181 +277,116 @@ const Profile = () => {
           </Text>
         )}
 
-        {/* The deck a new match starts with. Only once there are decks to
-          choose from; the server clears it if that deck is deleted. */}
-        {decksState.kind === 'ready' && decksState.decks.length > 0 && (
-          <Animated.View style={decksStyle} className="mt-8">
-            <Text className="mb-2 font-display text-base text-ink-secondary">Default deck</Text>
-            <DeckPicker
-              value={defaultDeck}
-              onChange={chooseDefault}
-              noneLabel="No default deck"
-              title="Default deck"
-              defaultDeckId={defaultDeckId}
-            />
-            <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
-              Picked for you when you start a match. Also on Home.
-            </Text>
-          </Animated.View>
-        )}
-
-        {/* How the board scores: say HOW each point was taken, or a plain
-          counter. Read when a match starts, so a match in progress keeps its
-          board. Only once the profile is loaded, so it never shows a guess. */}
+        {/* Playing: how a match starts and looks. Each needs the profile
+          loaded, so nothing shows a guess. */}
         {profile && (
-          <Animated.View style={decksStyle} className="mt-8">
-            <Text className="mb-2 font-display text-base text-ink-secondary">Scoring</Text>
-            <View
-              accessibilityRole="radiogroup"
-              className="overflow-hidden rounded-2xl border border-border bg-surface"
-            >
-              {SCORING_OPTIONS.map((o, i) => {
-                const selected = o.value === scoringMode;
-                return (
-                  <TouchableOpacity
-                    key={o.value}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: selected }}
-                    accessibilityLabel={`${o.label}. ${o.hint}`}
-                    onPress={() => chooseScoring(o.value)}
-                    className={`min-h-[60px] flex-row items-center gap-3 px-4 py-2.5 active:bg-elevated ${
-                      i > 0 ? 'border-t border-border/60' : ''
-                    }`}
-                  >
-                    <View className="flex-1">
-                      <Text className="font-display text-[15px] text-ink-primary">{o.label}</Text>
-                      <Text className="mt-0.5 text-[13px] text-ink-tertiary">{o.hint}</Text>
-                    </View>
-                    {/* Shape + icon, not color alone. */}
-                    <View
-                      className={`h-[22px] w-[22px] items-center justify-center rounded-full ${
-                        selected ? 'bg-accent' : 'border-2 border-ink-tertiary'
-                      }`}
-                    >
-                      {selected && <Icon name="check" size={14} className="text-background" />}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
-              Used from your next match. Graphs of simple games show the score only.
-            </Text>
+          <Animated.View style={decksStyle}>
+            <Section title="Playing">
+              {/* The deck a new match starts with; the server clears it if
+                that deck is deleted. Only once there are decks to pick. */}
+              {hasDecks && (
+                <DeckPicker
+                  value={defaultDeck}
+                  onChange={chooseDefault}
+                  noneLabel="No default deck"
+                  title="Default deck"
+                  defaultDeckId={defaultDeckId}
+                  renderTrigger={(open) => (
+                    <Row
+                      first
+                      lead={
+                        defaultDeck?.list.legend ? (
+                          <LegendPortrait card={defaultDeck.list.legend} />
+                        ) : (
+                          <Icon name="layers" size={16} className="text-ink-secondary" />
+                        )
+                      }
+                      label="Default deck"
+                      value={defaultDeck?.name ?? 'None'}
+                      onPress={open}
+                    />
+                  )}
+                />
+              )}
+
+              {/* Opens the two boards with their previews. */}
+              <Row
+                first={!hasDecks}
+                lead={<Icon name="sliders" size={16} className="text-ink-secondary" />}
+                label="Scoring mode"
+                value={SCORING_LABEL[scoringMode]}
+                onPress={() => setScoringOpen(true)}
+              />
+
+              <Row
+                lead={<Icon name="image" size={16} className="text-ink-secondary" />}
+                label="Legend art"
+                value={legendArtSummary}
+                onPress={() => router.push('/legend-art')}
+              />
+            </Section>
           </Animated.View>
         )}
 
-        {/* Which art legends are drawn with. */}
-        <Animated.View style={decksStyle} className="mt-8">
-          <Text className="mb-2 font-display text-base text-ink-secondary">Appearance</Text>
-          <View className="overflow-hidden rounded-2xl border border-border bg-surface">
-            <TouchableOpacity
-              accessibilityRole="button"
-              onPress={() => router.push('/legend-art')}
-              className="min-h-[52px] flex-row items-center gap-3 px-4 active:bg-elevated"
-            >
-              <Icon name="image" size={17} className="text-accent" />
-              <Text className="flex-1 font-display text-[15px] text-ink-primary">Legend art</Text>
-              <Text className="text-[13px] text-ink-tertiary">{legendArtSummary}</Text>
-              <Icon name="chevron-right" size={16} className="text-ink-tertiary" />
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-
-        <Animated.View style={decksStyle} className="mt-8">
-          <Text className="mb-2 font-display text-base text-ink-secondary">Feedback</Text>
-          <View className="overflow-hidden rounded-2xl border border-border bg-surface">
-            <TouchableOpacity
-              accessibilityRole="button"
+        {/* Riftlog itself: feedback, and the one way to chip in (opens the
+          browser, same page as the website's header link). */}
+        <Animated.View style={decksStyle}>
+          <Section title="Riftlog">
+            <Row
+              first
+              lead={<Icon name="message-square" size={16} className="text-ink-secondary" />}
+              label="Send feedback"
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setFeedbackOpen(true);
               }}
-              className="min-h-[52px] flex-row items-center gap-3 px-4 active:bg-elevated"
-            >
-              <Icon name="message-square" size={17} className="text-accent" />
-              <Text className="flex-1 font-display text-[15px] text-ink-primary">
-                Send feedback
-              </Text>
-              <Icon name="chevron-right" size={16} className="text-ink-tertiary" />
-            </TouchableOpacity>
-
+            />
             {/* Only the feedback admin gets the inbox; the server enforces it. */}
             {feedbackUnread !== null && (
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel={`View feedback, ${feedbackUnread} unread`}
+              <Row
+                lead={<Icon name="inbox" size={16} className="text-ink-secondary" />}
+                label="Feedback inbox"
+                accessibilityLabel={`Feedback inbox, ${feedbackUnread} unread`}
+                badge={
+                  feedbackUnread > 0
+                    ? feedbackUnread > 99
+                      ? '99+'
+                      : String(feedbackUnread)
+                    : undefined
+                }
                 onPress={() => router.push('/feedback')}
-                className="min-h-[52px] flex-row items-center gap-3 border-t border-border/60 px-4 active:bg-elevated"
-              >
-                <Icon name="inbox" size={17} className="text-ink-secondary" />
-                <Text className="flex-1 font-display text-[15px] text-ink-primary">
-                  View feedback
-                </Text>
-                {feedbackUnread > 0 && (
-                  <View className="min-w-[22px] items-center rounded-full bg-accent px-1.5 py-0.5">
-                    <Text className="font-display-bold text-[12px] text-background">
-                      {feedbackUnread > 99 ? '99+' : feedbackUnread}
-                    </Text>
-                  </View>
-                )}
-                <Icon name="chevron-right" size={16} className="text-ink-tertiary" />
-              </TouchableOpacity>
+              />
             )}
-          </View>
-          <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
-            Tell us what you like and what to improve. It&apos;s sent anonymously.
-          </Text>
-        </Animated.View>
-
-        {/* Support: Riftlog is free; this is the one way to chip in. Opens the
-          browser (same page as the website's header link). */}
-        <Animated.View style={decksStyle} className="mt-8">
-          <Text className="mb-2 font-display text-base text-ink-secondary">Support</Text>
-          <View className="overflow-hidden rounded-2xl border border-border bg-surface">
-            <TouchableOpacity
-              accessibilityRole="link"
+            <Row
+              lead={<Icon name="coffee" size={16} className="text-ink-secondary" />}
+              label="Buy me a coffee"
+              link
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 void Linking.openURL(BUY_ME_A_COFFEE_URL);
               }}
-              className="min-h-[52px] flex-row items-center gap-3 px-4 active:bg-elevated"
-            >
-              <Icon name="coffee" size={17} className="text-accent" />
-              <Text className="flex-1 font-display text-[15px] text-ink-primary">
-                Buy me a coffee
-              </Text>
-              <Icon name="external-link" size={15} className="text-ink-tertiary" />
-            </TouchableOpacity>
-          </View>
-          <Text className="mt-1.5 px-1 text-[12px] leading-4 text-ink-tertiary">
-            Riftlog is free. If you enjoy it, a coffee helps me keep building it.
-          </Text>
+            />
+          </Section>
         </Animated.View>
 
-        {/* Account: sign out, and deleting the account for good. */}
-        <Animated.View style={decksStyle} className="mt-8">
-          <Text className="mb-2 font-display text-base text-ink-secondary">Account</Text>
-          <View className="overflow-hidden rounded-2xl border border-border bg-surface">
-            <TouchableOpacity
-              accessibilityRole="button"
+        <Animated.View style={decksStyle}>
+          <Section title="Account">
+            <Row
+              first
+              lead={<Icon name="log-out" size={16} className="text-ink-secondary" />}
+              label="Sign out"
+              chevron={false}
               onPress={confirmSignOut}
-              className="min-h-[52px] flex-row items-center gap-3 px-4 active:bg-elevated"
-            >
-              <Icon name="log-out" size={17} className="text-ink-secondary" />
-              <Text className="flex-1 font-display text-[15px] text-ink-primary">Sign out</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              accessibilityRole="button"
+            />
+            <Row
+              danger
+              lead={<Icon name="trash-2" size={16} className="text-loss-text" />}
+              label={deleting ? 'Deleting account…' : 'Delete account'}
+              chevron={false}
               disabled={deleting}
               onPress={confirmDeleteAccount}
-              className="min-h-[52px] flex-row items-center gap-3 border-t border-border/60 px-4 active:bg-elevated"
-            >
-              <Icon name="trash-2" size={17} className="text-loss-text" />
-              <Text className="flex-1 font-display text-[15px] text-loss-text">
-                {deleting ? 'Deleting account…' : 'Delete account'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+            />
+          </Section>
         </Animated.View>
 
         {/* Riot's statements: the ONE place in the app they appear, always,
@@ -467,6 +395,12 @@ const Profile = () => {
           <RiotDisclaimer />
         </Animated.View>
 
+        <ScoringSheet
+          visible={scoringOpen}
+          value={scoringMode}
+          onChange={chooseScoring}
+          onClose={() => setScoringOpen(false)}
+        />
         <FeedbackSheet
           visible={feedbackOpen}
           onClose={() => setFeedbackOpen(false)}
@@ -487,9 +421,99 @@ const Profile = () => {
         colors={STATUS_SHADE}
         locations={[0.6, 1]}
         pointerEvents="none"
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top + 10 }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top + 10,
+        }}
       />
     </View>
+  );
+};
+
+/** A heading and one grouped card of rows — every section looks like this. */
+const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <View className="mt-8">
+    <Text className="mb-2 font-display text-base text-ink-secondary">{title}</Text>
+    <View className="overflow-hidden rounded-2xl border border-border bg-surface">{children}</View>
+  </View>
+);
+
+/**
+ * One row of a section: a round lead (an icon, or the default deck's legend),
+ * the label, then a value or a badge, and a chevron (or an external-link
+ * mark) when it opens something.
+ */
+const Row = ({
+  lead,
+  label,
+  value,
+  badge,
+  onPress,
+  first = false,
+  danger = false,
+  link = false,
+  chevron = true,
+  disabled = false,
+  accessibilityLabel,
+}: {
+  lead: React.ReactNode;
+  label: string;
+  value?: string;
+  badge?: string;
+  onPress?: () => void;
+  first?: boolean;
+  danger?: boolean;
+  link?: boolean;
+  chevron?: boolean;
+  disabled?: boolean;
+  accessibilityLabel?: string;
+}) => {
+  const content = (
+    <>
+      <View className="h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-elevated">
+        {lead}
+      </View>
+      <View className="flex-1">
+        <Text
+          className={`font-display text-[15px] ${danger ? 'text-loss-text' : 'text-ink-primary'}`}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
+      </View>
+      {value && (
+        <Text className="max-w-[45%] text-[14px] text-ink-tertiary" numberOfLines={1}>
+          {value}
+        </Text>
+      )}
+      {badge && (
+        <View className="min-w-[22px] items-center rounded-full bg-accent px-1.5 py-0.5">
+          <Text className="font-display-bold text-[12px] text-background">{badge}</Text>
+        </View>
+      )}
+      {onPress && link && <Icon name="external-link" size={15} className="text-ink-tertiary" />}
+      {onPress && !link && chevron && (
+        <Icon name="chevron-right" size={16} className="text-ink-tertiary" />
+      )}
+    </>
+  );
+  const rowClass = `min-h-[56px] flex-row items-center gap-3 px-4 py-2 ${
+    first ? '' : 'border-t border-border/60'
+  }`;
+  if (!onPress) return <View className={rowClass}>{content}</View>;
+  return (
+    <TouchableOpacity
+      accessibilityRole={link ? 'link' : 'button'}
+      accessibilityLabel={accessibilityLabel}
+      disabled={disabled}
+      onPress={onPress}
+      className={`${rowClass} active:bg-elevated`}
+    >
+      {content}
+    </TouchableOpacity>
   );
 };
 
