@@ -35,8 +35,8 @@ export default function TermsPage() {
         Your matches, notes and decks stay yours; Riftlog only stores them so it
         can show them back to you. Pick an @handle that doesn&apos;t impersonate
         anyone and isn&apos;t offensive, and only enter opponents&apos; names if
-        they&apos;re fine with it. You can stop using Riftlog and have your
-        account deleted at any time (see the{" "}
+        they&apos;re fine with it. You can stop using Riftlog and delete your
+        account at any time, right in the app (see the{" "}
         <Link href="/privacy">Privacy Policy</Link>).
       </p>
 

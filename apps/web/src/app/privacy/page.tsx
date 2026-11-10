@@ -87,18 +87,25 @@ export default function PrivacyPage() {
 
       <h2>Data retention</h2>
       <p>
-        Account data stays until you delete it. Waitlist emails are deleted
-        after the launch email, messages once answered, and server logs after a
-        short time.
+        Account data stays until you delete your account, then it&apos;s
+        deleted straight away. Waitlist emails are deleted after the launch
+        email, messages once answered, and server logs after a short time.
       </p>
 
       <h2>Your choices</h2>
       <p>
-        You can delete matches and decks in the app. Email{" "}
-        <Fill value={OPERATOR.email} />{" "}
-        to delete your account (done within 30 days), leave the waitlist, or get
-        a copy of, correct or limit your data. You can also complain to a data
-        protection authority, such as{" "}
+        You can delete single matches and decks in the app, or your whole
+        account under Profile → Delete account. Your account is deleted
+        immediately, with your profile, matches, notes and decks, and this
+        can&apos;t be undone. If you signed in with Apple, Riftlog&apos;s access
+        to your Apple ID is removed as well. Feedback you sent stays, since it
+        was never linked to your account.
+      </p>
+      <p>
+        Can&apos;t use the app? Email <Fill value={OPERATOR.email} /> and
+        I&apos;ll delete your account within 30 days. Email the same address to
+        leave the waitlist, or to get a copy of, correct or limit your data. You
+        can also complain to a data protection authority, such as{" "}
         <Fill value={OPERATOR.supervisoryAuthority} />.
       </p>
 
