@@ -19,15 +19,11 @@ import Icon from '@/components/icon';
 import { CardBackdrop } from '@/components/deck/cardArt';
 import PressOverlay from '@/components/pressOverlay';
 import { usePageSheetInsets } from '@/lib/pageSheetInsets';
+import { glow } from '@/lib/glow';
 
 // The legend menu floats over the list; a style object, not a shadow class
 // (see the shadow note in apps/mobile/CLAUDE.md). Mirrors `background`.
-const MENU_SHADOW = {
-  shadowColor: '#0D1B2A',
-  shadowOffset: { width: 0, height: 8 },
-  shadowOpacity: 0.6,
-  shadowRadius: 16,
-} as const;
+const MENU_SHADOW = glow('#0D1B2A', 0.6, 16, 8);
 
 /** "Kennen, Heart of the Tempest" → "Kennen": fits the small filter button. */
 const shortLegend = (name: string): string => splitCardName(name).head || name;

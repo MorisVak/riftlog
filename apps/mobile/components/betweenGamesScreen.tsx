@@ -26,6 +26,7 @@ import Icon from './icon';
 import { badgePop } from './transitions';
 import React, { useEffect, useState } from 'react';
 import { useAndroidBack } from '@/hooks/useAndroidBack';
+import { glow as glowShadow } from '@/lib/glow';
 
 // Result tokens, paired with a letter so color is never the only signal. The
 // badge is read from p1's perspective — you — so the opponent taking a game is
@@ -178,12 +179,9 @@ const BetweenGamesScreen = () => {
       true,
     );
   }, [glow]);
-  const glowStyle = useAnimatedStyle(() => ({
-    shadowColor: ACCENT_SOFT,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: GLOW_MIN + glow.value * (GLOW_MAX - GLOW_MIN),
-    shadowRadius: 6 + glow.value * 8,
-  }));
+  const glowStyle = useAnimatedStyle(() =>
+    glowShadow(ACCENT_SOFT, GLOW_MIN + glow.value * (GLOW_MAX - GLOW_MIN), 6 + glow.value * 8),
+  );
 
   if (!match) return null;
 

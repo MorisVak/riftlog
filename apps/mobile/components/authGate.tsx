@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/authContext';
+import { CTA_GLOW } from '@/components/ctaGlow';
 
 // Feather's `color` is a prop, not a class — this mirrors the `accent` token.
 const ACCENT = '#8B93D9';
@@ -66,7 +67,8 @@ const AuthGate = ({ children }: { children: React.ReactNode }) => {
             accessibilityRole="button"
             accessibilityLabel="Log in"
             onPress={toLogin}
-            className="items-center rounded-full bg-accent px-5 py-4 shadow-accent-btn active:bg-accent-strong"
+            style={CTA_GLOW}
+            className="items-center rounded-full bg-accent px-5 py-4 active:bg-accent-strong"
           >
             <Text className="font-display-bold text-base text-background">
               Log in

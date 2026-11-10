@@ -8,6 +8,7 @@ import ScoringComponent from './scoringComponent';
 import MatchClock from './matchClock';
 import { LegendPortrait } from './deck/cardArt';
 import React from 'react';
+import { CTA_GLOW } from '@/components/ctaGlow';
 
 // Feather icon color is a prop, not a className — raw value mirrors the
 // `background` token (#0D1B2A), the ink color used on the accent pill.
@@ -96,7 +97,8 @@ const TrackingField = ({
   const endPill = onEnd && (
     <Pressable
       onPress={onEnd}
-      className={`h-11 flex-row items-center gap-2 rounded-full bg-accent px-6 shadow-accent-btn active:bg-accent-strong ${
+      style={CTA_GLOW}
+      className={`h-11 flex-row items-center gap-2 rounded-full bg-accent px-6 active:bg-accent-strong ${
         landscape ? '' : 'absolute bottom-8'
       }`}
     >

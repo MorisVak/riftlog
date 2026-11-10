@@ -21,6 +21,7 @@ import {
 } from '@/lib/auth';
 import { getLastAuthMethod, type AuthMethod } from '@/lib/authPrefs';
 import { usePageSheetInsets } from '@/lib/pageSheetInsets';
+import { CTA_GLOW } from '@/components/ctaGlow';
 
 // Icon `color` and placeholderTextColor are props, not classNames, so they take
 // raw values. These mirror the design tokens 1:1 (see tailwind.config.js).
@@ -138,10 +139,9 @@ const Login = () => {
             accessibilityLabel="Continue with Discord"
             disabled={busy !== null}
             onPress={() => run('discord', signInWithDiscord)}
+            style={busy === null ? CTA_GLOW : undefined}
             className={`mb-3 flex-row items-center justify-center gap-2.5 rounded-full px-5 py-4 ${
-              busy !== null
-                ? 'bg-accent/50'
-                : 'bg-accent shadow-accent-btn active:bg-accent-strong'
+              busy !== null ? 'bg-accent/50' : 'bg-accent active:bg-accent-strong'
             }`}
           >
             {busy === 'discord' ? (
@@ -231,10 +231,9 @@ const Login = () => {
             accessibilityRole="button"
             disabled={!emailUsable || busy !== null}
             onPress={onEmailContinue}
+            style={emailUsable && busy === null ? CTA_GLOW : undefined}
             className={`items-center rounded-full px-5 py-4 ${
-              emailUsable && busy === null
-                ? 'bg-accent shadow-accent-btn active:bg-accent-strong'
-                : 'bg-elevated'
+              emailUsable && busy === null ? 'bg-accent active:bg-accent-strong' : 'bg-elevated'
             }`}
           >
             {busy === 'email' ? (

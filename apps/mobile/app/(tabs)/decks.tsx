@@ -22,6 +22,7 @@ import { myDecksCache, useMyDecks } from '@/lib/sessionCache';
 import { useSelection } from '@/hooks/useSelection';
 import SelectionBar from '@/components/selectionBar';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
+import { glow } from '@/lib/glow';
 
 type DecksState = { kind: 'loading' } | { kind: 'ready'; decks: Deck[] } | { kind: 'error' };
 
@@ -34,12 +35,7 @@ const SORTS: { key: DeckSort; label: string; short: string }[] = [
 
 // The sort menu floats over the list — same lift as the deck picker's menu,
 // as a style object (see the shadow note in apps/mobile/CLAUDE.md).
-const MENU_SHADOW = {
-  shadowColor: '#0D1B2A',
-  shadowOffset: { width: 0, height: 8 },
-  shadowOpacity: 0.6,
-  shadowRadius: 16,
-} as const;
+const MENU_SHADOW = glow('#0D1B2A', 0.6, 16, 8);
 
 /**
  * Decks tab: your decks, and the way in to importing one. A tab of its own —

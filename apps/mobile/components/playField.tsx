@@ -9,6 +9,7 @@ import MatchClock from './matchClock';
 import BoardDivider from './boardDivider';
 import React, { useState } from 'react';
 import { useAndroidBack } from '@/hooks/useAndroidBack';
+import { glow } from '@/lib/glow';
 
 /**
  * Lightweight confirm shown when the player taps the board's exit (✕). Exiting
@@ -77,22 +78,14 @@ const ACCENT = '#8B93D9';
  *
  * Mirrors the `accent-btn` glow the END pill and Start CTA carry.
  */
-const ACCENT_GLOW = {
-  shadowColor: ACCENT,
-  shadowOffset: { width: 0, height: 3 },
-  shadowOpacity: 0.28,
-  shadowRadius: 10,
-} as const;
+const ACCENT_GLOW = glow(ACCENT, 0.28, 10, 3);
 
 /**
  * The same glow for the paused clock, so the capsule and its control light up
  * together. The offset is symmetric because the capsule is quarter-turned — a
  * downward offset would rotate with it and cast sideways.
  */
-const CLOCK_GLOW = {
-  ...ACCENT_GLOW,
-  shadowOffset: { width: 0, height: 0 },
-} as const;
+const CLOCK_GLOW = glow(ACCENT, 0.28, 10, 0);
 
 const PlayField = () => {
   const { match, endMatch, pauseClock, resumeClock } = useMatch();
