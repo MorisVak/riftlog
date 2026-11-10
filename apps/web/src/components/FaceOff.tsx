@@ -13,7 +13,7 @@ export function FaceOff() {
       id="face-off"
       className="relative scroll-mt-20 overflow-hidden border-t border-border/60"
     >
-      <Backdrop texture="slant" />
+      <Backdrop />
       <div className="relative mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
         <Reveal className="mx-auto max-w-2xl text-center">
           <p className="font-display text-sm font-semibold uppercase tracking-widest text-accent-soft">
