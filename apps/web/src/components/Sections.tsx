@@ -50,7 +50,7 @@ export function TableSection() {
       points={[
         {
           title: "Detailed or simple",
-          body: "Score each point as Conquer, Hold or Special, or keep a plain + / − count. Pick one in your profile, and try both at the top of this page.",
+          body: "Score each point as Conquer, Hold or Special, or keep a plain − / + count. Pick one in your profile, and try both at the top of this page.",
         },
         {
           title: "Take it back",
