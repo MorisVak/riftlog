@@ -4,6 +4,7 @@ import {
   NotebookPen,
   Palette,
   QrCode,
+  Tag,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -53,6 +54,18 @@ const ITEMS: {
     title: "Sideboard guide",
     body: "Plan what you side in and out for each matchup.",
     points: ["In and out, per matchup", "Check it between games in a Bo3"],
+  },
+  {
+    id: "tags",
+    phase: "planned",
+    icon: Tag,
+    title: "Tags",
+    body: "Tag your matches and find them again later.",
+    points: [
+      "Your own names and colors",
+      "Tag a whole Skirmish, then review its games together",
+      "Filter your history by tag",
+    ],
   },
   {
     id: "quick-log",

@@ -725,12 +725,41 @@ the match date can be set to an earlier day; where the entry point lives
 
 ---
 
+## Feature 16 — Tags
+
+**Status:** concept, on the website roadmap (third, "Planned"; owner,
+2026-11-10). Not designed.
+
+**What it is.** Your own labels on matches, to group and find them later.
+Example: at a Skirmish you create a `skirmish-…` tag, put it on each match
+you play there, and afterwards review that event's games together by
+filtering History by the tag. **Names and colors are fully customizable** —
+any name, any color.
+
+- Create, rename, recolor and delete your tags.
+- Put one or more tags on a match — at setup, between games, or later from
+  the match detail.
+- Filter (and sort) History by tag, next to the existing filters.
+
+**Data model.** Personal data like decks: a `tags` table (owner, name,
+color) and a `match_tags` join, both owner-scoped by RLS. Never shared or
+aggregated across users (Riot policy). The color is the user's own value,
+so it's stored per tag, not a design token — a tag always shows its name
+with the color, never color alone (colorblind rule).
+
+**Open design:** whether a tag can be set for "every match until I turn it
+off" (handy for a whole event); how many tags show on a History row; whether
+quick-log matches (Feature 15) take tags too (probably yes); whether tags
+later feed personal stats (Feature 13).
+
+---
+
 ## Website (riftlog.net)
 
 **Status:** built (`apps/web`). A marketing one-pager describing only what's
 built, with real app screenshots and a clearly labelled "Coming later"
-roadmap (Match mode → Sideboard guide → Quick log → Stats → Playerboard
-customization → Teams & friends, same order as below), ending in a blurred
+roadmap (Match mode → Sideboard guide → Tags → Quick log → Stats →
+Playerboard customization → Teams & friends, same order as below), ending in a blurred
 "More to come" card whose "Suggest a feature" link goes to `/contact`; a waitlist backed by Supabase (`join_waitlist`, consent recorded,
 single opt-in); `/contact` (form → Supabase), `/privacy`, `/terms` and `/legal-notice`
 (Impressum; drafts pending the owner's review); both Riot statements in the footer. Any
@@ -748,10 +777,11 @@ Mark an item here when it does, then add it to the build order below.
 | - | ---- | ------------- | ---- | ---------- | ----- |
 | 1 | Match mode (QR) | Up next | Feature 8 | Accounts | Not yet |
 | 2 | Sideboard guide | Planned | Feature 12 | Decks | Not yet |
-| 3 | Quick log | Planned | Feature 15 | Match write path | Not yet |
-| 4 | Stats | Later | Feature 13 | Quick log helps | Not yet |
-| 5 | Playerboard customization | Later | Feature 14 | Card catalog (built); Riot API key for release | Not yet |
-| 6 | Teams & friends | Later | Feature 9 | Match mode | Not yet |
+| 3 | Tags | Planned | Feature 16 | Match history (built) | Not yet |
+| 4 | Quick log | Planned | Feature 15 | Match write path | Not yet |
+| 5 | Stats | Later | Feature 13 | Quick log helps | Not yet |
+| 6 | Playerboard customization | Later | Feature 14 | Card catalog (built); Riot API key for release | Not yet |
+| 7 | Teams & friends | Later | Feature 9 | Match mode | Not yet |
 
 Not on the website but also open: turn tracking (Feature 10), Riftmana
 import (Feature 4), handle rename UI (Feature 7). Piltover Archive deck codes
@@ -838,13 +868,15 @@ matching the incremental philosophy in `CLAUDE.md`.
    needs the approved Riot API key. Known gap: RAD. (Feature 6.)
 10. **Match mode (QR)** — first of the planned features. (Feature 8.)
 11. **Sideboard guide** — concept. (Feature 12.)
-12. **Quick log** — concept; log a finished match without live scoring.
+12. **Tags** — concept; your own named, colored labels on matches, to
+    review an event's games together. (Feature 16.)
+13. **Quick log** — concept; log a finished match without live scoring.
     (Feature 15.)
-13. **Stats** — concept. (Feature 13.)
-14. **Playerboard customization** — concept; legend art is in the catalog,
+14. **Stats** — concept. (Feature 13.)
+15. **Playerboard customization** — concept; legend art is in the catalog,
     but a public release needs the approved Riot API key. (Feature 14.)
-15. **Teams & friends** — concept; needs match mode. (Feature 9.)
-16. **Turn tracking** — exploratory. (Feature 10.)
+16. **Teams & friends** — concept; needs match mode. (Feature 9.)
+17. **Turn tracking** — exploratory. (Feature 10.)
 
 ## Constraints
 

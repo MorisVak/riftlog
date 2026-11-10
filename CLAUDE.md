@@ -383,7 +383,8 @@ bucket. The footer carries the fan-made disclaimer and Legal Jibber Jabber.
 - Match mode extras on the match detail — the opponent's deck, linked profile,
   head-to-head, their win rate (v1 shows your side only)
 - v2 QR co-recording feature (data model has placeholder fields)
-- The rest of the website roadmap, in order: Sideboard guide, Quick log
+- The rest of the website roadmap, in order: Sideboard guide, Tags (your
+  own named, colored labels on matches, e.g. one per Skirmish), Quick log
   (record a finished match without live scoring), Stats,
   Playerboard customization (legend / custom board backgrounds), Teams &
   friends (add friends, invite to a game, share decks; teams as a clan with
