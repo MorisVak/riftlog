@@ -27,6 +27,11 @@ export const SCREENSHOTS = {
     "height": 367,
     "v": "31310e10"
   },
+  "board-simple-landscape": {
+    "width": 796,
+    "height": 367,
+    "v": "c117b02c"
+  },
   "who-won": {
     "width": 390,
     "height": 845,

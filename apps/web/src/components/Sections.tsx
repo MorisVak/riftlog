@@ -1,5 +1,4 @@
-import { Beat, PHONE_W } from "./Beat";
-import { ScoringModes } from "./ScoringModes";
+import { Beat } from "./Beat";
 
 /** Beat 1: your decks and the match setup. */
 export function BeforeSection() {
@@ -39,7 +38,7 @@ export function BeforeSection() {
   );
 }
 
-/** Beat 2: the score board, in both scoring modes. */
+/** Beat 2: at the table (the board itself, in both modes, is the hero). */
 export function TableSection() {
   return (
     <Beat
@@ -51,7 +50,7 @@ export function TableSection() {
       points={[
         {
           title: "Detailed or simple",
-          body: "Score each point as Conquer, Hold or Special, or keep a plain + / − count. Pick one in your profile.",
+          body: "Score each point as Conquer, Hold or Special, or keep a plain + / − count. Pick one in your profile, and try both at the top of this page.",
         },
         {
           title: "Take it back",
@@ -62,7 +61,13 @@ export function TableSection() {
           body: "Tap the winner, so a stray tap can't end it. In a Bo3, Riftlog tracks the series.",
         },
       ]}
-      media={<ScoringModes phoneClass={PHONE_W} />}
+      shots={[
+        {
+          shot: "who-won",
+          alt: "Who won game 1? Riven on 8 and Akali on 5, tap the winner, with Draw and Keep playing below",
+          caption: "Ending a game",
+        },
+      ]}
     />
   );
 }

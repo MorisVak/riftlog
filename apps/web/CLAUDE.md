@@ -23,8 +23,9 @@ older training data — check `node_modules/next/dist/docs/` when unsure.
   `legal-notice/`, `actions/` (`waitlist.ts`, `contact.ts` Server Actions), `opengraph-image.tsx` (link preview,
   rendered at build), `favicon.ico` / `icon.svg` / `apple-icon.png`
   (generated), `globals.css` (Tailwind entry, tokens, reveal motion).
-- `src/components/` — sections (`Hero`, `FaceOff`, `Sections` → `Beat`
-  and `ScoringModes`, `HowYouPlay`, `ComingLater`, `WaitlistCta`), chrome (`SiteHeader`,
+- `src/components/` — sections (`Hero` → `HeroPhone` + `ModeSwitch`,
+  `FaceOff`, `Sections` → `Beat`, `HowYouPlay`, `ComingLater`,
+  `WaitlistCta`), chrome (`SiteHeader`,
   `SiteFooter`, `LegalPage`), and shared bits (`Wordmark`, `WaitlistForm`,
   `ContactForm`, `PhoneFrame`, `Reveal`, `LoopVideo`). `screenshots.generated.ts` is generated — don't edit.
 - `src/lib/legal.ts` — `OPERATOR` (the operator's legal details, used by all
@@ -134,10 +135,13 @@ dev client flash a blue "Refreshing…" banner — cut around it.
   and rows of four phones under bullet lists — too much at once
   (2026-11-10). Prefer cutting a feature from the page over adding a
   screen. Copy never names third-party sites (deck builders etc.).
-  The "At the table" beat's phone is interactive (`ScoringModes`): a
-  Detailed / Simple switch crossfades between `board` and `board-simple` —
-  the same moment (game 2 vs Alex, 5–3, ~27:50 on the clock) in both
-  modes, so only the controls change. Retake both together. The header links
+  **The hero shows both scoring modes** (owner, 2026-11-10): a Detailed /
+  Simple switch (`ModeSwitch`) under the hero phone crossfades between
+  `board` / `board-simple` upright and `board-landscape` /
+  `board-simple-landscape` sideways — the same moment (game 2 vs Alex,
+  5–3) in both modes, so only the controls change. Retake them as a set.
+  The "At the table" beat shows `who-won` instead, so the board isn't
+  repeated. The header links
   follow the page: Decks · Scoring · History · Roadmap.
 - **Recordings** (`public/videos/<name>.mp4` + `.webm`, listed in
   `src/components/videos.ts`): record with

@@ -62,6 +62,8 @@ const SHOTS = {
   // island is at the top of the raw file and the content turns upright
   // counter-clockwise (270°); a cmd+→ capture would need 90.
   "board-landscape": { rotate: 270 },
+  // The same moment sideways on the simple board (the hero's Simple mode).
+  "board-simple-landscape": { rotate: 270 },
   "who-won": {},
   "between-games": {},
   "between-games-landscape": { rotate: 270 },
