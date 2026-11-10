@@ -210,6 +210,10 @@ fan-made disclaimer **and** Riot's Legal Jibber Jabber statement, verbatim.
   rendered (`…gmail.comand`). Always write an explicit `{" "}` after `<Fill />`
   before text. Check with
   `grep -nE '<Fill [^>]*/> [A-Za-z(&]' apps/web/src/app/*/page.tsx`.
+- **The dev server can keep serving an old `globals.css`** (new classes
+  missing, even an old token value) after edits to it. Check the served
+  CSS (`curl` the `/_next/static/chunks/…css` the page links); if it's
+  stale, stop the dev server, `rm -rf .next/dev`, and start it again.
 - **Renaming or moving a route** leaves `.next/types/validator.ts` pointing
   at the old path, and `pnpm typecheck` fails until you `rm -rf .next/types`
   and build again.

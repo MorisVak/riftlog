@@ -96,8 +96,13 @@ function ModeShots({
 /** The quarter turn (`.phone-turn` in globals.css) and the box's resize, in ms. */
 const TURN_MS = 700;
 const RESIZE_MS = 450;
-/** The button pops in this long before the phone's entrance ends. */
-const POP_LEAD_MS = 350;
+/**
+ * The switch and the turn button pop in this long before the phone's
+ * entrance ends — its tail is a long, slow ease, and the phone already looks
+ * in place by then. The button follows the switch by POP_STAGGER_MS.
+ */
+const POP_LEAD_MS = 560;
+const POP_STAGGER_MS = 110;
 /** Below Tailwind's `lg`, where the box changes height (above it, it's fixed). */
 const NARROW = "(max-width: 1023.98px)";
 export function HeroPhone() {
@@ -170,8 +175,12 @@ export function HeroPhone() {
   const toLandscape = sizes ? sizes.l.w / sizes.p.h : 1;
   const toPortrait = sizes ? sizes.p.h / sizes.l.w : 1;
 
+  // The first pop (on load) follows the switch's; after a turn, none.
+  const [turnedOnce, setTurnedOnce] = useState(false);
+
   const turn = () => {
     if (turning || !entered) return;
+    setTurnedOnce(true);
     setLandscape((on) => !on);
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     // In place after the turn — and, on phones, after the resize too.
@@ -188,7 +197,7 @@ export function HeroPhone() {
 
   return (
     <div ref={wrapRef} className="flex w-full max-w-[560px] flex-col items-center gap-6">
-      <ModeSwitch mode={mode} onChange={setMode} />
+      <ModeSwitch mode={mode} onChange={setMode} shown={entered} />
 
       <div
         style={
@@ -259,6 +268,7 @@ export function HeroPhone() {
               ? {
                   top: `calc(50% - ${(landscape ? sizes.l.h : sizes.p.h) / 2}px - 12px)`,
                   right: `calc(50% - ${(landscape ? sizes.l.w : sizes.p.w) / 2}px - 12px)`,
+                  animationDelay: turnedOnce ? "0ms" : `${POP_STAGGER_MS}ms`,
                 }
               : undefined
           }

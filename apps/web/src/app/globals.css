@@ -125,6 +125,12 @@
     animation: pop 480ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
   }
 
+  /* The scoring switch's chosen label (ModeSwitch): a quick swell and back,
+     like the app's tab bar icons. */
+  .animate-tap {
+    animation: tap 320ms cubic-bezier(0.3, 1.4, 0.5, 1);
+  }
+
   /* The hero phone turning (HeroPhone): one eased quarter turn. The screens
      crossfade through the middle of it, so neither frame ever pops. */
   .phone-turn {
@@ -150,6 +156,7 @@
     [data-reveal-child],
     .animate-rise,
     .animate-pop,
+    .animate-tap,
     .phone-turn,
     .phone-glow {
       transition: none;
@@ -175,6 +182,18 @@
   }
   100% {
     opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tap {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.14);
+  }
+  100% {
     transform: scale(1);
   }
 }
