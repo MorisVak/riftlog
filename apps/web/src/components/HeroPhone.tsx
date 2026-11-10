@@ -20,11 +20,22 @@ type Size = { w: number; h: number };
  * scale comes from the frames' measured sizes, re-measured on resize.
  *
  * On wide screens the box is as tall as the portrait frame, so the text beside
- * it never moves; on phones its height eases between the two frames.
+ * it never moves; on phones its height eases between the two frames — one
+ * motion after the other, never together: turning sideways the phone turns
+ * first and the box shrinks after; turning back the box grows first. Mid-turn
+ * the phone is wider than either frame, so a box resizing alongside it let
+ * it spill out of the hero, over the face-off heading.
  */
+
+/** The quarter turn (`.phone-turn` in globals.css) and the box's resize, in ms. */
+const TURN_MS = 700;
+const RESIZE_MS = 450;
+/** Below Tailwind's `lg`, where the box changes height (above it, it's fixed). */
+const NARROW = "(max-width: 1023.98px)";
 export function HeroPhone() {
   const [landscape, setLandscape] = useState(false);
   const [sizes, setSizes] = useState<{ p: Size; l: Size } | null>(null);
+  const [narrow, setNarrow] = useState(false);
   const portraitRef = useRef<HTMLDivElement>(null);
   const landscapeRef = useRef<HTMLDivElement>(null);
 
@@ -45,6 +56,21 @@ export function HeroPhone() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const query = window.matchMedia(NARROW);
+    const update = () => setNarrow(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  // On phones: shrink only once the turn is done; turn back only once the
+  // box has grown. (Reduced motion: no transitions, so no delays either.)
+  const resizeDelay = narrow && landscape ? TURN_MS : 0;
+  const turnDelay = narrow && !landscape ? RESIZE_MS : 0;
+  // `.phone-turn` transitions transform, then opacity (175ms into the turn).
+  const turnTiming = { transitionDelay: `${turnDelay}ms, ${turnDelay + 175}ms` };
+
   // Portrait turned a quarter lies as wide as the landscape frame, and
   // landscape turned back stands as tall as the portrait one.
   const toLandscape = sizes ? sizes.l.w / sizes.p.h : 1;
@@ -56,9 +82,14 @@ export function HeroPhone() {
   return (
     <div
       style={
-        sizes ? { height: landscape ? sizes.l.h : sizes.p.h } : undefined
+        sizes
+          ? {
+              height: landscape ? sizes.l.h : sizes.p.h,
+              transitionDelay: `${resizeDelay}ms`,
+            }
+          : undefined
       }
-      className="relative w-full max-w-[560px] transition-[height] duration-700 ease-[cubic-bezier(0.65,0,0.35,1)] motion-reduce:transition-none lg:h-[620px]!"
+      className="relative w-full max-w-[560px] transition-[height] duration-[450ms] ease-[cubic-bezier(0.65,0,0.35,1)] motion-reduce:transition-none lg:h-[620px]!"
     >
       {/* Portrait sits in the flow until measured, so the box has its height
           from the first paint (and without JS). */}
@@ -74,6 +105,7 @@ export function HeroPhone() {
             transform: landscape
               ? `rotate(-90deg) scale(${toLandscape})`
               : "none",
+            ...turnTiming,
           }}
           className={`phone-turn w-full max-w-[300px] ${
             landscape ? "pointer-events-none opacity-0" : "opacity-100"
@@ -96,6 +128,7 @@ export function HeroPhone() {
             transform: landscape
               ? "none"
               : `rotate(90deg) scale(${toPortrait})`,
+            ...turnTiming,
           }}
           className={`phone-turn w-full ${
             landscape ? "opacity-100" : "pointer-events-none opacity-0"
@@ -122,6 +155,8 @@ export function HeroPhone() {
             ? {
                 top: `calc(50% - ${(landscape ? sizes.l.h : sizes.p.h) / 2}px - 12px)`,
                 right: `calc(50% - ${(landscape ? sizes.l.w : sizes.p.w) / 2}px - 12px)`,
+                // It glides with the turn, so it waits for it too.
+                transitionDelay: `${turnDelay}ms, ${turnDelay}ms, 0ms, 0ms`,
               }
             : undefined
         }
