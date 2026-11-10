@@ -107,6 +107,29 @@ export function HeroPhone() {
   const [turning, setTurning] = useState(false);
   const settleTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(settleTimer.current), []);
+
+  // On load, one thing after the other: the phone rises into place (the
+  // hero's `.animate-rise` around it), then the turn button pops in. Waits on
+  // the real animation rather than a guessed delay; with reduced motion there
+  // is none, so it shows at once.
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [entered, setEntered] = useState(false);
+  useEffect(() => {
+    const rise = wrapRef.current?.closest(".animate-rise");
+    const animations = rise?.getAnimations() ?? [];
+    let cancelled = false;
+    let timer: number | undefined;
+    Promise.all(animations.map((a) => a.finished))
+      .catch(() => undefined)
+      .then(() => {
+        if (cancelled) return;
+        timer = window.setTimeout(() => setEntered(true), animations.length ? 80 : 0);
+      });
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, []);
   const [sizes, setSizes] = useState<{ p: Size; l: Size } | null>(null);
   const [narrow, setNarrow] = useState(false);
   const portraitRef = useRef<HTMLDivElement>(null);
@@ -150,7 +173,7 @@ export function HeroPhone() {
   const toPortrait = sizes ? sizes.p.h / sizes.l.w : 1;
 
   const turn = () => {
-    if (turning) return;
+    if (turning || !entered) return;
     setLandscape((on) => !on);
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     // In place after the turn — and, on phones, after the resize too.
@@ -166,7 +189,7 @@ export function HeroPhone() {
   const label = landscape ? "Show the board upright" : "Show the board sideways";
 
   return (
-    <div className="flex w-full max-w-[560px] flex-col items-center gap-6">
+    <div ref={wrapRef} className="flex w-full max-w-[560px] flex-col items-center gap-6">
       <ModeSwitch mode={mode} onChange={setMode} />
 
       <div
@@ -223,12 +246,13 @@ export function HeroPhone() {
         </div>
 
         {/* Pinned to the top-right corner of whichever frame is showing.
-            Gone while the phone turns, then it pops in at the new corner. */}
+            It pops in once the phone is in place: after the hero's entrance
+            on load, and at the new corner after each turn. */}
         <button
           type="button"
           onClick={turn}
           // Not `disabled`: that would drop keyboard focus mid-turn.
-          aria-disabled={turning}
+          aria-disabled={turning || !entered}
           aria-label={label}
           aria-pressed={landscape}
           title={label}
@@ -243,7 +267,7 @@ export function HeroPhone() {
           // Hiding is instant (it moves while hidden); showing is a quick
           // pop with a little overshoot.
           className={`absolute -right-3 -top-3 z-10 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-elevated text-accent-soft shadow-accent-btn hover:bg-surface hover:text-ink-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none ${
-            turning
+            turning || !entered
               ? "pointer-events-none scale-50 opacity-0 transition-none"
               : "scale-100 opacity-100 transition-[transform,opacity,color,background-color] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
           }`}
