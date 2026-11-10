@@ -8,6 +8,7 @@ import EndGamePrompt from './endGamePrompt';
 import MatchClock from './matchClock';
 import BoardDivider from './boardDivider';
 import React, { useState } from 'react';
+import { useAndroidBack } from '@/hooks/useAndroidBack';
 
 /**
  * Lightweight confirm shown when the player taps the board's exit (✕). Exiting
@@ -104,6 +105,14 @@ const PlayField = () => {
   // In landscape each half carries its own clock (see TrackingField), so the
   // divider keeps only the controls.
   const landscape = width > height;
+
+  // Android's back button never leaves a game: it closes an open prompt,
+  // or asks "Exit match?" like the ✕.
+  useAndroidBack(() => {
+    if (exitOpen) setExitOpen(false);
+    else if (promptOpen) setPromptOpen(false);
+    else setExitOpen(true);
+  });
 
   if (!match) return null;
 

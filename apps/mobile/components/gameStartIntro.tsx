@@ -149,7 +149,7 @@ const IntroOverlay = ({
   const rightStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: W * 0.6 * (1 - SLIDE_EASE(slide.value)) },
-      { skewX: `-${CUT}deg` },
+      { rotate: `${CUT}deg` },
     ],
   }));
   // Hidden until the sides meet, overshoots to 1.2, settles at 1.
@@ -188,20 +188,25 @@ const IntroOverlay = ({
             <SideArt legend={you.legend} initial={initialOf(you.name)} />
           </Animated.View>
 
-          {/* Theirs: a skewed box (the slanted cut), art skewed back upright.
-              The box runs past the screen so the skew never shows its edge;
-              the art inside ends at the screen's edge (right-[21%] of a box
-              67% of the screen wide, from 48%), or a face on the art's right
-              (Akali VEN-189) was pushed off the screen. */}
+          {/* Theirs: a box three screens tall, turned CUT° around the middle
+              of its left edge — the slanted cut — so its edges never show;
+              inside, a layer the screen's height turns back around that same
+              point, so the art stands upright. A rotation, not a skew:
+              Android can't draw skews (the cut came out straight there). The
+              art ends at the screen's edge (right-[21%] of a box 67% of the
+              screen wide, from 48%), or a face on the art's right (Akali
+              VEN-189) was pushed off the screen. */}
           <Animated.View
-            style={rightStyle}
-            className="absolute bottom-0 left-[48%] right-[-15%] top-0 overflow-hidden border-l-4 border-background"
+            style={[rightStyle, { transformOrigin: 'left center' }]}
+            className="absolute bottom-[-100%] left-[48%] right-[-15%] top-[-100%] overflow-hidden border-l-4 border-background"
           >
             <View
-              style={{ transform: [{ skewX: `${CUT}deg` }] }}
-              className="absolute bottom-0 left-[-10%] right-[21%] top-0"
+              style={{ transform: [{ rotate: `-${CUT}deg` }], transformOrigin: 'left center' }}
+              className="absolute bottom-[33.333%] left-0 right-0 top-[33.333%]"
             >
-              <SideArt legend={opponent.legend} initial={initialOf(opponent.name)} />
+              <View className="absolute bottom-0 left-[-10%] right-[21%] top-0">
+                <SideArt legend={opponent.legend} initial={initialOf(opponent.name)} />
+              </View>
             </View>
           </Animated.View>
 

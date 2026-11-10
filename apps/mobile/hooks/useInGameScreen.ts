@@ -1,4 +1,6 @@
 import { useEffect } from 'react';
+import { Platform, useWindowDimensions } from 'react-native';
+import { setStatusBarHidden } from 'expo-status-bar';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import type { MatchPhase } from '@/contexts/matchContext';
@@ -15,6 +17,8 @@ const KEEP_AWAKE_TAG = 'riftlog-match';
  *   break. The app is portrait everywhere else (`initialOrientation` in
  *   app.json locks it from launch); the match unlocks so the phone can lie
  *   sideways between the players, and the lock comes back once it's over.
+ * - Sideways, Android hides the status bar (iOS does that by itself): it
+ *   sat over the opponent's half of the board.
  */
 export function useInGameScreen(phase: MatchPhase) {
   const inGame = phase === 'playing' || phase === 'between-games';
@@ -26,6 +30,13 @@ export function useInGameScreen(phase: MatchPhase) {
       deactivateKeepAwake(KEEP_AWAKE_TAG);
     };
   }, [inGame]);
+
+  const { width, height } = useWindowDimensions();
+  const hideBar = Platform.OS === 'android' && inGame && width > height;
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    setStatusBarHidden(hideBar, 'fade');
+  }, [hideBar]);
 
   useEffect(() => {
     ScreenOrientation.lockAsync(

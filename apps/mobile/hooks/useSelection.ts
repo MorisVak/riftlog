@@ -1,10 +1,14 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { BackHandler } from 'react-native';
 
 /**
  * Multi-select state for a list — WhatsApp-style: enter selection mode (a
  * "Select" button, or long-pressing a row, which selects that row), tap rows
  * to toggle them, then act on the selection. Ids only; the screen owns the
  * rows and decides what an action does with them.
+ *
+ * Android's back button leaves selection mode first (it went straight to
+ * the previous tab, dropping the selection), as Android lists do.
  *
  * Shared by History and "My decks". Actions live in the screen's
  * `SelectionBar` (`components/selectionBar.tsx`), so adding one — e.g.
@@ -51,6 +55,17 @@ export function useSelection(): Selection {
     setActive(false);
     setSelected(new Set());
   }, []);
+
+  // Selection mode ends on blur, so while it's on, this screen has the
+  // back button. (BackHandler is a no-op on iOS.)
+  useEffect(() => {
+    if (!active) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      exit();
+      return true;
+    });
+    return () => sub.remove();
+  }, [active, exit]);
 
   return useMemo(
     () => ({

@@ -25,6 +25,7 @@ import VersusBanner from './match/versusBanner';
 import Icon from './icon';
 import { badgePop } from './transitions';
 import React, { useEffect, useState } from 'react';
+import { useAndroidBack } from '@/hooks/useAndroidBack';
 
 // Result tokens, paired with a letter so color is never the only signal. The
 // badge is read from p1's perspective — you — so the opponent taking a game is
@@ -165,6 +166,9 @@ const BetweenGamesScreen = () => {
   // Sideways the column is too tall for the screen: the banner goes left,
   // everything else right.
   const landscape = width > height;
+  // Android's back button doesn't drop out of the series: it asks "End
+  // round now?" (and closes that question if it's open).
+  useAndroidBack(() => setConfirmOpen((open) => !open));
 
   const glow = useSharedValue(0);
   useEffect(() => {

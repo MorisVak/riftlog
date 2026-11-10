@@ -47,8 +47,11 @@ const BannerName = ({ side, align }: { side: BannerSide; align: 'left' | 'right'
  * color over a score. The match detail's header and the between-games
  * screen share it, with the game-start intro in the same style.
  *
- * The cut needs no mask: the right side's box is skewed (clipping its art to
- * a parallelogram) and the art inside is skewed back, so it stays upright.
+ * The cut needs no mask: the right side's box is a tall box turned CUT°
+ * around the middle of the cut (clipping its art along a slanted edge), and
+ * the art inside is turned back around the same point, so it stays upright.
+ * A rotation, not a skew: Android can't draw skews (a skewed view came out
+ * square, so the cut was a straight vertical line there).
  */
 const VersusBanner = ({
   you,
@@ -88,19 +91,23 @@ const VersusBanner = ({
       <BannerArt legend={you.legend} lost={outcome === 'loss'} />
     </View>
 
-    {/* Theirs: a skewed box (the slanted cut), art skewed back upright. The
-        box runs past the banner so the skew never shows its edge; the art
-        inside ends at the banner's edge (right-[28%] of a box 70% wide, from
-        50%), so a face on the art's right isn't pushed out of view. */}
+    {/* Theirs: a box three banners tall, turned CUT° around the middle of
+        its left edge — the cut — so its edges never show. Inside, a layer
+        the banner's height turns back around that same point (its own left
+        edge's middle), so the art in it stands upright. The art ends at the
+        banner's edge (right-[28%] of a box 70% wide, from 50%), so a face on
+        the art's right isn't pushed out of view. */}
     <View
-      style={{ transform: [{ skewX: `-${CUT}deg` }] }}
-      className="absolute bottom-0 left-[50%] right-[-20%] top-0 overflow-hidden border-l-2 border-background"
+      style={{ transform: [{ rotate: `${CUT}deg` }], transformOrigin: 'left center' }}
+      className="absolute bottom-[-100%] left-[50%] right-[-20%] top-[-100%] overflow-hidden border-l-2 border-background"
     >
       <View
-        style={{ transform: [{ skewX: `${CUT}deg` }] }}
-        className="absolute bottom-0 left-[-12%] right-[28%] top-0"
+        style={{ transform: [{ rotate: `-${CUT}deg` }], transformOrigin: 'left center' }}
+        className="absolute bottom-[33.333%] left-0 right-0 top-[33.333%]"
       >
-        <BannerArt legend={them.legend} lost={outcome === 'win'} />
+        <View className="absolute bottom-0 left-[-12%] right-[28%] top-0">
+          <BannerArt legend={them.legend} lost={outcome === 'win'} />
+        </View>
       </View>
     </View>
 

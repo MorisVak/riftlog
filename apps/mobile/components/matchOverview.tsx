@@ -13,6 +13,7 @@ import InlineNote from './match/inlineNote';
 import { riseIn } from './transitions';
 import React from 'react';
 import AndroidKeyboardAvoider from '@/components/androidKeyboardAvoider';
+import { useAndroidBack } from '@/hooks/useAndroidBack';
 
 // `background` mirrored for gradient stops: a shade under the status bar, so
 // the time and battery read over bright art.
@@ -40,6 +41,13 @@ const MatchOverview = () => {
   const { status } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // Android's back button works like Done: ends note editing first, then
+  // leaves (instead of closing the app from the Home tab).
+  useAndroidBack(() => {
+    const focused = TextInput.State.currentlyFocusedInput();
+    if (focused) TextInput.State.blurTextInput(focused);
+    else endMatch();
+  });
   if (!match) return null;
 
   const [p1, p2] = match.players;
