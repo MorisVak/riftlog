@@ -137,7 +137,17 @@ const FilterSheet = ({
     set(key, filter[key] === value ? null : value);
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+    // Translucent bars: on Android the modal then spans the whole screen, as
+    // on iOS, so the height cap below (screen minus status bar) holds — it
+    // started under the status bar and the sheet ran up behind the clock.
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onClose}
+    >
       <Animated.View
         entering={FadeIn.duration(160)}
         className="flex-1 justify-end bg-background/70"

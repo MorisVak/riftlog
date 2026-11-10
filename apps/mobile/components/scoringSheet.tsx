@@ -24,7 +24,15 @@ const ScoringSheet = ({
 }) => {
   const insets = useSafeAreaInsets();
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+    // Translucent bars: full screen on Android too (see filterSheet.tsx).
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onClose}
+    >
       <Animated.View
         entering={FadeIn.duration(160)}
         className="flex-1 justify-end bg-background/70"

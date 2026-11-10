@@ -12,6 +12,7 @@ import GameCard from './match/gameCard';
 import InlineNote from './match/inlineNote';
 import { riseIn } from './transitions';
 import React from 'react';
+import AndroidKeyboardAvoider from '@/components/androidKeyboardAvoider';
 
 // `background` mirrored for gradient stops: a shade under the status bar, so
 // the time and battery read over bright art.
@@ -84,100 +85,102 @@ const MatchOverview = () => {
     <View className="flex-1 bg-background">
       {/* Notes are written in place: keep a field above the keyboard; a tap
           on empty space or a drag ends editing (which saves the note). */}
-      <ScrollView
-        automaticallyAdjustKeyboardInsets
-        keyboardDismissMode="interactive"
-        contentContainerStyle={{ paddingBottom: 24 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <Pressable accessible={false} onPress={Keyboard.dismiss}>
-          <Animated.View entering={FadeIn.duration(400)}>
-            <VersusBanner
-              you={{ name: you, legend: p1?.legend ?? null }}
-              them={{ name: opponent, legend: p2?.legend ?? null }}
-              outcome={result}
-              title={TITLE[result]}
-              titleClass={RESULT_TEXT[result]}
-              score={score}
-              large
-              height={insets.top + 280}
-              accessibilityLabel={`Match complete. ${TITLE[result]}, ${score}. ${you} versus ${opponent}.`}
-            />
-            <LinearGradient
-              colors={STATUS_SHADE}
-              pointerEvents="none"
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top + 36 }}
-            />
-          </Animated.View>
-
-          <View className="px-4">
-            <Animated.View entering={riseIn(0)}>
-              <Text className="mt-3 text-[13px] text-ink-secondary">
-                Match complete · Best of {match.bestOf}
-              </Text>
-
-              <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">Games</Text>
-              <View className="overflow-hidden rounded-2xl border border-border bg-surface">
-                {games.map((g, i) => (
-                  <GameCard key={g.id} game={g} first={i === 0} />
-                ))}
-              </View>
+      <AndroidKeyboardAvoider>
+        <ScrollView
+          automaticallyAdjustKeyboardInsets
+          keyboardDismissMode="interactive"
+          contentContainerStyle={{ paddingBottom: 24 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Pressable accessible={false} onPress={Keyboard.dismiss}>
+            <Animated.View entering={FadeIn.duration(400)}>
+              <VersusBanner
+                you={{ name: you, legend: p1?.legend ?? null }}
+                them={{ name: opponent, legend: p2?.legend ?? null }}
+                outcome={result}
+                title={TITLE[result]}
+                titleClass={RESULT_TEXT[result]}
+                score={score}
+                large
+                height={insets.top + 280}
+                accessibilityLabel={`Match complete. ${TITLE[result]}, ${score}. ${you} versus ${opponent}.`}
+              />
+              <LinearGradient
+                colors={STATUS_SHADE}
+                pointerEvents="none"
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top + 36 }}
+              />
             </Animated.View>
 
-            {/* Notes while it's fresh — each game (the last one has had no
-                between-games screen) and the round. A Bo1 gets the round
-                note only: its one game IS the round. Signed-in only. */}
-            {status === 'authed' && (
-              <Animated.View entering={riseIn(1)}>
-                <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">Notes</Text>
-                <View className="overflow-hidden rounded-2xl border border-border bg-surface">
-                  <InlineNote
-                    label="Round"
-                    note={match.notes ?? null}
-                    placeholder="How did the round go?"
-                    onSave={async (text) => setMatchNote(text)}
-                  />
-                  {match.bestOf > 1 &&
-                    match.games.map((game, i) => (
-                      <View key={game.id} className="border-t border-border/60">
-                        <InlineNote
-                          label={`Game ${i + 1}`}
-                          note={game.notes ?? null}
-                          onSave={async (text) => setGameNote(i, text)}
-                        />
-                      </View>
-                    ))}
-                </View>
-                <Text className="mt-2 px-1 text-[12px] leading-4 text-ink-tertiary">
-                  You can edit these any time from the match in History.
+            <View className="px-4">
+              <Animated.View entering={riseIn(0)}>
+                <Text className="mt-3 text-[13px] text-ink-secondary">
+                  Match complete · Best of {match.bestOf}
                 </Text>
-              </Animated.View>
-            )}
 
-            {/* A guest's match ends here and is gone — Done discards it and
-                nothing was ever written. This is the moment that loss is
-                actually felt, so it's the moment worth saying so. */}
-            {status === 'guest' && (
-              <Animated.View entering={riseIn(1)}>
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push('/login');
-                  }}
-                  className="mt-6 rounded-2xl border border-border bg-surface px-5 py-4 active:bg-elevated"
-                >
-                  <Text className="text-center text-sm text-ink-secondary">
-                    This match wasn&apos;t saved.{' '}
-                    <Text className="font-display text-accent">Sign in</Text> to keep your
-                    history.
-                  </Text>
-                </TouchableOpacity>
+                <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">Games</Text>
+                <View className="overflow-hidden rounded-2xl border border-border bg-surface">
+                  {games.map((g, i) => (
+                    <GameCard key={g.id} game={g} first={i === 0} />
+                  ))}
+                </View>
               </Animated.View>
-            )}
-          </View>
-        </Pressable>
-      </ScrollView>
+
+              {/* Notes while it's fresh — each game (the last one has had no
+                  between-games screen) and the round. A Bo1 gets the round
+                  note only: its one game IS the round. Signed-in only. */}
+              {status === 'authed' && (
+                <Animated.View entering={riseIn(1)}>
+                  <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">Notes</Text>
+                  <View className="overflow-hidden rounded-2xl border border-border bg-surface">
+                    <InlineNote
+                      label="Round"
+                      note={match.notes ?? null}
+                      placeholder="How did the round go?"
+                      onSave={async (text) => setMatchNote(text)}
+                    />
+                    {match.bestOf > 1 &&
+                      match.games.map((game, i) => (
+                        <View key={game.id} className="border-t border-border/60">
+                          <InlineNote
+                            label={`Game ${i + 1}`}
+                            note={game.notes ?? null}
+                            onSave={async (text) => setGameNote(i, text)}
+                          />
+                        </View>
+                      ))}
+                  </View>
+                  <Text className="mt-2 px-1 text-[12px] leading-4 text-ink-tertiary">
+                    You can edit these any time from the match in History.
+                  </Text>
+                </Animated.View>
+              )}
+
+              {/* A guest's match ends here and is gone — Done discards it and
+                  nothing was ever written. This is the moment that loss is
+                  actually felt, so it's the moment worth saying so. */}
+              {status === 'guest' && (
+                <Animated.View entering={riseIn(1)}>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      router.push('/login');
+                    }}
+                    className="mt-6 rounded-2xl border border-border bg-surface px-5 py-4 active:bg-elevated"
+                  >
+                    <Text className="text-center text-sm text-ink-secondary">
+                      This match wasn&apos;t saved.{' '}
+                      <Text className="font-display text-accent">Sign in</Text> to keep your
+                      history.
+                    </Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
+            </View>
+          </Pressable>
+        </ScrollView>
+      </AndroidKeyboardAvoider>
 
       {/* Pinned, so it's in reach however long the notes run. */}
       <View

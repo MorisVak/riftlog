@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Text,
   TextInput,
   TouchableOpacity,
@@ -95,7 +94,7 @@ const FeedbackSheet = ({
     >
       <View style={sheetInsets} className="flex-1 bg-background">
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior="padding"
           className="flex-1"
         >
           <View className="flex-row items-center justify-between border-b border-border px-4 py-2">

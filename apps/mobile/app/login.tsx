@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -21,6 +20,7 @@ import {
   sendEmailOtp,
 } from '@/lib/auth';
 import { getLastAuthMethod, type AuthMethod } from '@/lib/authPrefs';
+import { usePageSheetInsets } from '@/lib/pageSheetInsets';
 
 // Icon `color` and placeholderTextColor are props, not classNames, so they take
 // raw values. These mirror the design tokens 1:1 (see tailwind.config.js).
@@ -50,6 +50,8 @@ const SecondaryLastUsedDot = () => (
  * them in place rather than bouncing them through a redirect.
  */
 const Login = () => {
+  // Android shows this modal full screen: keep it clear of the status bar.
+  const sheetInsets = usePageSheetInsets();
   const router = useRouter();
   const { status } = useAuth();
 
@@ -101,9 +103,9 @@ const Login = () => {
   const emailUsable = /.+@.+\..+/.test(email.trim());
 
   return (
-    <View className="flex-1 bg-background">
+    <View style={sheetInsets} className="flex-1 bg-background">
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
         className="flex-1"
       >
         <ScrollView

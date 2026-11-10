@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -36,6 +35,7 @@ import ImportPreview from '@/components/deck/importPreview';
 import Icon from '@/components/icon';
 import { useCatalog } from '@/contexts/catalogContext';
 import { CTA_GLOW } from '@/components/ctaGlow';
+import { usePageSheetInsets } from '@/lib/pageSheetInsets';
 
 /**
  * The "Expected format" card under the empty decklist box: the export layout
@@ -99,6 +99,8 @@ const CODE_MESSAGES: Record<'no_catalog' | 'invalid' | 'newer_format', string> =
  * changes, Save asks first.
  */
 const ImportDeck = () => {
+  // Android shows this modal full screen: keep it clear of the status bar.
+  const sheetInsets = usePageSheetInsets();
   // The preview checks cards against the catalog; make sure it's current.
   const { refresh: refreshCatalog } = useCatalog();
   useEffect(() => refreshCatalog(), [refreshCatalog]);
@@ -307,9 +309,9 @@ const ImportDeck = () => {
   };
 
   return (
-    <View className="flex-1 bg-background">
+    <View style={sheetInsets} className="flex-1 bg-background">
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
         className="flex-1"
       >
         <ScrollView

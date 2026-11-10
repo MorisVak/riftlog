@@ -19,6 +19,7 @@ import MatchProvider from '@/contexts/matchContext';
 import CatalogProvider from '@/contexts/catalogContext';
 import CardSheetProvider from '@/contexts/cardSheetContext';
 import MatchSync from '@/components/matchSync';
+import { useEndEditingOnKeyboardHide } from '@/hooks/useEndEditingOnKeyboardHide';
 
 /**
  * The navigator, split out so it can read auth + profile context.
@@ -82,6 +83,7 @@ export default function RootLayout() {
     SpaceGrotesk_600SemiBold,
     SpaceGrotesk_700Bold,
   });
+  useEndEditingOnKeyboardHide();
 
   // Hold the splash until the design fonts are ready so numerals and headings
   // don't flash a fallback face on first paint.

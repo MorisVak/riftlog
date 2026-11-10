@@ -1,7 +1,6 @@
 import {
   Keyboard,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   Text,
   View,
@@ -287,7 +286,7 @@ const BetweenGamesScreen = () => {
     // The note field sits mid-screen: shift up for the keyboard, and a tap on
     // empty space ends editing (which saves the note).
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
       className="flex-1 bg-background"
     >
       {/* The clock does not stop for the break — sideboarding is played on the

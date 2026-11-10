@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -384,7 +383,7 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
         </Animated.View>
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior="padding"
           pointerEvents="box-none"
           className="flex-1 justify-end"
         >

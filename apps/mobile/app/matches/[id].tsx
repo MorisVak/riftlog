@@ -15,6 +15,7 @@ import InlineNote from '@/components/match/inlineNote';
 import Icon from '@/components/icon';
 import { CardBackdrop } from '@/components/deck/cardArt';
 import VersusBanner from '@/components/match/versusBanner';
+import AndroidKeyboardAvoider from '@/components/androidKeyboardAvoider';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 type LoadState =
@@ -120,81 +121,83 @@ const MatchDetail = () => {
       </View>
 
       {state.kind === 'ready' ? (
-        <ScrollView
-          // Notes are written in place at the bottom: keep the field above
-          // the keyboard; a tap anywhere else or a drag dismisses it, which
-          // saves the note (the default keyboardShouldPersistTaps).
-          automaticallyAdjustKeyboardInsets
-          keyboardDismissMode="interactive"
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingTop: 8,
-            paddingBottom: insets.bottom + 32,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* A tap on empty space ends editing a note (which saves it) — even
-              with a hardware keyboard, where there's no keyboard to dismiss. */}
-          <Pressable accessible={false} onPress={Keyboard.dismiss}>
-            <Animated.View style={resultStyle}>
-              <ResultCard vm={state.vm} />
-            </Animated.View>
+        <AndroidKeyboardAvoider>
+          <ScrollView
+            // Notes are written in place at the bottom: keep the field above
+            // the keyboard; a tap anywhere else or a drag dismisses it, which
+            // saves the note (the default keyboardShouldPersistTaps).
+            automaticallyAdjustKeyboardInsets
+            keyboardDismissMode="interactive"
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingTop: 8,
+              paddingBottom: insets.bottom + 32,
+            }}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* A tap on empty space ends editing a note (which saves it) — even
+                with a hardware keyboard, where there's no keyboard to dismiss. */}
+            <Pressable accessible={false} onPress={Keyboard.dismiss}>
+              <Animated.View style={resultStyle}>
+                <ResultCard vm={state.vm} />
+              </Animated.View>
 
-            <Animated.View style={gamesStyle}>
-              <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">
-                Games
-              </Text>
-              <View className="overflow-hidden rounded-2xl border border-border bg-surface">
-                {state.vm.detailGames.map((g, i) => (
-                  <GameCard key={g.n} game={g} first={i === 0} />
-                ))}
-              </View>
-              {state.vm.missingTimelines && (
-                <Text className="mt-2 px-1 text-[12px] leading-4 text-ink-tertiary">
-                  Score graphs are recorded for games played from now on.
+              <Animated.View style={gamesStyle}>
+                <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">
+                  Games
                 </Text>
-              )}
-            </Animated.View>
-
-            <Animated.View style={deckStyle}>
-              <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">
-                Deck
-              </Text>
-              <DeckCard
-                vm={state.vm}
-                onOpen={(deck) => router.push(deckHref(deck))}
-              />
-              {/* Match mode (SPEC Feature 8): the opponent's deck card goes here,
-                  then an "Opponent" section — linked profile, head-to-head,
-                  their win rate. */}
-
-              <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">
-                Notes
-              </Text>
-              {/* Written in place. A Bo1 has a round note only — its one game is
-                  the round — unless an older game note exists. */}
-              <View className="overflow-hidden rounded-2xl border border-border bg-surface">
-                <InlineNote
-                  label="Round"
-                  note={state.vm.notes}
-                  placeholder="How did the round go?"
-                  onSave={saveMatchNote}
-                />
-                {state.vm.detailGames
-                  .filter((g) => state.vm.format === 'BO3' || g.notes)
-                  .map((g) => (
-                    <View key={g.id} className="border-t border-border/60">
-                      <InlineNote
-                        label={`Game ${g.n}`}
-                        note={g.notes}
-                        onSave={(text) => saveGameNote(g.id, text)}
-                      />
-                    </View>
+                <View className="overflow-hidden rounded-2xl border border-border bg-surface">
+                  {state.vm.detailGames.map((g, i) => (
+                    <GameCard key={g.n} game={g} first={i === 0} />
                   ))}
-              </View>
-            </Animated.View>
-          </Pressable>
-        </ScrollView>
+                </View>
+                {state.vm.missingTimelines && (
+                  <Text className="mt-2 px-1 text-[12px] leading-4 text-ink-tertiary">
+                    Score graphs are recorded for games played from now on.
+                  </Text>
+                )}
+              </Animated.View>
+
+              <Animated.View style={deckStyle}>
+                <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">
+                  Deck
+                </Text>
+                <DeckCard
+                  vm={state.vm}
+                  onOpen={(deck) => router.push(deckHref(deck))}
+                />
+                {/* Match mode (SPEC Feature 8): the opponent's deck card goes here,
+                    then an "Opponent" section — linked profile, head-to-head,
+                    their win rate. */}
+
+                <Text className="mb-2 mt-6 font-display text-base text-ink-secondary">
+                  Notes
+                </Text>
+                {/* Written in place. A Bo1 has a round note only — its one game is
+                    the round — unless an older game note exists. */}
+                <View className="overflow-hidden rounded-2xl border border-border bg-surface">
+                  <InlineNote
+                    label="Round"
+                    note={state.vm.notes}
+                    placeholder="How did the round go?"
+                    onSave={saveMatchNote}
+                  />
+                  {state.vm.detailGames
+                    .filter((g) => state.vm.format === 'BO3' || g.notes)
+                    .map((g) => (
+                      <View key={g.id} className="border-t border-border/60">
+                        <InlineNote
+                          label={`Game ${g.n}`}
+                          note={g.notes}
+                          onSave={(text) => saveGameNote(g.id, text)}
+                        />
+                      </View>
+                    ))}
+                </View>
+              </Animated.View>
+            </Pressable>
+          </ScrollView>
+        </AndroidKeyboardAvoider>
       ) : (
         <View className="flex-1 items-center justify-center px-8">
           {state.kind === 'loading' ? (

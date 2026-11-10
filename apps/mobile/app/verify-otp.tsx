@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
   Text,
   TextInput,
   TouchableOpacity,
@@ -12,6 +11,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { sendEmailOtp, verifyEmailOtp } from '@/lib/auth';
+import { usePageSheetInsets } from '@/lib/pageSheetInsets';
 
 const INK_SECONDARY = '#868FB0';
 const INK_TERTIARY = '#5E6788';
@@ -31,6 +31,8 @@ const RESEND_COOLDOWN_S = 60;
  * type here.
  */
 const VerifyOtp = () => {
+  // Android shows this modal full screen: keep it clear of the status bar.
+  const sheetInsets = usePageSheetInsets();
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email: string }>();
 
@@ -94,9 +96,9 @@ const VerifyOtp = () => {
   };
 
   return (
-    <View className="flex-1 bg-background">
+    <View style={sheetInsets} className="flex-1 bg-background">
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
         className="flex-1 px-6 pt-5"
       >
         <View className="mb-8 flex-row justify-between">
