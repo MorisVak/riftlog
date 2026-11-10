@@ -774,10 +774,10 @@ and card art and text (Features 4 and 6) are built.
 > Riftlog has disappeared from the Apple ID's "Sign in with Apple" list.
 > Once more with a non-Apple account.
 
-> **HARD TODO — website rework (in progress).** Done on `website-rework`:
-> new screenshots from the app's demo mode (card art allowed now), looping
-> clips (the game-start face-off, scoring and a take-back, ending a game),
-> a face-off strip under the hero, and copy for what the app does now.
+> **HARD TODO — website rework.** Done: new screenshots from the app's demo
+> mode (card art allowed now), the game-start face-off clip in a strip under
+> the hero, and the features as three beats of a match (before, at the
+> table, after), with a slim details strip and a short roadmap.
 > **Still open — the privacy notice:** `/privacy` ("Your choices") still
 > describes account deletion by email only (within 30 days) — add the
 > in-app deletion (Profile → Delete account, immediate, Apple sign-in

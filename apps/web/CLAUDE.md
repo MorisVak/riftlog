@@ -23,7 +23,7 @@ older training data — check `node_modules/next/dist/docs/` when unsure.
   `legal-notice/`, `actions/` (`waitlist.ts`, `contact.ts` Server Actions), `opengraph-image.tsx` (link preview,
   rendered at build), `favicon.ico` / `icon.svg` / `apple-icon.png`
   (generated), `globals.css` (Tailwind entry, tokens, reveal motion).
-- `src/components/` — sections (`Hero`, `Sections` → `FeatureSection`,
+- `src/components/` — sections (`Hero`, `FaceOff`, `Sections` → `Beat`,
   `HowYouPlay`, `ComingLater`, `WaitlistCta`), chrome (`SiteHeader`,
   `SiteFooter`, `LegalPage`), and shared bits (`Wordmark`, `WaitlistForm`,
   `ContactForm`, `PhoneFrame`, `Reveal`, `LoopVideo`). `screenshots.generated.ts` is generated — don't edit.
@@ -120,11 +120,17 @@ dev client flash a blue "Refreshing…" banner — cut around it.
   URLs carry a version (`?v=`, a hash in the manifest; `v` in `videos.ts`
   for clips — bump it on a re-cut), so a retaken file is never served
   stale.
-- **Feature rows** (`FeatureSection`): points beside **four phones of one
-  size** (`PHONE_W`) — the same in every row; never size phones by count.
-  Stills only: clips and mixed-size tiles in the feature sections were
-  tried and read as noisy and confusing (owner, 2026-11-05). Copy never
-  names third-party sites (deck builders etc.).
+- **Page order:** hero → face-off clip → three **beats** of a match
+  (`Beat`: Before the match / At the table / After the match) → a one-line
+  details strip (`HowYouPlay`) → a short roadmap (`ComingLater`: the next
+  three as cards, the rest in one line) → waitlist. Each beat is a heading,
+  one sentence and **three short lines** beside **one or two phones**,
+  alternating sides (`flip`); every phone is the same size (`PHONE_W`) —
+  never size phones by count. Stills only. Tried and rejected: clips and
+  mixed-size tiles in the features, a feature explorer (owner, 2026-11-05),
+  and rows of four phones under bullet lists — too much at once
+  (2026-11-10). Prefer cutting a feature from the page over adding a
+  screen. Copy never names third-party sites (deck builders etc.).
 - **Recordings** (`public/videos/<name>.mp4` + `.webm`, listed in
   `src/components/videos.ts`): record with
   `xcrun simctl io booted recordVideo --codec=h264 --force screenshots-raw/<name>.mp4`

@@ -1,44 +1,43 @@
-import type { ReactNode } from "react";
 import { PhoneFrame } from "./PhoneFrame";
 import { Reveal } from "./Reveal";
 import type { ScreenshotName } from "./screenshots.generated";
 
-export type FeaturePoint = { title: string; body: ReactNode };
-/** A still of the app. Feature rows show stills only: clips here read as noisy. */
-export type FeatureShot = { shot: ScreenshotName; alt: string; caption: string };
+export type BeatPoint = { title: string; body: string };
+/** A still of the app. Beats show stills only: clips here read as noisy. */
+export type BeatShot = { shot: ScreenshotName; alt: string; caption: string };
 
-/**
- * Every phone on the page is this wide — the same size in every row (rows
- * hold four, which fit the desktop content width; on phones they scroll).
- */
+/** Every phone on the page is this wide, whatever the beat. */
 const PHONE_W = "w-[250px]";
 
 /**
- * One feature area of the one-pager: heading + intro beside a list of points,
- * then a row of real screenshots. On narrow screens the phones scroll
- * sideways (snapping) instead of shrinking past readability.
+ * One beat of a match on the one-pager — before, at the table, after: a
+ * heading, one sentence and three short lines beside one or two phones.
+ * Beats alternate sides (`flip`) so the page reads as a zig-zag. On narrow
+ * screens the text comes first and two phones scroll sideways (snapping)
+ * instead of shrinking past readability.
  */
-export function FeatureSection({
+export function Beat({
   id,
   eyebrow,
   title,
   intro,
   points,
   shots,
-  footnote,
+  flip = false,
 }: {
   id: string;
   eyebrow: string;
   title: string;
   intro: string;
-  points: FeaturePoint[];
-  shots: FeatureShot[];
-  footnote?: ReactNode;
+  points: BeatPoint[];
+  shots: BeatShot[];
+  /** Phones on the left, text on the right. */
+  flip?: boolean;
 }) {
   return (
     <section id={id} className="scroll-mt-20 border-t border-border/60">
-      <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-28">
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[5fr_7fr] lg:gap-16">
+      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 px-5 py-20 sm:px-8 lg:grid-cols-2 lg:gap-16 lg:py-28">
+        <div className={flip ? "lg:order-2" : undefined}>
           <Reveal>
             <p className="font-display text-sm font-semibold uppercase tracking-widest text-accent-soft">
               {eyebrow}
@@ -49,10 +48,9 @@ export function FeatureSection({
             <p className="mt-4 font-display text-lg leading-relaxed text-ink-secondary">
               {intro}
             </p>
-            {footnote && <div className="mt-6">{footnote}</div>}
           </Reveal>
 
-          <dl className="grid grid-cols-1 gap-x-8 gap-y-7 sm:grid-cols-2">
+          <dl className="mt-10 space-y-7">
             {points.map((p, i) => (
               <Reveal
                 key={p.title}
@@ -72,7 +70,9 @@ export function FeatureSection({
 
         <Reveal
           group
-          className="-mx-5 mt-14 snap-x snap-mandatory overflow-x-auto px-5 pb-4 sm:mx-0 sm:px-0"
+          className={`-mx-5 snap-x snap-mandatory overflow-x-auto px-5 pb-4 sm:mx-0 sm:px-0 ${
+            flip ? "lg:order-1" : ""
+          }`}
         >
           <ul className="mx-auto flex w-max gap-6">
             {shots.map(({ shot, alt, caption }, i) => (

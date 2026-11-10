@@ -4,8 +4,7 @@ import { Reveal } from "./Reveal";
 /**
  * The game-start face-off, wide: the versus intro the app plays before each
  * game, recorded with the phone held sideways. Too wide for a feature
- * section's phone row, so it gets its own strip between the hero and the
- * table section.
+ * beat's phones, so it gets its own strip between the hero and the beats.
  */
 export function FaceOff() {
   return (
@@ -25,7 +24,7 @@ export function FaceOff() {
         <Reveal delay={120} className="mx-auto mt-12 max-w-3xl">
           <PhoneFrame
             video="intro"
-            alt="Recording of the game-start intro held sideways: Riven slides in from the left and Akali from the right, VS appears between them, with Game 3, Best of 3 and both player names, then the score board"
+            alt="Recording of the game-start intro held sideways: Riven slides in from the left and Akali from the right, VS appears between them, with Game 2, Best of 3 and both player names, then the score board"
             glow
           />
         </Reveal>

@@ -11,12 +11,14 @@ import Link from "next/link";
 import { Reveal } from "./Reveal";
 
 /**
- * Planned features as a roadmap — clearly labelled as not in the app yet, and
- * with no screenshots. Keep this strictly to items on the roadmap, in build
- * order, and keep stats wording personal (never cross-player data).
+ * Planned features as a short roadmap — clearly labelled as not in the app
+ * yet, and with no screenshots. Keep this strictly to items on the roadmap,
+ * in build order, and keep stats wording personal (never cross-player data).
+ * Only the next few are shown as cards; the rest are named in one line, so
+ * the section stays quiet next to the features above it.
  *
  * `id` is a stable key per item, so a later "vote for what's next" can attach
- * to it; the card footer is where that control would go.
+ * to it. `points` aren't shown today; they're kept for that page.
  */
 type Phase = "next" | "planned" | "later";
 
@@ -102,28 +104,16 @@ const ITEMS: {
   },
 ];
 
-/** Cards per row on desktop. */
-const PER_ROW = 3;
-
-/** The blurred "More to come" card after the last item, so the rail runs into it. */
-const MORE_INDEX = ITEMS.length;
+/** How many items get a card; the rest are named in one line. */
+const SHOWN = 3;
 
 export function ComingLater() {
+  const shown = ITEMS.slice(0, SHOWN);
+  const later = ITEMS.slice(SHOWN).map((item) => item.title);
+
   return (
-    <section
-      id="coming-later"
-      className="relative scroll-mt-20 overflow-hidden border-t border-border/60"
-    >
-      {/* A faint map grid with a soft glow, fading out towards the edges. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(var(--color-border)_1px,transparent_1px)] bg-size-[28px_28px] opacity-70 mask-[radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-1/2 top-1/2 h-[480px] w-[760px] max-w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/10 blur-[120px]"
-      />
-      <div className="relative mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
+    <section id="coming-later" className="scroll-mt-20 border-t border-border/60">
+      <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
         <Reveal>
           <p className="font-display text-sm font-semibold uppercase tracking-widest text-accent-soft">
             Roadmap
@@ -141,158 +131,54 @@ export function ComingLater() {
           </p>
         </Reveal>
 
-        <div className="relative mt-12">
-          {/* The rail down the left on phones. On desktop each card draws
-              its own piece: across to the next card, and at the end of a row
-              down the right side and back through the gap to the next row. */}
-          <div
-            aria-hidden
-            className="absolute bottom-6 left-5 top-5 w-px bg-linear-to-b from-accent via-border to-transparent lg:hidden"
-          />
-          <ol className="relative grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-x-6 lg:gap-y-10">
-            {ITEMS.map(({ id, phase, icon: Icon, title, body, points }, i) => {
-              const next = phase === "next";
-              const rowEnd = (i + 1) % PER_ROW === 0;
-              const rowStart = i > 0 && i % PER_ROW === 0;
-              return (
-                <Reveal
-                  as="li"
-                  key={id}
-                  delay={i * 120}
-                  className="relative pl-14 lg:pl-0 lg:pt-16"
-                >
-                  {!rowEnd && (
-                    <span
-                      aria-hidden
-                      className={`absolute left-10 top-5 hidden h-px w-[calc(100%-1rem)] lg:block ${
-                        next
-                          ? "bg-linear-to-r from-accent to-border"
-                          : "bg-border"
-                      }`}
-                    />
-                  )}
-                  {rowEnd && (
-                    <span
-                      aria-hidden
-                      className="absolute -bottom-[calc(1.25rem+1px)] -right-4 left-10 top-5 hidden rounded-r-2xl border-y border-r border-border lg:block"
-                    />
-                  )}
-                  {rowStart && <RowStartRail />}
-                  <span
-                    aria-hidden
-                    className={`absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-full font-mono text-sm font-medium ring-4 ring-background ${
-                      next
-                        ? "bg-accent text-accent-deep shadow-accent-btn"
-                        : "border border-border bg-surface text-ink-secondary"
-                    }`}
-                  >
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-
-                  <article
-                    className={`flex h-full flex-col rounded-2xl border bg-surface p-6 ${
-                      next ? "border-accent/50" : "border-border"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/15">
-                        <Icon
-                          size={20}
-                          strokeWidth={2}
-                          className="text-accent-soft"
-                        />
-                      </span>
-                      <span
-                        className={`rounded-full px-3 py-1 font-display text-xs font-medium uppercase tracking-widest ${
-                          next
-                            ? "bg-accent/15 text-accent-soft"
-                            : "border border-border text-ink-secondary"
-                        }`}
-                      >
-                        {PHASE_LABEL[phase]}
-                      </span>
-                    </div>
-                    <h3 className="mt-5 font-display text-lg font-semibold text-ink-primary">
-                      {title}
-                    </h3>
-                    <p className="mt-2 font-display text-[15px] leading-relaxed text-ink-secondary">
-                      {body}
-                    </p>
-                    <ul className="mt-5 space-y-2 border-t border-border/60 pt-5">
-                      {points.map((point) => (
-                        <li
-                          key={point}
-                          className="flex gap-3 font-display text-[15px] leading-snug text-ink-secondary"
-                        >
-                          <span
-                            aria-hidden
-                            className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent/60"
-                          />
-                          {point}
-                        </li>
-                      ))}
-                    </ul>
-                  </article>
-                </Reveal>
-              );
-            })}
+        <ol className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3">
+          {shown.map(({ id, phase, icon: Icon, title, body }, i) => (
             <Reveal
               as="li"
-              delay={MORE_INDEX * 120}
-              className="relative pl-14 lg:pl-0 lg:pt-16"
+              key={id}
+              delay={i * 100}
+              className={`rounded-2xl border bg-surface p-6 ${
+                phase === "next" ? "border-accent/50" : "border-border"
+              }`}
             >
-              {MORE_INDEX % PER_ROW === 0 && <RowStartRail />}
-              <span
-                aria-hidden
-                className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-border bg-background font-mono text-sm font-medium text-ink-secondary ring-4 ring-background"
-              >
-                …
-              </span>
-              <article className="relative flex h-full min-h-48 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-surface/50">
-                {/* Placeholder card content, blurred: there's more to come. */}
-                <div
-                  aria-hidden
-                  className="absolute inset-0 p-6 opacity-60 blur-[3px]"
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15">
+                  <Icon size={19} strokeWidth={2} className="text-accent-soft" />
+                </span>
+                <span
+                  className={`rounded-full px-3 py-1 font-display text-xs font-medium uppercase tracking-widest ${
+                    phase === "next"
+                      ? "bg-accent/15 text-accent-soft"
+                      : "border border-border text-ink-secondary"
+                  }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="h-11 w-11 rounded-xl bg-accent/15" />
-                    <span className="h-6 w-16 rounded-full border border-border" />
-                  </div>
-                  <span className="mt-5 block h-4 w-2/3 rounded bg-ink-tertiary/50" />
-                  <span className="mt-3 block h-3 w-5/6 rounded bg-ink-tertiary/30" />
-                  <span className="mt-6 block h-3 w-3/4 rounded bg-ink-tertiary/30" />
-                  <span className="mt-3 block h-3 w-1/2 rounded bg-ink-tertiary/30" />
-                </div>
-                <div className="relative px-6 text-center">
-                  <h3 className="font-display text-2xl font-semibold text-ink-primary">
-                    More to come
-                  </h3>
-                  <p className="mt-2 font-display text-[15px] leading-relaxed text-ink-secondary">
-                    Have an idea?{" "}
-                    <Link
-                      href="/contact"
-                      className="text-accent-soft underline underline-offset-4 hover:text-ink-primary"
-                    >
-                      Suggest a feature
-                    </Link>
-                    .
-                  </p>
-                </div>
-              </article>
+                  {PHASE_LABEL[phase]}
+                </span>
+              </div>
+              <h3 className="mt-4 font-display text-lg font-semibold text-ink-primary">
+                {title}
+              </h3>
+              <p className="mt-1.5 font-display text-[15px] leading-relaxed text-ink-secondary">
+                {body}
+              </p>
             </Reveal>
-          </ol>
-        </div>
+          ))}
+        </ol>
+
+        <Reveal delay={SHOWN * 100}>
+          <p className="mt-8 font-display text-[15px] leading-relaxed text-ink-secondary">
+            {later.length > 0 && <>Later: {later.join(", ")}. </>}
+            Have an idea?{" "}
+            <Link
+              href="/contact"
+              className="text-accent-soft underline underline-offset-4 hover:text-ink-primary"
+            >
+              Suggest a feature
+            </Link>
+            .
+          </p>
+        </Reveal>
       </div>
     </section>
-  );
-}
-
-/** The rail coming into the first card of a row, from the previous row's end. */
-function RowStartRail() {
-  return (
-    <span
-      aria-hidden
-      className="absolute -top-5 left-5 hidden h-5 w-[calc(200%+4.25rem)] rounded-tl-xl border-l border-t border-border lg:block"
-    />
   );
 }

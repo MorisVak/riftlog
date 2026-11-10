@@ -187,9 +187,9 @@ up:
   deleted", the profile / matches / decks gone, and Riftlog gone from
   Settings → Apple Account → Sign in with Apple. Also once with a Discord /
   Google / email account (no Apple step).
-- **Website rework (hard todo, in progress on `website-rework`).** New
-  screenshots from demo mode, looping clips (the face-off, scoring with a
-  take-back, ending a game), the face-off strip, and the copy are done.
+- **Website rework (hard todo).** New screenshots from demo mode, the
+  face-off clip and strip, and the features as three beats of a match
+  (2026-11-10) are done.
   **Still open: the privacy notice** — `/privacy` ("Your choices")
   still says accounts are deleted by email within 30 days; add in-app
   deletion (Profile → Delete account, immediate; Apple sign-in revoked), and
