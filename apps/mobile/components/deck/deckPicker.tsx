@@ -18,6 +18,7 @@ import { DomainChips } from '@/components/deck/domain';
 import Icon from '@/components/icon';
 import { CardBackdrop } from '@/components/deck/cardArt';
 import PressOverlay from '@/components/pressOverlay';
+import { usePageSheetInsets } from '@/lib/pageSheetInsets';
 
 // The legend menu floats over the list; a style object, not a shadow class
 // (see the shadow note in apps/mobile/CLAUDE.md). Mirrors `background`.
@@ -74,6 +75,9 @@ const DeckPicker = ({
   className?: string;
 }) => {
   const insets = useSafeAreaInsets();
+  // Android only: the sheet is full screen there (see pageSheetInsets). The
+  // list already pads its bottom by the inset, so only the top is needed.
+  const { paddingTop: sheetTop } = usePageSheetInsets();
   const [open, setOpen] = useState(false);
   // Your decks from the session cache (shared with Home, Decks, Profile).
   const { data: cachedDecks, error: decksError } = useMyDecks();
@@ -190,7 +194,7 @@ const DeckPicker = ({
         presentationStyle="pageSheet"
         onRequestClose={() => setOpen(false)}
       >
-        <View className="flex-1 bg-background">
+        <View style={{ paddingTop: sheetTop }} className="flex-1 bg-background">
           <View className="flex-row items-center justify-between border-b border-border px-4 py-2">
             <TouchableOpacity
               accessibilityRole="button"
@@ -311,7 +315,7 @@ const DeckPicker = ({
               </Text>
             ) : state.decks.length === 0 ? (
               <Text className="px-1 py-4 text-[14px] leading-5 text-ink-secondary">
-                No decks yet — import one from your Profile.
+                No decks yet — import one in the Decks tab.
               </Text>
             ) : shown.length === 0 ? (
               <View className="items-center px-1 py-6">

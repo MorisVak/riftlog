@@ -14,6 +14,7 @@ import {
   FEEDBACK_HEADLINE_MAX,
   submitFeedback,
 } from '@/lib/feedback';
+import { usePageSheetInsets } from '@/lib/pageSheetInsets';
 
 /** Show the body counter once you're this close to the limit. */
 const COUNTER_FROM = FEEDBACK_BODY_MAX - 200;
@@ -41,6 +42,7 @@ const FeedbackSheet = ({
   /** Called after the server accepted it (the sheet closes itself). */
   onSent: () => void;
 }) => {
+  const sheetInsets = usePageSheetInsets();
   const [headline, setHeadline] = useState('');
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
@@ -91,7 +93,7 @@ const FeedbackSheet = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-background">
+      <View style={sheetInsets} className="flex-1 bg-background">
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           className="flex-1"

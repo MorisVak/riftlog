@@ -14,6 +14,7 @@ import { splitCardName, type CardRef } from '@riftlog/core';
 import CardArt from '@/components/deck/cardArt';
 import Icon from '@/components/icon';
 import { useCatalog } from '@/contexts/catalogContext';
+import { usePageSheetInsets } from '@/lib/pageSheetInsets';
 
 /**
  * Every legend in the card catalog, as a card reference to its base printing
@@ -68,6 +69,8 @@ export const LegendSheet = ({
   }, [legends, query]);
   const tileW = Math.floor((width - PAD * 2 - GAP * (COLUMNS - 1)) / COLUMNS);
 
+  const sheetInsets = usePageSheetInsets();
+
   const choose = (legend: CardRef | null) => {
     Haptics.selectionAsync();
     onChange(legend);
@@ -83,7 +86,7 @@ export const LegendSheet = ({
       // A fresh search each time it opens.
       onShow={() => setQuery('')}
     >
-      <View className="flex-1 bg-background">
+      <View style={sheetInsets} className="flex-1 bg-background">
         <View className="flex-row items-center justify-between border-b border-border px-4 py-2">
           <TouchableOpacity
             accessibilityRole="button"
