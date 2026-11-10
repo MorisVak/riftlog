@@ -28,9 +28,14 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
     Import (as History's carries Select), then search + sort, rows with
     swipe / multi-select delete (account-gated)
   - `(tabs)/profile.tsx` — you and your settings: an identity card, then
-    sections (Default deck, **Scoring** (Detailed / Simple, see "A point is
-    scored" below), **Appearance → Legend art** (card-art flag
-    only), Feedback, **Support → Buy me a coffee** (opens the browser),
+    three sections, each one card of the same rows (`Section` / `Row` in the
+    file: a round lead, label, value or control, chevron) and **no hint
+    text under them** — a page of grey footnotes read as clutter and
+    "AI-ish" (owner, 2026-11-10). **Playing**: Default deck (its legend's
+    face as the lead; opens the `DeckPicker` sheet), **Scoring mode** (opens
+    `components/scoringSheet.tsx`: the two boards as preview cards, see
+    below), Legend art. **Riftlog**: Send feedback, the
+    feedback inbox (admins), Buy me a coffee (opens the browser).
     **Account → Sign out / Delete account** (one destructive confirm; an
     Apple account then confirms with Apple once more — `appleAuthorizationCode`
     → `revokeAppleSignIn` → the `revoke-apple` function — with "Delete
@@ -54,7 +59,9 @@ Parent conventions in `../../CLAUDE.md` (pnpm-only, Riot policy, etc.) apply.
     out is a row in Account, not an icon by your name, so a stray tap
     can't reach it.
   - `login.tsx` / `verify-otp.tsx` — modal auth routes
-  - `onboarding.tsx` — first-login handle + display-name step (guarded)
+  - `onboarding.tsx` — first-login handle + display-name step (guarded),
+    plus the scoring choice (saved right after `complete_onboarding`,
+    non-fatal)
   - `decks/import.tsx` — paste-a-decklist import (modal)
   - `decks/[id].tsx` — one saved deck, read-only
   - `feedback.tsx` — the feedback inbox (feedback admins only)
@@ -595,8 +602,13 @@ game counter, nothing taking board space from either player:
 
 Conventions:
 
-- **Two scoring modes** (Profile → Scoring, `profiles.scoring_mode`, core
-  `ScoringMode`): **Detailed** (the default, and what guests get) is the
+- **Two scoring modes** (Profile → Scoring mode and onboarding,
+  `profiles.scoring_mode`, core `ScoringMode`). Both places pick with
+  `components/scoringChoice.tsx`: two cards side by side, each with a small
+  board that plays itself (points go on to 8, then a new game; a "+1" rises
+  from Conquer / Hold / Special in turn, or the right half lights up), so
+  you see how a board scores before choosing it. Plain Views, decorative,
+  still with Reduce Motion. The modes: **Detailed** (the default, and what guests get) is the
   conquer / hold / special board below; **Simple** is a plain counter — the
   player's **whole half is the button**: anything left of the middle takes a
   point back, anything right of it scores one (`SimpleBoard`, an absolute

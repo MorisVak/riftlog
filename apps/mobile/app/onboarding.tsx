@@ -25,23 +25,29 @@ import { useProfile } from '@/contexts/profileContext';
 import {
   checkHandle,
   completeOnboarding,
+  setScoringMode,
   type HandleAvailability,
   type OnboardingResult,
 } from '@/lib/profile';
+import type { ScoringMode } from '@riftlog/core';
+import ScoringChoice from '@/components/scoringChoice';
 import Avatar from '@/components/avatar';
 import Icon from '@/components/icon';
 import { CTA_GLOW } from '@/components/ctaGlow';
 import { playIntro, useRise } from '@/hooks/useScreenIntro';
 
 /**
- * First-login onboarding: pick a display name and claim an @handle.
+ * First-login onboarding: pick a display name, claim an @handle, and choose
+ * how you keep score (Detailed / Simple, with a preview of each board).
  *
  * Reachable only while `needsOnboarding` holds (Stack.Protected in
  * app/_layout.tsx). Nothing here is persisted on-device: the one write is
  * `complete_onboarding`, which claims the handle, sets the name, and stamps
  * `onboarded_at` in a single transaction. Kill the app anywhere before that
  * and the next launch lands back here with nothing half-done; after it,
- * `refresh()` re-reads the row and the guard swaps this screen out.
+ * `refresh()` re-reads the row and the guard swaps this screen out. The
+ * scoring mode is saved just before that refresh — a plain profile update,
+ * non-fatal (it can be changed on Profile any time).
  *
  * Step list: identity is the only step. An optional, skippable deck-import
  * step belongs AFTER it — once `onboarded_at` is set, so it can never block
@@ -94,6 +100,9 @@ const Onboarding = () => {
     initial.handle ? 'checking' : 'empty',
   );
   const [variants, setVariants] = useState<string[]>([]);
+  const [scoring, setScoring] = useState<ScoringMode>(
+    profile?.scoringMode ?? 'detailed',
+  );
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -183,6 +192,11 @@ const Onboarding = () => {
       const result = await completeOnboarding(handle, trimmedName);
       if (result === 'ok') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        if (scoring !== (profile?.scoringMode ?? 'detailed')) {
+          await setScoringMode(scoring).catch((e) => {
+            if (__DEV__) console.warn('[onboarding] scoring save failed:', e);
+          });
+        }
         // Re-reading the row flips `needsOnboarding` and the guard replaces
         // this screen. If the read fails, Continue stays live: calling
         // complete_onboarding again is a no-op that returns `ok`.
@@ -214,14 +228,16 @@ const Onboarding = () => {
   const avatarIntro = useSharedValue(0);
   const nameIntro = useSharedValue(0);
   const handleIntro = useSharedValue(0);
+  const scoringIntro = useSharedValue(0);
   const ctaIntro = useSharedValue(0);
   const avatarStyle = useRise(avatarIntro);
   const nameStyle = useRise(nameIntro);
   const handleStyle = useRise(handleIntro);
+  const scoringStyle = useRise(scoringIntro);
   const ctaStyle = useRise(ctaIntro);
   useEffect(() => {
-    playIntro([avatarIntro, nameIntro, handleIntro, ctaIntro]);
-  }, [avatarIntro, nameIntro, handleIntro, ctaIntro]);
+    playIntro([avatarIntro, nameIntro, handleIntro, scoringIntro, ctaIntro]);
+  }, [avatarIntro, nameIntro, handleIntro, scoringIntro, ctaIntro]);
 
   const handleBorder =
     status === 'available'
@@ -335,6 +351,16 @@ const Onboarding = () => {
                 ))}
               </View>
             )}
+          </Animated.View>
+
+          <Animated.View style={scoringStyle} className="mt-6">
+            <Text className="mb-2 font-display text-base text-ink-secondary">
+              Scoring mode
+            </Text>
+            <ScoringChoice value={scoring} onChange={setScoring} />
+            <Text className="mt-1.5 px-1 text-[12px] text-ink-tertiary">
+              You can change this later in Profile.
+            </Text>
           </Animated.View>
 
           <View className="min-h-8 flex-1" />
