@@ -187,9 +187,9 @@ up:
   deleted", the profile / matches / decks gone, and Riftlog gone from
   Settings → Apple Account → Sign in with Apple. Also once with a Discord /
   Google / email account (no Apple step).
-- **Website rework (hard todo, in progress on `website-rework`).** New
-  screenshots from demo mode, looping clips (the face-off, scoring with a
-  take-back, ending a game), the face-off strip, and the copy are done.
+- **Website rework (hard todo).** New screenshots from demo mode, the
+  face-off clip and strip, and the features as three beats of a match
+  (2026-11-10) are done.
   **Still open: the privacy notice** — `/privacy` ("Your choices")
   still says accounts are deleted by email within 30 days; add in-app
   deletion (Profile → Delete account, immediate; Apple sign-in revoked), and
@@ -383,7 +383,8 @@ bucket. The footer carries the fan-made disclaimer and Legal Jibber Jabber.
 - Match mode extras on the match detail — the opponent's deck, linked profile,
   head-to-head, their win rate (v1 shows your side only)
 - v2 QR co-recording feature (data model has placeholder fields)
-- The rest of the website roadmap, in order: Sideboard guide, Quick log
+- The rest of the website roadmap, in order: Sideboard guide, Tags (your
+  own named, colored labels on matches, e.g. one per Skirmish), Quick log
   (record a finished match without live scoring), Stats,
   Playerboard customization (legend / custom board backgrounds), Teams &
   friends (add friends, invite to a game, share decks; teams as a clan with

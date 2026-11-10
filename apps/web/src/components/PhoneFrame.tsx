@@ -11,8 +11,7 @@ import { VIDEOS, type VideoName } from "./videos";
  * the whole screen, Dynamic Island included — the Simulator captures it — so
  * the frame draws nothing over it and leaves no empty band. Width/height
  * come from the manifests so the page doesn't shift while images load. Used
- * by the hero and the face-off only; feature tiles show parts of screens
- * (`DetailShot`), not phones.
+ * by the hero, the face-off and the feature beats.
  */
 export function PhoneFrame({
   shot,

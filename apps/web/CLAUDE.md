@@ -23,8 +23,9 @@ older training data — check `node_modules/next/dist/docs/` when unsure.
   `legal-notice/`, `actions/` (`waitlist.ts`, `contact.ts` Server Actions), `opengraph-image.tsx` (link preview,
   rendered at build), `favicon.ico` / `icon.svg` / `apple-icon.png`
   (generated), `globals.css` (Tailwind entry, tokens, reveal motion).
-- `src/components/` — sections (`Hero`, `Sections` → `FeatureSection`,
-  `HowYouPlay`, `ComingLater`, `WaitlistCta`), chrome (`SiteHeader`,
+- `src/components/` — sections (`Hero` → `HeroPhone` + `ModeSwitch`,
+  `FaceOff`, `Sections` → `Beat`, `HowYouPlay`, `ComingLater`,
+  `WaitlistCta`), chrome (`SiteHeader`,
   `SiteFooter`, `LegalPage`), and shared bits (`Wordmark`, `WaitlistForm`,
   `ContactForm`, `PhoneFrame`, `Reveal`, `LoopVideo`). `screenshots.generated.ts` is generated — don't edit.
 - `src/lib/legal.ts` — `OPERATOR` (the operator's legal details, used by all
@@ -79,6 +80,19 @@ Rules (inherited from mobile):
 - **Colorblind-safe:** if any win/loss/draw indicator is shown, pair the color
   with a W/L/D letter badge — never color alone.
 
+### Background structure
+
+Sections carry the roadmap's background — a faint dot grid with a soft
+accent glow, fading out toward the edges (`Backdrop`; the owner likes having
+structure in the background, 2026-11-10). Its focus follows the section's
+picture: `right` / `left` behind the phones (beats alternate with them, the
+hero's sits behind its phone and keeps its own glow), `center` for the
+face-off and the roadmap, `frame` (wide) around the waitlist card. The thin
+details strip has none. Keep it faint — structure, not decoration.
+**Dots only:** a texture per section (graph paper, slanted lines, a
+honeycomb, ruled lines) was tried and read as too noisy (owner,
+2026-11-10).
+
 ### Motion
 
 Sections fade in and rise once as they scroll into view: wrap them in
@@ -120,11 +134,29 @@ dev client flash a blue "Refreshing…" banner — cut around it.
   URLs carry a version (`?v=`, a hash in the manifest; `v` in `videos.ts`
   for clips — bump it on a re-cut), so a retaken file is never served
   stale.
-- **Feature rows** (`FeatureSection`): points beside **four phones of one
-  size** (`PHONE_W`) — the same in every row; never size phones by count.
-  Stills only: clips and mixed-size tiles in the feature sections were
-  tried and read as noisy and confusing (owner, 2026-11-05). Copy never
-  names third-party sites (deck builders etc.).
+- **Page order:** hero → face-off clip → three **beats** of a match
+  (`Beat`: Before the match / At the table / After the match) → a one-line
+  details strip (`HowYouPlay`) → the roadmap (`ComingLater`, the rail of
+  cards over the dot grid — the owner likes it; a slimmed version was
+  reverted, 2026-11-10) → waitlist. Each beat is a heading,
+  one sentence and **three short lines** beside **one or two phones**,
+  alternating sides (`flip`); every phone is the same size (`PHONE_W`) —
+  never size phones by count — and **never cut off at an edge**: the phone
+  column is the wider one, and on narrow screens phones shrink to half the
+  width instead of scrolling sideways. Stills only. Tried and rejected: clips and
+  mixed-size tiles in the features, a feature explorer (owner, 2026-11-05),
+  and rows of four phones under bullet lists — too much at once
+  (2026-11-10). Prefer cutting a feature from the page over adding a
+  screen. Copy never names third-party sites (deck builders etc.).
+  **The hero shows both scoring modes** (owner, 2026-11-10): a Detailed /
+  Simple switch (`ModeSwitch`, centred above the hero phone, no caption —
+  the board shows the difference) crossfades between
+  `board` / `board-simple` upright and `board-landscape` /
+  `board-simple-landscape` sideways — the same moment (game 2 vs Alex,
+  5–3) in both modes, so only the controls change. Retake them as a set.
+  The "At the table" beat shows `who-won` instead, so the board isn't
+  repeated. The header links
+  follow the page: Decks · Scoring · History · Roadmap.
 - **Recordings** (`public/videos/<name>.mp4` + `.webm`, listed in
   `src/components/videos.ts`): record with
   `xcrun simctl io booted recordVideo --codec=h264 --force screenshots-raw/<name>.mp4`
@@ -178,6 +210,10 @@ fan-made disclaimer **and** Riot's Legal Jibber Jabber statement, verbatim.
   rendered (`…gmail.comand`). Always write an explicit `{" "}` after `<Fill />`
   before text. Check with
   `grep -nE '<Fill [^>]*/> [A-Za-z(&]' apps/web/src/app/*/page.tsx`.
+- **The dev server can keep serving an old `globals.css`** (new classes
+  missing, even an old token value) after edits to it. Check the served
+  CSS (`curl` the `/_next/static/chunks/…css` the page links); if it's
+  stale, stop the dev server, `rm -rf .next/dev`, and start it again.
 - **Renaming or moving a route** leaves `.next/types/validator.ts` pointing
   at the old path, and `pnpm typecheck` fails until you `rm -rf .next/types`
   and build again.

@@ -1,44 +1,58 @@
-import type { ReactNode } from "react";
+import { Backdrop } from "./Backdrop";
 import { PhoneFrame } from "./PhoneFrame";
 import { Reveal } from "./Reveal";
 import type { ScreenshotName } from "./screenshots.generated";
 
-export type FeaturePoint = { title: string; body: ReactNode };
-/** A still of the app. Feature rows show stills only: clips here read as noisy. */
-export type FeatureShot = { shot: ScreenshotName; alt: string; caption: string };
+export type BeatPoint = { title: string; body: string };
+/** A still of the app. Beats show stills only: clips here read as noisy. */
+export type BeatShot = { shot: ScreenshotName; alt: string; caption: string };
 
 /**
- * Every phone on the page is this wide — the same size in every row (rows
- * hold four, which fit the desktop content width; on phones they scroll).
+ * Every phone in the beats is this wide, whatever the beat: 250px, or on a
+ * narrow screen half the content width (minus the gap), so two phones always
+ * fit side by side. Never cut a phone off at the edge, never size by count.
  */
-const PHONE_W = "w-[250px]";
+const PHONE_W =
+  "w-[min(250px,calc((100vw-3.5rem)/2))] sm:w-[min(250px,calc((100vw-5.5rem)/2))]";
 
 /**
- * One feature area of the one-pager: heading + intro beside a list of points,
- * then a row of real screenshots. On narrow screens the phones scroll
- * sideways (snapping) instead of shrinking past readability.
+ * One beat of a match on the one-pager — before, at the table, after: a
+ * heading, one sentence and three short lines beside one or two phones.
+ * Beats alternate sides (`flip`) so the page reads as a zig-zag; the phone
+ * side gets the wider column so two phones fit whole. On narrow screens the
+ * text comes first, with the phones below it.
  */
-export function FeatureSection({
+export function Beat({
   id,
   eyebrow,
   title,
   intro,
   points,
   shots,
-  footnote,
+  flip = false,
 }: {
   id: string;
   eyebrow: string;
   title: string;
   intro: string;
-  points: FeaturePoint[];
-  shots: FeatureShot[];
-  footnote?: ReactNode;
+  points: BeatPoint[];
+  shots: BeatShot[];
+  /** Phones on the left, text on the right. */
+  flip?: boolean;
 }) {
   return (
-    <section id={id} className="scroll-mt-20 border-t border-border/60">
-      <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-28">
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[5fr_7fr] lg:gap-16">
+    <section
+      id={id}
+      className="relative scroll-mt-20 overflow-hidden border-t border-border/60"
+    >
+      {/* The grid behind the phones, so it alternates with them. */}
+      <Backdrop at={flip ? "left" : "right"} />
+      <div
+        className={`relative mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 px-5 py-20 sm:px-8 lg:gap-16 lg:py-28 ${
+          flip ? "lg:grid-cols-[3fr_2fr]" : "lg:grid-cols-[2fr_3fr]"
+        }`}
+      >
+        <div className={flip ? "lg:order-2" : undefined}>
           <Reveal>
             <p className="font-display text-sm font-semibold uppercase tracking-widest text-accent-soft">
               {eyebrow}
@@ -49,10 +63,9 @@ export function FeatureSection({
             <p className="mt-4 font-display text-lg leading-relaxed text-ink-secondary">
               {intro}
             </p>
-            {footnote && <div className="mt-6">{footnote}</div>}
           </Reveal>
 
-          <dl className="grid grid-cols-1 gap-x-8 gap-y-7 sm:grid-cols-2">
+          <dl className="mt-10 space-y-7">
             {points.map((p, i) => (
               <Reveal
                 key={p.title}
@@ -70,17 +83,14 @@ export function FeatureSection({
           </dl>
         </div>
 
-        <Reveal
-          group
-          className="-mx-5 mt-14 snap-x snap-mandatory overflow-x-auto px-5 pb-4 sm:mx-0 sm:px-0"
-        >
-          <ul className="mx-auto flex w-max gap-6">
+        <Reveal group className={flip ? "lg:order-1" : undefined}>
+          <ul className="flex justify-center gap-4 sm:gap-6">
             {shots.map(({ shot, alt, caption }, i) => (
               <li
                 key={shot}
                 data-reveal-child
                 style={{ transitionDelay: `${i * 140}ms` }}
-                className={`${PHONE_W} shrink-0 snap-center`}
+                className={`${PHONE_W} shrink-0`}
               >
                 <PhoneFrame shot={shot} alt={alt} />
                 <p className="mt-4 text-center font-display text-sm text-ink-secondary">

@@ -9,7 +9,7 @@ import type { ScreenshotName } from "./screenshots.generated";
  * it's added to the URL, so no browser or CDN serves the old file.
  */
 export const VIDEOS = {
-  /** The game-start versus intro, held sideways (game 3), the whole screen. */
+  /** The game-start versus intro, held sideways (game 2), the whole screen. */
   intro: { width: 796, height: 367, poster: "board-landscape", v: 4 },
 } as const satisfies Record<string, { width: number; height: number; poster: ScreenshotName; v: number }>;
 

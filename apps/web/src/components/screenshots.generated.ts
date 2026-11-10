@@ -17,10 +17,20 @@ export const SCREENSHOTS = {
     "height": 845,
     "v": "cc647625"
   },
+  "board-simple": {
+    "width": 390,
+    "height": 845,
+    "v": "34844447"
+  },
   "board-landscape": {
     "width": 796,
     "height": 367,
     "v": "31310e10"
+  },
+  "board-simple-landscape": {
+    "width": 796,
+    "height": 367,
+    "v": "c117b02c"
   },
   "who-won": {
     "width": 390,

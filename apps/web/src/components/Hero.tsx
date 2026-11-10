@@ -1,3 +1,4 @@
+import { Backdrop } from "./Backdrop";
 import { HeroPhone } from "./HeroPhone";
 import { WaitlistForm } from "./WaitlistForm";
 import { Platforms } from "./Platforms";
@@ -5,19 +6,11 @@ import { Platforms } from "./Platforms";
 export function Hero() {
   return (
     <section id="top" className="relative overflow-hidden">
+      <Backdrop at="right" glow={false} />
       {/* Signature periwinkle glow blob behind the hero content. */}
       <div
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-[-10%] h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-accent/20 blur-[120px]"
-      />
-      {/* Faint decorative rings (adapting the mobile Start-card rings). */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute right-[-8rem] top-24 h-[360px] w-[360px] rounded-full border border-accent/10"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute right-[-2rem] top-48 h-[220px] w-[220px] rounded-full border border-accent/10"
       />
 
       <div className="relative mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-2 lg:gap-8 lg:py-24">
