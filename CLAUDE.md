@@ -176,8 +176,8 @@ up:
   very long histories.
 - **In-app account deletion** — built (Profile → Account → Delete account,
   the `delete_my_account` RPC; Apple accounts first revoke their Apple
-  tokens via the `revoke-apple` Edge Function). Open: `/privacy` still
-  describes deletion by email only (legal pages need the owner's sign-off).
+  tokens via the `revoke-apple` Edge Function). `/privacy` and `/terms`
+  describe it (owner-approved, live 2026-11-10), email kept as the fallback.
 - **Test account deletion end to end (hard todo, owner, with a friend).**
   The `revoke-apple` function is deployed (active; an unauthenticated call
   gets 401), but the full flow has never run. Sign in with Apple on a
@@ -187,14 +187,10 @@ up:
   deleted", the profile / matches / decks gone, and Riftlog gone from
   Settings → Apple Account → Sign in with Apple. Also once with a Discord /
   Google / email account (no Apple step).
-- **Website rework (hard todo).** New screenshots from demo mode, the
-  face-off clip and strip, and the features as three beats of a match
-  (2026-11-10) are done.
-  **Still open: the privacy notice** — `/privacy` ("Your choices")
-  still says accounts are deleted by email within 30 days; add in-app
-  deletion (Profile → Delete account, immediate; Apple sign-in revoked), and
-  `/terms` points there too. Legal pages need the owner's sign-off. Details
-  in `SPEC.md`.
+- **Website rework — done (live 2026-11-10).** New screenshots from demo
+  mode, the face-off clip, the features as three beats of a match, both
+  scoring modes in the hero, the privacy notice with in-app deletion. Copy
+  ("later") may still be reworked.
 - **"Buy me a coffee" in the app** — built (Profile → Riftlog, opens the
   browser). App Store risk: Apple can treat a tip link as a digital
   purchase outside in-app purchase (Guideline 3.1.1); be ready to hide it

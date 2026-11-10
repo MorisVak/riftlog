@@ -793,9 +793,9 @@ and card art and text (Features 4 and 6) are built.
 
 > **Account deletion — built.** Profile → Delete account (the
 > `delete_my_account` RPC, FK cascades); an account that signs in with Apple
-> first revokes its Apple tokens (the `revoke-apple` Edge Function). Open:
-> `/privacy` still describes deletion by email only (needs the owner's
-> sign-off).
+> first revokes its Apple tokens (the `revoke-apple` Edge Function).
+> `/privacy` and `/terms` describe it (owner-approved, live 2026-11-10),
+> with email as the fallback.
 
 > **HARD TODO — test account deletion end to end.** Never run for real yet
 > (the owner tests it with a friend). With a separate Apple account (Hide My
@@ -804,15 +804,12 @@ and card art and text (Features 4 and 6) are built.
 > Riftlog has disappeared from the Apple ID's "Sign in with Apple" list.
 > Once more with a non-Apple account.
 
-> **HARD TODO — website rework.** Done: new screenshots from the app's demo
-> mode (card art allowed now), the game-start face-off clip in a strip under
-> the hero, and the features as three beats of a match (before, at the
-> table, after) and a slim details strip; the roadmap keeps its rail.
-> **Still open — the privacy notice:** `/privacy` ("Your choices") still
-> describes account deletion by email only (within 30 days) — add the
-> in-app deletion (Profile → Delete account, immediate, Apple sign-in
-> revoked), keeping email as the fallback; check `/terms`, which points to
-> it. Owner signs off on legal wording.
+> **Website rework — done (live 2026-11-10).** New screenshots from the
+> app's demo mode (card art allowed), the game-start face-off clip under the
+> hero, both scoring modes in the hero (a Detailed / Simple switch), the
+> features as three beats of a match (before, at the table, after), a slim
+> details strip, the roadmap rail (with Tags), and the privacy notice and
+> terms describing in-app account deletion.
 
 > **URGENT TODO — custom SMTP for sign-in emails.** Blocks email sign-in
 > for real users: no email sender is configured, so Supabase Auth uses its
