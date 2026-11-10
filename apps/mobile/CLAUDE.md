@@ -87,6 +87,10 @@ NativeWind v4. Tailwind classes via `className`.
 - **No inline hex.** Never use arbitrary values like `bg-[#7A1F2B]`. Every
   color comes from a token below. If you need a color that isn't a token,
   add it to `tailwind.config.js` first.
+- **A rem is 14pt on native, not 16.** Size classes are smaller than their
+  web names suggest (`w-20` = 70pt, not 80). Where a size must match a
+  number in code — a swipe distance, a measured offset — set it as a style
+  from that constant, not as a class (the swipe-to-delete strip bug).
 
 ### Design tokens — Archive Periwinkle
 

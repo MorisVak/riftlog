@@ -210,7 +210,10 @@ const HistoryRow = ({
             accessibilityRole="button"
             accessibilityLabel={`Delete match vs ${vm.opponent}`}
             onPress={confirmDelete}
-            className="w-20 items-center justify-center bg-loss active:bg-loss-text"
+            // Exactly the swipe's width (see ACTION_W in swipeToDelete.tsx:
+            // `w-20` is only 70pt on native, which left a strip showing).
+            style={{ width: ACTION_W }}
+            className="items-center justify-center bg-loss active:bg-loss-text"
           >
             <Feather name="trash-2" size={20} color={INK_PRIMARY} />
             <Text className="mt-1 font-display text-[11px] font-semibold text-ink-primary">

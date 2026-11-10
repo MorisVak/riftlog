@@ -12,6 +12,9 @@ import Icon from '@/components/icon';
 
 // Same feel as the match-history rows (components/historyRow.tsx): swipe left
 // to reveal a red Delete action behind the card, then confirm.
+// The action is exactly as wide as the swipe (a style, not `w-20`: NativeWind
+// counts a rem as 14pt on native, so `w-20` is 70pt and a 10pt strip of the
+// card's container showed between the red and the row).
 const ACTION_W = 80;
 const SWIPE_MS = 180;
 
@@ -98,7 +101,8 @@ const SwipeToDelete = ({
           accessibilityRole="button"
           accessibilityLabel={accessibilityLabel}
           onPress={confirm}
-          className="w-20 items-center justify-center bg-loss active:bg-loss-text"
+          style={{ width: ACTION_W }}
+          className="items-center justify-center bg-loss active:bg-loss-text"
         >
           <Icon name="trash-2" size={20} className="text-ink-primary" />
           <Text className="mt-1 font-display text-[11px] text-ink-primary">
