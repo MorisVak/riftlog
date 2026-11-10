@@ -779,6 +779,38 @@ misidentified the simulator as a physical device and failed on code signing.
 can't resolve the new package ("Unable to resolve module") even though it's
 in `node_modules`. Physical devices need a new EAS build.
 
+## Android differences
+
+Found in the Android pass (2026-11-10); each fix is in the code, this is
+the list to check new screens against:
+
+- **No skews.** Android draws a skewed view square (RN decomposes the
+  transform into translate / rotate / scale). Slanted cuts (versus banner,
+  game-start intro) are a tall box rotated around `transformOrigin: 'left
+  center'` with a counter-rotated layer inside — and a percentage
+  `transformOrigin` on the inner layer made it vanish, so it uses `'left
+  center'` too. Card text's keyword badges still use `skewX` and come out
+  square on Android (cosmetic, open).
+- **iOS shadows don't render.** `shadowColor` / `shadowOpacity` /
+  `shadow-accent-*` are iOS-only, so every accent glow is flat on Android
+  (open: `boxShadow`, which RN 0.81 draws on both).
+- **Page sheets and modal routes are full screen**, under the status bar
+  (edge to edge): pad them with `usePageSheetInsets` (`lib/pageSheetInsets.ts`).
+  Transparent bottom-sheet Modals need `statusBarTranslucent` +
+  `navigationBarTranslucent`, or the window stops short of the bottom and
+  the sheet runs up behind the status bar. (Modal flags apply on a fresh
+  start, not a fast refresh.)
+- **The keyboard doesn't shrink the window** (edge to edge): keyboard
+  avoiding views use `behavior="padding"` on both platforms; ScrollViews
+  that rely on iOS's `automaticallyAdjustKeyboardInsets` are wrapped in
+  `AndroidKeyboardAvoider`. Closing the keyboard ends editing
+  (`useEndEditingOnKeyboardHide`, root layout), as on iOS — notes save on blur.
+- **The back button.** The match lives in the Home tab, so back there
+  closed the app: the match screens take it over (`useAndroidBack`), and
+  select mode ends on back (`useSelection`).
+- **Landscape keeps the status bar** unless hidden (`useInGameScreen` hides
+  it while a match screen is sideways).
+
 ## Demo mode (screenshots and recordings)
 
 `lib/demo.ts`. Dev builds only, switched on when Metro starts:
