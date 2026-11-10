@@ -792,8 +792,14 @@ the list to check new screens against:
   center'` too. Card text's keyword badges still use `skewX` and come out
   square on Android (cosmetic, open).
 - **iOS shadows don't render.** `shadowColor` / `shadowOpacity` /
-  `shadow-accent-*` are iOS-only, so every accent glow is flat on Android
-  (open: `boxShadow`, which RN 0.81 draws on both).
+  `shadow-accent-*` are iOS-only. Glows go through `glow()`
+  (`lib/glow.ts`: iOS shadow as before, Android a `boxShadow`); don't use
+  the `shadow-accent-*` classes for new glows. A boxShadow follows the
+  rounded box, so shapes built from several views (the divider's
+  hexagons) keep an iOS-only glow.
+- **Text taller than its box is clipped.** iOS lets a glyph spill out of a
+  fixed-height box, Android cuts it (the card sheet's Energy numeral in an
+  `h-9` row): use a min height.
 - **Page sheets and modal routes are full screen**, under the status bar
   (edge to edge): pad them with `usePageSheetInsets` (`lib/pageSheetInsets.ts`).
   Transparent bottom-sheet Modals need `statusBarTranslucent` +
@@ -810,6 +816,11 @@ the list to check new screens against:
   select mode ends on back (`useSelection`).
 - **Landscape keeps the status bar** unless hidden (`useInGameScreen` hides
   it while a match screen is sideways).
+- **Don't judge performance on the emulator.** The Pixel_8 AVD (API 36)
+  runs with software rendering ("API level 36 requires GLES 3.1, forcing
+  software rendering"): Android's own Settings app scrolls at ~5 fps there
+  (median frame 200 ms), Riftlog's release build at ~23 (44 ms), its dev
+  build at ~14 (73 ms). Measure on a phone, with a release build.
 
 ## Demo mode (screenshots and recordings)
 
