@@ -89,6 +89,9 @@ picture: `right` / `left` behind the phones (beats alternate with them, the
 hero's sits behind its phone and keeps its own glow), `center` for the
 face-off and the roadmap, `frame` (wide) around the waitlist card. The thin
 details strip has none. Keep it faint — structure, not decoration.
+**Dots only:** a texture per section (graph paper, slanted lines, a
+honeycomb, ruled lines) was tried and read as too noisy (owner,
+2026-11-10).
 
 ### Motion
 
