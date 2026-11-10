@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Pressable,
@@ -35,6 +36,7 @@ import DurationPicker from './durationPicker';
 import Icon from './icon';
 import PressOverlay from './pressOverlay';
 import { CTA_GLOW } from './ctaGlow';
+import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 
 type MatchSetupProps = {
   onClose: () => void;
@@ -288,6 +290,8 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
   // Custom opens the wheels at the very bottom; on a short screen, where the
   // sheet is already at its tallest, scroll them into view once they're open.
   const scroll = useRef<ScrollView>(null);
+  const opponentNameRef = useRef<TextInput>(null);
+  const keyboardH = useKeyboardHeight();
   const pickClock = (c: Clock) => {
     setClock(c);
     if (c === 'custom') {
@@ -346,7 +350,9 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
       }
     });
   // Never taller than the screen below the status bar; the content scrolls.
-  const maxSheetH = screenH - insets.top - 8;
+  // With the keyboard up the sheet sits on top of it, so it gives up that
+  // much height too — otherwise its top was pushed under the status bar.
+  const maxSheetH = screenH - insets.top - 8 - keyboardH;
 
   const start = () => {
     if (!startable) return;
@@ -423,128 +429,138 @@ const MatchSetup = ({ onClose }: MatchSetupProps) => {
                 }}
                 style={{ flexGrow: 0 }}
                 keyboardShouldPersistTaps="handled"
+                // A drag on the sheet's content puts the keyboard away.
+                keyboardDismissMode="on-drag"
                 showsVerticalScrollIndicator={false}
               >
-                {/* The matchup: you left (p1), them right, VS between. */}
-                <View className="relative flex-row gap-3">
-                  <View className="flex-1 gap-2">
-                    <Portrait
-                      side="You"
-                      legend={shownYourLegend}
-                      caption={deckChosen && deck ? `From ${deck.name}` : undefined}
-                      emptyLabel="Your legend"
-                      emptyHint={signedIn ? 'Optional · or pick a deck' : 'Optional'}
-                      onPress={() => setSheet('you')}
-                    />
-                    <TextInput
-                      value={p1Name}
-                      onChangeText={setP1Name}
-                      placeholder="Your name"
-                      returnKeyType="next"
-                      accessibilityLabel="Your name"
-                      className={nameInput}
-                    />
-                  </View>
-                  <View className="flex-1 gap-2">
-                    <Portrait
-                      side="Opponent"
-                      legend={opponentLegend}
-                      emptyLabel="Their legend"
-                      emptyHint={legendsAvailable ? 'Tap to choose' : 'Card list not loaded'}
-                      onPress={() => legendsAvailable && setSheet('them')}
-                    />
-                    <TextInput
-                      value={p2Name}
-                      onChangeText={setP2Name}
-                      placeholder="Opponent name"
-                      returnKeyType="done"
-                      accessibilityLabel="Opponent name"
-                      className={nameInput}
-                    />
-                  </View>
-                  <View
-                    pointerEvents="none"
-                    style={{
-                      width: VS_SIZE,
-                      height: VS_SIZE,
-                      top: PORTRAIT_H / 2 - VS_SIZE / 2,
-                      left: '50%',
-                      marginLeft: -VS_SIZE / 2,
-                    }}
-                    className="absolute items-center justify-center rounded-full border border-border bg-background"
-                  >
-                    <Text className="font-display-bold text-[13px] text-ink-primary">VS</Text>
-                  </View>
-                </View>
-
-                {signedIn && (
-                  <View className="mt-6">
-                    <Label
-                      hint="Optional"
-                      action={
-                        deck
-                          ? {
-                              label: 'Clear',
-                              a11y: 'Clear your deck',
-                              onPress: () => {
-                                Haptics.selectionAsync();
-                                setDeck(null);
-                              },
-                            }
-                          : undefined
-                      }
-                    >
-                      Your deck
-                    </Label>
-                    <DeckPicker
-                      value={deck}
-                      onChange={setDeck}
-                      defaultDeckId={profile?.defaultDeckId ?? null}
-                      preselect
-                    />
-                  </View>
-                )}
-
-                <View className="mt-6">
-                  <Label>Format</Label>
-                  <Segmented<1 | 3>
-                    options={[
-                      { value: 1, label: 'Best of 1' },
-                      { value: 3, label: 'Best of 3' },
-                    ]}
-                    value={bestOf}
-                    onChange={setBestOf}
-                  />
-                </View>
-
-                {/* One clock covers the whole match — for a Bo3 the length of the
-                round — and keeps running between games and into overtime. */}
-                <View className="mt-6">
-                  <Label hint={clock === 'off' ? undefined : 'One clock for the whole match'}>
-                    Clock
-                  </Label>
-                  <Segmented<Clock>
-                    options={[
-                      { value: 'off', label: 'Off' },
-                      ...TIME_PRESETS.map((m) => ({
-                        value: m,
-                        label: `${m} min`,
-                      })),
-                      { value: 'custom', label: 'Custom' },
-                    ]}
-                    value={clock}
-                    onChange={pickClock}
-                  />
-                  <Reveal open={clock === 'custom'}>
-                    <View className="pt-2">
-                      <DurationPicker
-                        minutes={custom.minutes}
-                        seconds={custom.seconds}
-                        onChange={setCustom}
+                {/* A tap on the sheet anywhere but a control or a field
+                    puts the keyboard away too (most of the sheet is
+                    buttons, which keep it up). */}
+                <Pressable accessible={false} onPress={Keyboard.dismiss}>
+                  {/* The matchup: you left (p1), them right, VS between. */}
+                  <View className="relative flex-row gap-3">
+                    <View className="flex-1 gap-2">
+                      <Portrait
+                        side="You"
+                        legend={shownYourLegend}
+                        caption={deckChosen && deck ? `From ${deck.name}` : undefined}
+                        emptyLabel="Your legend"
+                        emptyHint={signedIn ? 'Optional · or pick a deck' : 'Optional'}
+                        onPress={() => setSheet('you')}
+                      />
+                      <TextInput
+                        value={p1Name}
+                        onChangeText={setP1Name}
+                        placeholder="Your name"
+                        returnKeyType="next"
+                        submitBehavior="submit"
+                        onSubmitEditing={() => opponentNameRef.current?.focus()}
+                        accessibilityLabel="Your name"
+                        className={nameInput}
                       />
                     </View>
-                  </Reveal>
-                </View>
+                    <View className="flex-1 gap-2">
+                      <Portrait
+                        side="Opponent"
+                        legend={opponentLegend}
+                        emptyLabel="Their legend"
+                        emptyHint={legendsAvailable ? 'Tap to choose' : 'Card list not loaded'}
+                        onPress={() => legendsAvailable && setSheet('them')}
+                      />
+                      <TextInput
+                        ref={opponentNameRef}
+                        value={p2Name}
+                        onChangeText={setP2Name}
+                        placeholder="Opponent name"
+                        returnKeyType="done"
+                        accessibilityLabel="Opponent name"
+                        className={nameInput}
+                      />
+                    </View>
+                    <View
+                      pointerEvents="none"
+                      style={{
+                        width: VS_SIZE,
+                        height: VS_SIZE,
+                        top: PORTRAIT_H / 2 - VS_SIZE / 2,
+                        left: '50%',
+                        marginLeft: -VS_SIZE / 2,
+                      }}
+                      className="absolute items-center justify-center rounded-full border border-border bg-background"
+                    >
+                      <Text className="font-display-bold text-[13px] text-ink-primary">VS</Text>
+                    </View>
+                  </View>
+
+                  {signedIn && (
+                    <View className="mt-6">
+                      <Label
+                        hint="Optional"
+                        action={
+                          deck
+                            ? {
+                                label: 'Clear',
+                                a11y: 'Clear your deck',
+                                onPress: () => {
+                                  Haptics.selectionAsync();
+                                  setDeck(null);
+                                },
+                              }
+                            : undefined
+                        }
+                      >
+                        Your deck
+                      </Label>
+                      <DeckPicker
+                        value={deck}
+                        onChange={setDeck}
+                        defaultDeckId={profile?.defaultDeckId ?? null}
+                        preselect
+                      />
+                    </View>
+                  )}
+
+                  <View className="mt-6">
+                    <Label>Format</Label>
+                    <Segmented<1 | 3>
+                      options={[
+                        { value: 1, label: 'Best of 1' },
+                        { value: 3, label: 'Best of 3' },
+                      ]}
+                      value={bestOf}
+                      onChange={setBestOf}
+                    />
+                  </View>
+
+                  {/* One clock covers the whole match — for a Bo3 the length of the
+                  round — and keeps running between games and into overtime. */}
+                  <View className="mt-6">
+                    <Label hint={clock === 'off' ? undefined : 'One clock for the whole match'}>
+                      Clock
+                    </Label>
+                    <Segmented<Clock>
+                      options={[
+                        { value: 'off', label: 'Off' },
+                        ...TIME_PRESETS.map((m) => ({
+                          value: m,
+                          label: `${m} min`,
+                        })),
+                        { value: 'custom', label: 'Custom' },
+                      ]}
+                      value={clock}
+                      onChange={pickClock}
+                    />
+                    <Reveal open={clock === 'custom'}>
+                      <View className="pt-2">
+                        <DurationPicker
+                          minutes={custom.minutes}
+                          seconds={custom.seconds}
+                          onChange={setCustom}
+                        />
+                      </View>
+                    </Reveal>
+                  </View>
+                </Pressable>
               </ScrollView>
 
               {/* Pinned, so Start is always in reach. Disabled while something

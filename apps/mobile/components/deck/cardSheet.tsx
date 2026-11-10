@@ -82,7 +82,9 @@ const Heading = ({ children }: { children: React.ReactNode }) => (
 const Stat = ({ label, a11y, children }: { label: string; a11y: string; children: React.ReactNode }) => (
   <View accessible accessibilityLabel={a11y} className="flex-1 items-center">
     <Text className="text-[13px] text-ink-secondary">{label}</Text>
-    <View className="mt-1 h-9 flex-row items-center justify-center gap-1">{children}</View>
+    {/* At least, not exactly, h-9: the 30pt numeral is taller than that
+        (h-9 is 31.5pt on native) and Android clips what spills over. */}
+    <View className="mt-1 min-h-9 flex-row items-center justify-center gap-1">{children}</View>
   </View>
 );
 
