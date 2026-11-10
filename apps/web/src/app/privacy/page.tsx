@@ -102,8 +102,8 @@ export default function PrivacyPage() {
         was never linked to your account.
       </p>
       <p>
-        Can&apos;t use the app? Email <Fill value={OPERATOR.email} /> and
-        I&apos;ll delete your account within 30 days. Email the same address to
+        Can&apos;t use the app? Email <Fill value={OPERATOR.email} />{" "}
+        and I&apos;ll delete your account within 30 days. Email the same address to
         leave the waitlist, or to get a copy of, correct or limit your data. You
         can also complain to a data protection authority, such as{" "}
         <Fill value={OPERATOR.supervisoryAuthority} />.
