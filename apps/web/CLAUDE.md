@@ -136,7 +136,8 @@ dev client flash a blue "Refreshing…" banner — cut around it.
   (2026-11-10). Prefer cutting a feature from the page over adding a
   screen. Copy never names third-party sites (deck builders etc.).
   **The hero shows both scoring modes** (owner, 2026-11-10): a Detailed /
-  Simple switch (`ModeSwitch`) under the hero phone crossfades between
+  Simple switch (`ModeSwitch`, centred above the hero phone, no caption —
+  the board shows the difference) crossfades between
   `board` / `board-simple` upright and `board-landscape` /
   `board-simple-landscape` sideways — the same moment (game 2 vs Alex,
   5–3) in both modes, so only the controls change. Retake them as a set.
