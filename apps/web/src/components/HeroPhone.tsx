@@ -96,6 +96,8 @@ function ModeShots({
 /** The quarter turn (`.phone-turn` in globals.css) and the box's resize, in ms. */
 const TURN_MS = 700;
 const RESIZE_MS = 450;
+/** The button pops in this long before the phone's entrance ends. */
+const POP_LEAD_MS = 350;
 /** Below Tailwind's `lg`, where the box changes height (above it, it's fixed). */
 const NARROW = "(max-width: 1023.98px)";
 export function HeroPhone() {
@@ -109,26 +111,22 @@ export function HeroPhone() {
   useEffect(() => () => window.clearTimeout(settleTimer.current), []);
 
   // On load, one thing after the other: the phone rises into place (the
-  // hero's `.animate-rise` around it), then the turn button pops in. Waits on
-  // the real animation rather than a guessed delay; with reduced motion there
-  // is none, so it shows at once.
+  // hero's `.animate-rise` around it), then the turn button pops in — timed
+  // off the real animation, starting just before its slow tail ends, when the
+  // phone already looks settled. With reduced motion there is none, so it
+  // shows at once.
   const wrapRef = useRef<HTMLDivElement>(null);
   const [entered, setEntered] = useState(false);
   useEffect(() => {
     const rise = wrapRef.current?.closest(".animate-rise");
-    const animations = rise?.getAnimations() ?? [];
-    let cancelled = false;
-    let timer: number | undefined;
-    Promise.all(animations.map((a) => a.finished))
-      .catch(() => undefined)
-      .then(() => {
-        if (cancelled) return;
-        timer = window.setTimeout(() => setEntered(true), animations.length ? 80 : 0);
-      });
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
+    const animation = rise?.getAnimations()[0];
+    const timing = animation?.effect?.getComputedTiming();
+    const left =
+      typeof timing?.endTime === "number" && typeof animation?.currentTime === "number"
+        ? timing.endTime - animation.currentTime
+        : 0;
+    const timer = window.setTimeout(() => setEntered(true), Math.max(0, left - POP_LEAD_MS));
+    return () => window.clearTimeout(timer);
   }, []);
   const [sizes, setSizes] = useState<{ p: Size; l: Size } | null>(null);
   const [narrow, setNarrow] = useState(false);
@@ -264,12 +262,12 @@ export function HeroPhone() {
                 }
               : undefined
           }
-          // Hiding is instant (it moves while hidden); showing is a quick
-          // pop with a little overshoot.
+          // Hiding is instant (it moves while hidden); showing replays the
+          // `.animate-pop` keyframes each time the class comes back.
           className={`absolute -right-3 -top-3 z-10 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-elevated text-accent-soft shadow-accent-btn hover:bg-surface hover:text-ink-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none ${
             turning || !entered
-              ? "pointer-events-none scale-50 opacity-0 transition-none"
-              : "scale-100 opacity-100 transition-[transform,opacity,color,background-color] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+              ? "pointer-events-none opacity-0"
+              : "animate-pop transition-colors"
           }`}
         >
           <Icon size={20} strokeWidth={2} aria-hidden />
