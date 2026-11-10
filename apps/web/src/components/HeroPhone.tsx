@@ -101,6 +101,12 @@ const NARROW = "(max-width: 1023.98px)";
 export function HeroPhone() {
   const [landscape, setLandscape] = useState(false);
   const [mode, setMode] = useState<ScoringMode>("detailed");
+  // The turn button hides while the phone turns and pops back in at its new
+  // corner once the phone is in place (sliding along with the turn looked
+  // like it was dragging the phone).
+  const [turning, setTurning] = useState(false);
+  const settleTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(settleTimer.current), []);
   const [sizes, setSizes] = useState<{ p: Size; l: Size } | null>(null);
   const [narrow, setNarrow] = useState(false);
   const portraitRef = useRef<HTMLDivElement>(null);
@@ -142,6 +148,19 @@ export function HeroPhone() {
   // landscape turned back stands as tall as the portrait one.
   const toLandscape = sizes ? sizes.l.w / sizes.p.h : 1;
   const toPortrait = sizes ? sizes.p.h / sizes.l.w : 1;
+
+  const turn = () => {
+    if (turning) return;
+    setLandscape((on) => !on);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // In place after the turn — and, on phones, after the resize too.
+    setTurning(true);
+    window.clearTimeout(settleTimer.current);
+    settleTimer.current = window.setTimeout(
+      () => setTurning(false),
+      TURN_MS + (narrow ? RESIZE_MS : 0) + 50,
+    );
+  };
 
   const Icon = landscape ? RotateCw : RotateCcw;
   const label = landscape ? "Show the board upright" : "Show the board sideways";
@@ -203,11 +222,13 @@ export function HeroPhone() {
           </div>
         </div>
 
-        {/* Pinned to the top-right corner of whichever frame is showing; it
-            glides there alongside the turn. */}
+        {/* Pinned to the top-right corner of whichever frame is showing.
+            Gone while the phone turns, then it pops in at the new corner. */}
         <button
           type="button"
-          onClick={() => setLandscape((on) => !on)}
+          onClick={turn}
+          // Not `disabled`: that would drop keyboard focus mid-turn.
+          aria-disabled={turning}
           aria-label={label}
           aria-pressed={landscape}
           title={label}
@@ -216,12 +237,16 @@ export function HeroPhone() {
               ? {
                   top: `calc(50% - ${(landscape ? sizes.l.h : sizes.p.h) / 2}px - 12px)`,
                   right: `calc(50% - ${(landscape ? sizes.l.w : sizes.p.w) / 2}px - 12px)`,
-                  // It glides with the turn, so it waits for it too.
-                  transitionDelay: `${turnDelay}ms, ${turnDelay}ms, 0ms, 0ms`,
                 }
               : undefined
           }
-          className="absolute -right-3 -top-3 z-10 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-elevated text-accent-soft shadow-accent-btn transition-[top,right,color,background-color] duration-700 ease-[cubic-bezier(0.65,0,0.35,1)] hover:bg-surface hover:text-ink-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
+          // Hiding is instant (it moves while hidden); showing is a quick
+          // pop with a little overshoot.
+          className={`absolute -right-3 -top-3 z-10 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-elevated text-accent-soft shadow-accent-btn hover:bg-surface hover:text-ink-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none ${
+            turning
+              ? "pointer-events-none scale-50 opacity-0 transition-none"
+              : "scale-100 opacity-100 transition-[transform,opacity,color,background-color] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+          }`}
         >
           <Icon size={20} strokeWidth={2} aria-hidden />
         </button>
