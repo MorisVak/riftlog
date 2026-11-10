@@ -3,8 +3,10 @@ import { Wordmark } from "./Wordmark";
 import { CoffeeLink } from "./CoffeeLink";
 
 const NAV_LINKS = [
-  { href: "/#before", label: "Features" },
-  { href: "/#coming-later", label: "Coming later" },
+  { href: "/#before", label: "Decks" },
+  { href: "/#table", label: "Scoring" },
+  { href: "/#after", label: "History" },
+  { href: "/#coming-later", label: "Roadmap" },
 ];
 
 export function SiteHeader() {

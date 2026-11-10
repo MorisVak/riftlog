@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { PhoneFrame } from "./PhoneFrame";
 import { Reveal } from "./Reveal";
 import type { ScreenshotName } from "./screenshots.generated";
@@ -11,7 +12,7 @@ export type BeatShot = { shot: ScreenshotName; alt: string; caption: string };
  * narrow screen half the content width (minus the gap), so two phones always
  * fit side by side. Never cut a phone off at the edge, never size by count.
  */
-const PHONE_W =
+export const PHONE_W =
   "w-[min(250px,calc((100vw-3.5rem)/2))] sm:w-[min(250px,calc((100vw-5.5rem)/2))]";
 
 /**
@@ -27,7 +28,8 @@ export function Beat({
   title,
   intro,
   points,
-  shots,
+  shots = [],
+  media,
   flip = false,
 }: {
   id: string;
@@ -35,7 +37,9 @@ export function Beat({
   title: string;
   intro: string;
   points: BeatPoint[];
-  shots: BeatShot[];
+  shots?: BeatShot[];
+  /** In place of the phone row: something interactive (still `PHONE_W` wide). */
+  media?: ReactNode;
   /** Phones on the left, text on the right. */
   flip?: boolean;
 }) {
@@ -77,23 +81,27 @@ export function Beat({
           </dl>
         </div>
 
-        <Reveal group className={flip ? "lg:order-1" : undefined}>
-          <ul className="flex justify-center gap-4 sm:gap-6">
-            {shots.map(({ shot, alt, caption }, i) => (
-              <li
-                key={shot}
-                data-reveal-child
-                style={{ transitionDelay: `${i * 140}ms` }}
-                className={`${PHONE_W} shrink-0`}
-              >
-                <PhoneFrame shot={shot} alt={alt} />
-                <p className="mt-4 text-center font-display text-sm text-ink-secondary">
-                  {caption}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </Reveal>
+        {media ? (
+          <Reveal className={flip ? "lg:order-1" : undefined}>{media}</Reveal>
+        ) : (
+          <Reveal group className={flip ? "lg:order-1" : undefined}>
+            <ul className="flex justify-center gap-4 sm:gap-6">
+              {shots.map(({ shot, alt, caption }, i) => (
+                <li
+                  key={shot}
+                  data-reveal-child
+                  style={{ transitionDelay: `${i * 140}ms` }}
+                  className={`${PHONE_W} shrink-0`}
+                >
+                  <PhoneFrame shot={shot} alt={alt} />
+                  <p className="mt-4 text-center font-display text-sm text-ink-secondary">
+                    {caption}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+        )}
       </div>
     </section>
   );

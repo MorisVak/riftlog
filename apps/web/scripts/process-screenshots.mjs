@@ -53,6 +53,11 @@ const SHOTS = {
   home: {},
   setup: {},
   board: {},
+  // The same moment on the simple board (− / + beside each score). The
+  // board's art is identical in both modes, so the raw file's status-bar
+  // strip (top 170px) is copied from board.png, which has none — painting it
+  // out left flat patches over the art. See "ScoringModes" in CLAUDE.md.
+  "board-simple": {},
   // The board held sideways. Captured with cmd+← in the Simulator, so the
   // island is at the top of the raw file and the content turns upright
   // counter-clockwise (270°); a cmd+→ capture would need 90.

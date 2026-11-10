@@ -1,4 +1,5 @@
-import { Beat } from "./Beat";
+import { Beat, PHONE_W } from "./Beat";
+import { ScoringModes } from "./ScoringModes";
 
 /** Beat 1: your decks and the match setup. */
 export function BeforeSection() {
@@ -38,7 +39,7 @@ export function BeforeSection() {
   );
 }
 
-/** Beat 2: the score board. */
+/** Beat 2: the score board, in both scoring modes. */
 export function TableSection() {
   return (
     <Beat
@@ -49,25 +50,19 @@ export function TableSection() {
       intro="Each half of the board belongs to one player, with their legend behind the score."
       points={[
         {
-          title: "Score each point",
-          body: "Tap Conquer, Hold or Special. Prefer a plain counter? Switch to + and − in your profile.",
+          title: "Detailed or simple",
+          body: "Score each point as Conquer, Hold or Special, or keep a plain + / − count. Pick one in your profile.",
         },
         {
           title: "Take it back",
-          body: "A mis-tap? Tap the score to undo the last point.",
+          body: "A mis-tap? Tap the score, or − on the simple board, to undo the last point.",
         },
         {
           title: "You end the game",
           body: "Tap the winner, so a stray tap can't end it. In a Bo3, Riftlog tracks the series.",
         },
       ]}
-      shots={[
-        {
-          shot: "board",
-          alt: "The score board mid-game: 5 to 3, Riven behind your half and Akali behind theirs, with Conquer, Hold and Special under each score",
-          caption: "Score board",
-        },
-      ]}
+      media={<ScoringModes phoneClass={PHONE_W} />}
     />
   );
 }
