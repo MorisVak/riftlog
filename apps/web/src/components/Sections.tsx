@@ -44,6 +44,7 @@ export function TableSection() {
     <Beat
       id="table"
       flip
+      texture="hex"
       eyebrow="At the table"
       title="One phone between you"
       intro="Each half of the board belongs to one player, with their legend behind the score."
@@ -77,6 +78,7 @@ export function AfterSection() {
   return (
     <Beat
       id="after"
+      texture="ruled"
       eyebrow="After the match"
       title="Every match, kept"
       intro="Finished matches are saved to your history, ready when you want to look back."

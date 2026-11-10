@@ -1,4 +1,4 @@
-import { Backdrop } from "./Backdrop";
+import { Backdrop, type Texture } from "./Backdrop";
 import { PhoneFrame } from "./PhoneFrame";
 import { Reveal } from "./Reveal";
 import type { ScreenshotName } from "./screenshots.generated";
@@ -30,6 +30,7 @@ export function Beat({
   points,
   shots,
   flip = false,
+  texture = "dots",
 }: {
   id: string;
   eyebrow: string;
@@ -39,6 +40,8 @@ export function Beat({
   shots: BeatShot[];
   /** Phones on the left, text on the right. */
   flip?: boolean;
+  /** The background texture (see Backdrop). */
+  texture?: Texture;
 }) {
   return (
     <section
@@ -46,7 +49,7 @@ export function Beat({
       className="relative scroll-mt-20 overflow-hidden border-t border-border/60"
     >
       {/* The grid behind the phones, so it alternates with them. */}
-      <Backdrop at={flip ? "left" : "right"} />
+      <Backdrop at={flip ? "left" : "right"} texture={texture} />
       <div
         className={`relative mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 px-5 py-20 sm:px-8 lg:gap-16 lg:py-28 ${
           flip ? "lg:grid-cols-[3fr_2fr]" : "lg:grid-cols-[2fr_3fr]"

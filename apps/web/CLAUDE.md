@@ -82,13 +82,18 @@ Rules (inherited from mobile):
 
 ### Background structure
 
-Sections carry the roadmap's background — a faint dot grid with a soft
-accent glow, fading out toward the edges (`Backdrop`; the owner likes having
-structure in the background, 2026-11-10). Its focus follows the section's
-picture: `right` / `left` behind the phones (beats alternate with them, the
-hero's sits behind its phone and keeps its own glow), `center` for the
+Sections carry a faint background texture with a soft accent glow, fading
+out toward the edges (`Backdrop`; the owner likes structure in the
+background — any texture, as long as it isn't noisy, 2026-11-10). Each
+texture means something where it sits: graph paper behind the hero (a score
+sheet), lines at the versus cut's 11° behind the face-off, dots for Before
+the match, the roadmap and the waitlist, a honeycomb at the table (the
+logo's hexagon, the series pips), ruled lines after the match (a log).
+Always the `border` token, kept faint (lines fainter than dots). Its focus
+follows the section's picture: `right` / `left` behind the phones (beats
+alternate with them; the hero keeps its own glow), `center` for the
 face-off and the roadmap, `frame` (wide) around the waitlist card. The thin
-details strip has none. Keep it faint — structure, not decoration.
+details strip has none.
 
 ### Motion
 
